@@ -85,50 +85,58 @@ function rays(g, x, y, r, n, col) {
   g.restore();
 }
 
-// ----- channel art (node brand.js): out/profile.png (1024x1024) and out/banner.png (2560x1440), in the Army Clash style
-// (a soft red ray-burst background, troops drawn from above with their shine) -----
-async function channelArt(outDir) {
+// ----- channel art (node brand.js): profile (1024x1024) and banner (2560x1440) for both channels, built by the same rules:
+// a ray-burst background in the channel's colour, one shiny troop in the middle of the profile picture (same size and angle),
+// and on the banner six troops evenly spaced and faded behind the channel name (same font, size and spacing) -----
+const THEMES = {
+  tower: { name: 'TOWER CLASH', file: '', teams: ['GOLD', 'PURPLE'], bg: ['#8B6CF0', '#A58BF5', '#C9B8FB'], shadow: 'rgba(30,10,60,0.35)',
+    hero: ['siegegolem', 1],
+    row: [['siegegolem', 0, 0.4, 250], ['longbow', 1, -0.7, 230], ['magmacolossus', 0, -0.5, 250], ['frostwitch', 1, 0.6, 210], ['spiderqueen', 0, 0.5, 240], ['ironhorn', 1, -0.6, 250]] },
+  army: { name: 'ARMY CLASH', file: 'army-', teams: ['RED', 'BLUE'], bg: ['#6FB2EA', '#86C3F0', '#B4DDF8'], shadow: 'rgba(10,30,60,0.35)',
+    hero: ['titan', 1],
+    row: [['livingfortress', 0, 0.4, 250], ['acidwyrm', 1, -0.5, 230], ['hydra', 0, -0.5, 250], ['stormcolossus', 1, 0.6, 230], ['titan', 0, 0.5, 250], ['ironhorn', 1, -0.6, 250]] },
+};
+async function channelArt(outDir, which) {
   const { createCanvas, registerFont } = require('canvas');
   registerFont(path.join(__dirname, 'fonts/BarlowCondensed-ExtraBoldItalic.ttf'), { family: 'Barlow Condensed', weight: '800', style: 'italic' });
   registerFont(path.join(__dirname, 'fonts/BarlowCondensed-Bold.ttf'), { family: 'Barlow Condensed', weight: '700', style: 'normal' });
   const RVB = require('./engine.js');
   RVB.makeCanvas = (w, h) => createCanvas(w, h);
-  RVB.setTeams('GOLD', 'PURPLE');
-  const game = new RVB.Army(7, { map: 'open', target: 30, shine: { on: true, gloss: 1, rim: 1 }, anim: true, art: 2 });
   const fs = require('fs');
   fs.mkdirSync(outDir, { recursive: true });
-  // the background: a soft violet gradient with pale rays from the centre (Army Clash uses sky blue; Tower Clash is violet)
-  const burst = (g, W, H, cx, cy) => {
-    const lg = g.createLinearGradient(0, 0, W * 0.3, H); lg.addColorStop(0, '#8B6CF0'); lg.addColorStop(0.55, '#A58BF5'); lg.addColorStop(1, '#C9B8FB');
-    g.fillStyle = lg; g.fillRect(0, 0, W, H);
-    rays(g, cx, cy, Math.hypot(W, H), 36, 'rgba(255,255,255,0.13)');
-    const rg = g.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.7); rg.addColorStop(0, 'rgba(255,255,255,0.14)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = rg; g.fillRect(0, 0, W, H);
-  };
-  // a troop drawn so its body is about `size` px across, whatever its real size
-  const portrait = (g, type, team, x, y, size, rot) => { const s = size / 2 / RVB.UNIT[type].r; g.save(); g.translate(x, y); g.scale(s, s); g.rotate(rot || 0); game.drawPortrait(g, type, team); g.restore(); };
-  // profile picture: one shiny troop, big, in the middle
-  {
-    const S = 1024, c = createCanvas(S, S), g = c.getContext('2d');
-    burst(g, S, S, S / 2, S / 2);
-    portrait(g, 'siegegolem', 1, S / 2, S / 2 + 10, 540, 0.45);
-    fs.writeFileSync(path.join(outDir, 'profile.png'), c.toBuffer('image/png'));
-  }
-  // banner: six Tower Clash troops evenly spaced across, faded, with the name over the middle (as on Army Clash's banner)
-  {
-    const W = 2560, H = 1440, c = createCanvas(W, H), g = c.getContext('2d');
-    burst(g, W, H, W / 2, H / 2);
-    const row = [['siegegolem', 0, 0.4, 250], ['longbow', 1, -0.7, 230], ['magmacolossus', 0, -0.5, 250], ['frostwitch', 1, 0.6, 210], ['spiderqueen', 0, 0.5, 240], ['ironhorn', 1, -0.6, 250]];
-    const gap = W / row.length;
-    row.forEach(([k, tm, r, size], i) => { g.save(); g.globalAlpha = 0.55; portrait(g, k, tm, gap * (i + 0.5), H / 2 - 10, size, r); g.restore(); });
-    g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = font(190, 800); if ('letterSpacing' in g) g.letterSpacing = '4px';
-    g.shadowColor = 'rgba(30,10,60,0.35)'; g.shadowBlur = 30; g.shadowOffsetY = 10;
-    outlineText(g, 'TOWER CLASH', W / 2, H / 2, WHITE, INK, 26);
-    g.shadowColor = 'transparent';
-    if ('letterSpacing' in g) g.letterSpacing = '0px';
-    fs.writeFileSync(path.join(outDir, 'banner.png'), c.toBuffer('image/png'));
+  for (const key of which) {
+    const T = THEMES[key];
+    RVB.setTeams(T.teams[0], T.teams[1]);
+    const game = new RVB.Army(7, { map: 'open', target: 30, shine: { on: true, gloss: 1, rim: 1 }, anim: true, art: 2 });
+    const burst = (g, W, H, cx, cy) => {
+      const lg = g.createLinearGradient(0, 0, W * 0.3, H); lg.addColorStop(0, T.bg[0]); lg.addColorStop(0.55, T.bg[1]); lg.addColorStop(1, T.bg[2]);
+      g.fillStyle = lg; g.fillRect(0, 0, W, H);
+      rays(g, cx, cy, Math.hypot(W, H), 36, 'rgba(255,255,255,0.13)');
+      const rg = g.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.7); rg.addColorStop(0, 'rgba(255,255,255,0.14)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = rg; g.fillRect(0, 0, W, H);
+    };
+    // a troop drawn so its body is about `size` px across, whatever its real size
+    const portrait = (g, type, team, x, y, size, rot) => { const s = size / 2 / RVB.UNIT[type].r; g.save(); g.translate(x, y); g.scale(s, s); g.rotate(rot || 0); game.drawPortrait(g, type, team); g.restore(); };
+    {
+      const S = 1024, c = createCanvas(S, S), g = c.getContext('2d');
+      burst(g, S, S, S / 2, S / 2);
+      portrait(g, T.hero[0], T.hero[1], S / 2, S / 2 + 10, 540, 0.45);
+      fs.writeFileSync(path.join(outDir, T.file + 'profile.png'), c.toBuffer('image/png'));
+    }
+    {
+      const W = 2560, H = 1440, c = createCanvas(W, H), g = c.getContext('2d');
+      burst(g, W, H, W / 2, H / 2);
+      const gap = W / T.row.length;
+      T.row.forEach(([k, tm, r, size], i) => { g.save(); g.globalAlpha = 0.55; portrait(g, k, tm, gap * (i + 0.5), H / 2 - 10, size, r); g.restore(); });
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = font(190, 800); if ('letterSpacing' in g) g.letterSpacing = '4px';
+      g.shadowColor = T.shadow; g.shadowBlur = 30; g.shadowOffsetY = 10;
+      outlineText(g, T.name, W / 2, H / 2, WHITE, INK, 26);
+      g.shadowColor = 'transparent';
+      if ('letterSpacing' in g) g.letterSpacing = '0px';
+      fs.writeFileSync(path.join(outDir, T.file + 'banner.png'), c.toBuffer('image/png'));
+    }
   }
 }
 
-if (require.main === module) channelArt(path.join(__dirname, 'out')).then(() => console.log('Channel art: out/profile.png and out/banner.png'));
+if (require.main === module) channelArt(path.join(__dirname, 'out'), process.argv[2] ? [process.argv[2]] : ['tower', 'army']).then(() => console.log('Channel art written to out/'));
 module.exports = { drawTowerIcon, drawLogo, rays, RED, RED_D, RED_L, GOLD, INK, WHITE };
