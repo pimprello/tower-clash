@@ -91,7 +91,7 @@ function rays(g, x, y, r, n, col) {
 const THEMES = {
   tower: { name: 'TOWER CLASH', file: '', teams: ['GOLD', 'PURPLE'], bg: ['#8B6CF0', '#A58BF5', '#C9B8FB'], shadow: 'rgba(30,10,60,0.35)',
     hero: ['siegegolem', 1],
-    row: [['siegegolem', 0, 0.4, 250], ['longbow', 1, -0.7, 230], ['magmacolossus', 0, -0.5, 250], ['frostwitch', 1, 0.6, 210], ['spiderqueen', 0, 0.5, 240], ['ironhorn', 1, -0.6, 250]] },
+    row: [['spiderqueen', 0, 0.5, 240], ['magmacolossus', 1, -0.5, 250], ['longbow', 0, -0.7, 230], ['frostwitch', 1, 0.6, 210], ['siegegolem', 0, 0.4, 250], ['ironhorn', 1, -0.6, 250]] },
   army: { name: 'ARMY CLASH', file: 'army-', teams: ['RED', 'BLUE'], bg: ['#6FB2EA', '#86C3F0', '#B4DDF8'], shadow: 'rgba(10,30,60,0.35)',
     hero: ['titan', 1],
     row: [['livingfortress', 0, 0.4, 250], ['acidwyrm', 1, -0.5, 230], ['hydra', 0, -0.5, 250], ['stormcolossus', 1, 0.6, 230], ['titan', 0, 0.5, 250], ['ironhorn', 1, -0.6, 250]] },
