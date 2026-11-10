@@ -120,7 +120,14 @@ async function channelArt(outDir, which) {
     {
       const S = 1024, c = createCanvas(S, S), g = c.getContext('2d');
       burst(g, S, S, S / 2, S / 2);
-      portrait(g, T.hero[0], T.hero[1], S / 2, S / 2 + 10, 540, 0.45);
+      // drawn once off-screen first to find where the troop's pixels really are, so its visible middle sits in the middle
+      // of the picture (a troop's drawing isn't always centred on its body: hands, heads and weapons stick out)
+      const off = createCanvas(S, S), og = off.getContext('2d');
+      portrait(og, T.hero[0], T.hero[1], S / 2, S / 2, 540, 0.45);
+      const px = og.getImageData(0, 0, S, S).data;
+      let x0 = S, y0 = S, x1 = 0, y1 = 0;
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) if (px[(y * S + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      g.drawImage(off, S / 2 - (x0 + x1) / 2, S / 2 - (y0 + y1) / 2);
       fs.writeFileSync(path.join(outDir, T.file + 'profile.png'), c.toBuffer('image/png'));
     }
     {
