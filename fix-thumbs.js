@@ -17,6 +17,7 @@ const dir = path.join(__dirname, 'thumbs');
     const id = f.slice(0, -4);
     const r = await fetch(`https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${encodeURIComponent(id)}&uploadType=media`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'image/jpeg' }, body: fs.readFileSync(path.join(dir, f)) });
     if (r.ok) { fs.rmSync(path.join(dir, f)); console.log(`Thumbnail set on older video ${id}.`); }
+    else if (r.status === 404) { fs.rmSync(path.join(dir, f)); console.log(`YouTube won't take a thumbnail for ${id} (posted before the channel was verified); given up on it.`); }
     else console.log(`::warning title=Older thumbnail not set::${id}: ${r.status} ${(await r.text()).replace(/\s+/g, ' ').slice(0, 200)}`);
   }
 })().catch(e => console.log(`::warning title=fix-thumbs::${String(e.message).slice(0, 300)}`));
