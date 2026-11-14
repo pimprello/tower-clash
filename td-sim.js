@@ -795,7 +795,7 @@ const SIM = {
       if (!u.gone && !u.fly && u.lane !== undefined && !u.summoned) { this.fallenSpots.push({ x: u.x, y: u.y, lane: u.lane, s: u.s || 0 }); if (this.fallenSpots.length > 30) this.fallenSpots.shift(); }
       const g = Math.round(this.bounty(u));
       this.coins.push({ x: u.x, y: u.y, t0: this.t, g, x1: 0, y1: 0 });
-      this.killLog.push(this.t); if (this.killLog.length > 60) this.killLog.shift();
+      this.killLog.push(this.t); if (this.killLog.length > 60) { this.killLog.shift(); this.killLogShifted = (this.killLogShifted || 0) + 1; }
       this.gold += g;
       // the tower that made the kill
       const tw = from && from.tw ? from.tw : from && from.owner && from.owner.tw ? from.owner.tw : null;
