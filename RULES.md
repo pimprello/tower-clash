@@ -2,7 +2,8 @@
 
 | Rule | What it does |
 | --- | --- |
-| `schedule.hours` | London-time hours a scheduled run may post at (12 even hours). Don't add more without Rellz asking. |
+| `schedule.hours` | London-time hours a scheduled run may post at (4 a day: 12, 16, 19, 22). Don't add more without Rellz asking. |
+| `quality` | `candidates`: how many battles `pick-seed.js` tries before keeping the most dramatic; `fine`: a finer search for the close finish. |
 | `schedule.windowMinutes` | How late after a slot a run may still post (GitHub's timer is often late). |
 | `video.scale` | 2 = 4K (2160x3840), 1 = 1080x1920. |
 | `video.fightSeconds` / `outroSeconds` | The battle is paced to end near `fightSeconds`; the video ends `outroSeconds` later. |

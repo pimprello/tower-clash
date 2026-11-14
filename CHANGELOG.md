@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-14 (late): 4 a day, top quality
+- Rellz: 4 uploads a day, each very high quality. Posts at 12:00, 16:00, 19:00 and 22:00 London time (was 12 a day).
+- Each post is the most dramatic of 5 candidate battles (closest, latest finish, towers falling), with a finer search for the close finish (`pick-seed.js`, `rules.quality`).
+
 ## 2026-11-14 (night): music and five things for retention
 Rellz: "add background music to both army and tower clash and 5 more cool things you think will increase view retention".
 - **Music** (`rules.music`, `music.js`, the same file as in Army Clash): an original soundtrack for every video, written from the seed (epic or ancient style, 120-140 bpm, its own key and chords), ducking under the effects. Nothing licensed or sampled.

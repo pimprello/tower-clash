@@ -2,7 +2,7 @@ name: Post Tower Clash
 
 on:
   schedule:
-    # A Short every 2 hours, on the even hours London time (rules.schedule). GitHub's timer runs in UTC and is often late, so it
+    # 4 Shorts a day at 12:00, 16:00, 19:00 and 22:00 London time (rules.schedule; Rellz 2026-11-14: "4 a day, top quality"). GitHub's timer runs in UTC and is often late, so it
     # wakes every 15 minutes all day (covering summer time too); slot.js lets only the first run after each slot starts post.
     - cron: '3,18,33,48 * * * *'
   workflow_dispatch:
@@ -51,9 +51,11 @@ jobs:
       - run: npm ci
         if: steps.slot.outputs.go == 'yes'
 
-      - name: Make the video (4K 2160x3840, 60 fps, sound)
+      - name: Make the video (best of 5 battles, 4K 2160x3840, 60 fps, sound)
         if: steps.slot.outputs.go == 'yes'
-        run: node render.js
+        run: |
+          node pick-seed.js
+          SEED=$(cat out/seed.txt) POWER=$(cat out/power.txt) node render.js
 
       - name: Upload to YouTube
         if: steps.slot.outputs.go == 'yes'

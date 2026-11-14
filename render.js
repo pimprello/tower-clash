@@ -68,7 +68,7 @@ function quick(power, s) {
 function closeFinish() {
   const want = pick.next() < ((rules.balance || {}).target ?? 0.5) ? 'def' : 'atk';
   const t0 = Date.now(); let best = null;
-  for (let p = 0.6; p <= 5.2; p *= 1.12) {
+  for (let p = 0.6; p <= 5.2; p *= ((rules.quality || {}).fine ? 1.07 : 1.12)) {
     const r = quick(p, seed), side = r.def ? 'def' : 'atk';
     // close: a defenders' win with the base scraped down (about 10-35%), or an attackers' win in the last seconds
     const close = r.def ? 60 - Math.abs(r.hp - 20) * 1.2 + Math.min(r.T, 58) * 0.4 : Math.min(r.T, 59.4) * 1.1;
@@ -76,6 +76,8 @@ function closeFinish() {
     if (!best || sc > best.sc) best = { p, sc, r };
   }
   console.log(`close finish: wanted the ${want === 'def' ? 'defenders' : 'attackers'}; x${best.p.toFixed(2)} gives ${best.r.def ? 'defenders' : 'attackers'} at ${best.r.T.toFixed(1)} s, base ${Math.round(best.r.hp)}% (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+  // how dramatic this battle can be made (for choosing between candidate battles: pick-seed.js)
+  closeFinish.drama = best.sc + (best.r.fell || 0) * 3 + (best.r.T >= 54 ? 10 : 0) - (best.r.T < 48 ? 15 : 0);
   return best.sc > 0 ? best.p : null;
 }
 function tune() {
@@ -117,6 +119,7 @@ async function main() {
   const t0 = Date.now();
   fs.mkdirSync(OUT, { recursive: true });
   const power = process.env.POWER ? Number(process.env.POWER) : (closeFinish() ?? tune());
+  if (process.env.SCORE_ONLY) { fs.writeFileSync(path.join(OUT, `score-${seed}.json`), JSON.stringify({ seed, power, drama: closeFinish.drama ?? 0 })); return; }
   const game = new TD(seed, optsFor(power, seed));
   const director = rules.cinematic !== false ? new TDCam(game, { seed }) : null;
   if (!director) { game.fixedTicks = true; game.tickAcc = 0; }
@@ -243,7 +246,7 @@ async function main() {
     '',
     `Towers in this battle: ${towerNames.join(', ')}.`,
     '',
-    'New tower defense battles every 2 hours: subscribe so you don\'t miss the next one.',
+    'New tower defense battles 4 times a day: subscribe so you don\'t miss the next one.',
     '',
     '#shorts #towerdefense #towerclash #simulation #strategy',
   ].join('\n');

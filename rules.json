@@ -1,7 +1,8 @@
 {
-  "schedule": { "timeZone": "Europe/London", "hours": [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22], "windowMinutes": 110 },
+  "schedule": { "timeZone": "Europe/London", "hours": [12, 16, 19, 22], "windowMinutes": 110 },
   "video": { "scale": 2, "fightSeconds": 60, "outroSeconds": 3 },
   "thumbnail": { "on": true },
+  "quality": { "candidates": 5, "fine": true },
   "cinematic": true,
   "teamPairs": [
     ["GOLD", "PURPLE"], ["BLUE", "RED"], ["CYAN", "MAGENTA"], ["GREEN", "PURPLE"], ["SKY", "CRIMSON"],

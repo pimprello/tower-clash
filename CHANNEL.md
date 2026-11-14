@@ -9,9 +9,9 @@ Channel name: **TOWER CLASH**
 Description:
 
 ```
-TOWER CLASH: a brand-new tower-defence battle every 2 hours. Enemy armies march down the lanes and the towers fight back: archers, cannons, frost witches, dragons and more. Watch a defence hold or break in under a minute, with sound, in 4K.
+TOWER CLASH: a brand-new tower-defence battle 4 times a day. Enemy armies march down the lanes and the towers fight back: archers, cannons, frost witches, dragons and more. Watch a defence hold or break in under a minute, with sound, in 4K.
 
-New Shorts 12 times a day, on the even hours (London time).
+New Shorts at 12:00, 16:00, 19:00 and 22:00 (London time).
 Swipe for the next battle.
 
 GOLD v PURPLE. Every tower. Every wave.
