@@ -736,9 +736,12 @@ const DRAW = {
     // background: violet with rays (the channel's colours)
     const DT = TEAMS[DEF], mixc = (hex, k) => { const n = parseInt(hex.slice(1), 16); return `rgb(${Math.round((n >> 16) * k)},${Math.round(((n >> 8) & 255) * k)},${Math.round((n & 255) * k)})`; };
     // (the defenders' colour: Tower Clash's defenders are always cyan, Rellz 2026-11-14)
-    const lg = ctx.createLinearGradient(0, 0, 0, VH); lg.addColorStop(0, mixc(DT.c, 0.55)); lg.addColorStop(0.5, mixc(DT.c, 0.24)); lg.addColorStop(1, mixc(DT.c, 0.08));
+    const AT = TEAMS[ATK];
+    // a diagonal blend from the defenders' cyan (top left, their tower's side) to the attackers' colour (bottom right, the boss's side)
+    const lg = ctx.createLinearGradient(0, 0, VW, VH); lg.addColorStop(0, mixc(DT.c, 0.78)); lg.addColorStop(0.45, mixc(DT.c, 0.36)); lg.addColorStop(0.55, mixc(AT.c, 0.36)); lg.addColorStop(1, mixc(AT.c, 0.78));
     ctx.fillStyle = lg; ctx.fillRect(0, 0, VW, VH);
-    ctx.save(); ctx.translate(VW / 2, 960); ctx.globalAlpha = 0.1; ctx.fillStyle = DT.l;
+    const dk = ctx.createLinearGradient(0, 0, 0, VH); dk.addColorStop(0, 'rgba(0,0,0,0)'); dk.addColorStop(1, 'rgba(0,0,0,0.35)'); ctx.fillStyle = dk; ctx.fillRect(0, 0, VW, VH);
+    ctx.save(); ctx.translate(VW / 2, 960); ctx.globalAlpha = 0.1; ctx.fillStyle = '#FFFFFF';
     for (let i = 0; i < 18; i++) { ctx.rotate(TAU / 18); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-90, -1500); ctx.lineTo(90, -1500); ctx.closePath(); ctx.fill(); }
     ctx.restore();
     // the battle, framed
