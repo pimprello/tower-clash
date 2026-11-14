@@ -736,15 +736,15 @@ const DRAW = {
     // background: violet with rays (the channel's colours)
     const DT = TEAMS[DEF], mixc = (hex, k) => { const n = parseInt(hex.slice(1), 16); return `rgb(${Math.round((n >> 16) * k)},${Math.round(((n >> 8) & 255) * k)},${Math.round((n & 255) * k)})`; };
     // (the defenders' colour: Tower Clash's defenders are always cyan, Rellz 2026-11-14)
-    const AT = TEAMS[ATK], rgbaOf = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
-    // the defenders' cyan from top to bottom (the channel's look), with a soft touch of the attackers' colour rising from the
-    // bottom right behind the boss, so each thumbnail is a little different but always cyan first
-    const lg = ctx.createLinearGradient(0, 0, 0, VH); lg.addColorStop(0, mixc(DT.c, 0.55)); lg.addColorStop(0.5, mixc(DT.c, 0.24)); lg.addColorStop(1, mixc(DT.c, 0.08));
+    // one colour, taken from the defenders' cyan but not the same: its hue turned a little towards blue and deepened, so the
+    // cyan towers and base stand out against it (Rellz 2026-11-14: "influenced by and complementing the defender colour")
+    const hsl = hex => { const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+      let h = 0; if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [(h * 60 + 360) % 360, d ? d / (1 - Math.abs(2 * l - 1)) : 0, l]; };
+    const [hh, ss] = hsl(DT.c), H = (hh + 22) % 360, S = Math.round(Math.min(0.85, Math.max(0.55, ss)) * 100);
+    const lg = ctx.createLinearGradient(0, 0, 0, VH);
+    lg.addColorStop(0, `hsl(${H},${S}%,30%)`); lg.addColorStop(0.5, `hsl(${H},${S}%,16%)`); lg.addColorStop(1, `hsl(${H},${S}%,7%)`);
     ctx.fillStyle = lg; ctx.fillRect(0, 0, VW, VH);
-    const ag = ctx.createRadialGradient(VW * 0.85, VH * 0.95, 0, VW * 0.85, VH * 0.95, VH * 0.6);
-    ag.addColorStop(0, rgbaOf(AT.c, 0.42)); ag.addColorStop(0.5, rgbaOf(AT.c, 0.14)); ag.addColorStop(1, rgbaOf(AT.c, 0));
-    ctx.fillStyle = ag; ctx.fillRect(0, 0, VW, VH);
-    ctx.save(); ctx.translate(VW / 2, 960); ctx.globalAlpha = 0.1; ctx.fillStyle = '#FFFFFF';
+    ctx.save(); ctx.translate(VW / 2, 960); ctx.globalAlpha = 0.08; ctx.fillStyle = DT.l;
     for (let i = 0; i < 18; i++) { ctx.rotate(TAU / 18); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-90, -1500); ctx.lineTo(90, -1500); ctx.closePath(); ctx.fill(); }
     ctx.restore();
     // the battle, framed
