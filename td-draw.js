@@ -736,11 +736,14 @@ const DRAW = {
     // background: violet with rays (the channel's colours)
     const DT = TEAMS[DEF], mixc = (hex, k) => { const n = parseInt(hex.slice(1), 16); return `rgb(${Math.round((n >> 16) * k)},${Math.round(((n >> 8) & 255) * k)},${Math.round((n & 255) * k)})`; };
     // (the defenders' colour: Tower Clash's defenders are always cyan, Rellz 2026-11-14)
-    const AT = TEAMS[ATK];
-    // a diagonal blend from the defenders' cyan (top left, their tower's side) to the attackers' colour (bottom right, the boss's side)
-    const lg = ctx.createLinearGradient(0, 0, VW, VH); lg.addColorStop(0, mixc(DT.c, 0.78)); lg.addColorStop(0.45, mixc(DT.c, 0.36)); lg.addColorStop(0.55, mixc(AT.c, 0.36)); lg.addColorStop(1, mixc(AT.c, 0.78));
-    ctx.fillStyle = lg; ctx.fillRect(0, 0, VW, VH);
-    const dk = ctx.createLinearGradient(0, 0, 0, VH); dk.addColorStop(0, 'rgba(0,0,0,0)'); dk.addColorStop(1, 'rgba(0,0,0,0.35)'); ctx.fillStyle = dk; ctx.fillRect(0, 0, VW, VH);
+    const AT = TEAMS[ATK], rgbaOf = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+    // a deep night background lit by two soft glows: the defenders' cyan from the top left, the attackers' colour from the
+    // bottom right, meeting in the middle behind the battle
+    ctx.fillStyle = '#070A14'; ctx.fillRect(0, 0, VW, VH);
+    const glow = (x, y, r, col, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, rgbaOf(col, a)); g.addColorStop(0.55, rgbaOf(col, a * 0.45)); g.addColorStop(1, rgbaOf(col, 0)); ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH); };
+    glow(-80, 220, 1350, DT.c, 0.95);
+    glow(VW + 80, VH - 220, 1350, AT.c, 0.95);
+    glow(VW / 2, 980, 700, '#FFFFFF', 0.08);
     ctx.save(); ctx.translate(VW / 2, 960); ctx.globalAlpha = 0.1; ctx.fillStyle = '#FFFFFF';
     for (let i = 0; i < 18; i++) { ctx.rotate(TAU / 18); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-90, -1500); ctx.lineTo(90, -1500); ctx.closePath(); ctx.fill(); }
     ctx.restore();
