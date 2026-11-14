@@ -86,7 +86,7 @@ class TD extends RVB.Army {
     this.towerSet = (o.towers || D.DEF_LINEUPS[0].towers).filter(k => TOWERS[k]);
     this.power = o.power || 1;      // attacker strength (tuned on the spot)
     this.gold = 0; this.goldShown = 0; this.mana = 0;
-    this.towers = []; this.blockers = []; this.walls = []; this.rubble = []; this.coins = []; this.cards = []; this.ticker = []; this.bolts = []; this.tdCalls = []; this.marks = [];
+    this.towers = []; this.blockers = []; this.walls = []; this.rubble = []; this.coins = []; this.killLog = []; this.cards = []; this.ticker = []; this.bolts = []; this.tdCalls = []; this.marks = [];
     this.stat = { built: 0, upgrades: 0, big: 0, spells: [], shaman: [], lowBase: 100, breaches: 0, fell: [], towerKills: {}, leadSwings: 0, events: [], maxStreak: 0, rebuilt: 0, walls: 0 };
     this.facts = { low: [1, 1], falls: [], drops: [] };
     this.best = [null, null];

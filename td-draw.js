@@ -428,16 +428,8 @@ const DRAW = {
         }
       }
     }
-    // gold from kills: a coin hops up and fades
-    if (this.coins.length) {
-      this.coins = this.coins.filter(c => t - c.t0 < 0.8);
-      for (const c of this.coins) {
-        const p = (t - c.t0) / 0.8, y = c.y - 10 - 36 * easeOutCubic(p);
-        ctx.globalAlpha = clamp((1 - p) * 2, 0, 1);
-        disc(ctx, c.x, y, c.g >= 30 ? 9 : 6, COL.gold, 2);
-        ctx.globalAlpha = 1;
-      }
-    }
+    // gold from kills: the coins fly to the treasury (drawn with the panel)
+    if (this.coins.length) this.coins = this.coins.filter(c => t - c.t0 < 0.8);
     // the sudden-death lava creeping down from the top
     if (this.lavaY && this.lavaY > AR.y) {
       const h = this.lavaY - AR.y, lg = ctx.createLinearGradient(0, AR.y, 0, this.lavaY);
@@ -609,12 +601,30 @@ const DRAW = {
   drawPanel(ctx) {
     const t = this.t, T = this.fightT, x0 = SAFE.x0 + 12, x1 = SAFE.btnX - 8, y0 = AR.y + AR.h + UI_DY + 16, y1 = SAFE.bottom - 8;
     if (y1 - y0 < 60) return;
+    // the base in danger (under 30%): the edges of the screen pulse red with a heartbeat
+    if (this.phase === 'fight' && this.base.hp > 0 && this.base.hp < 30) {
+      const beat = Math.pow(Math.max(0, Math.sin(t * Math.PI / 0.85)), 6), a = (0.22 + 0.3 * beat) * (1 - this.base.hp / 30 * 0.5);
+      const vg = ctx.createRadialGradient(VW / 2, VH * 0.45, VW * 0.35, VW / 2, VH * 0.45, VH * 0.62);
+      vg.addColorStop(0, 'rgba(255,0,30,0)'); vg.addColorStop(1, `rgba(220,0,30,${a})`);
+      ctx.fillStyle = vg; ctx.fillRect(0, 0, VW, VH);
+    }
     roundRect(ctx, x0, y0, x1 - x0, y1 - y0, 18); ctx.fillStyle = 'rgba(8,11,20,0.82)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = COL.frame; ctx.stroke();
     if (this.lay) this.lay.push({ kind: 'box', x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
-    // the treasury
+    // the treasury: every kill's coin flies from where it fell to the counter, which bumps as they land
     this.goldShown += (this.gold - this.goldShown) * 0.25;
-    const gy = y0 + 34;
+    const gy = y0 + 34, cam = this.cam || { x: AR.x + AR.w / 2, y: AR.y + AR.h / 2, z: 1 };
+    let landed = 0;
+    for (const c of this.coins) {
+      const p = (t - c.t0) / 0.7; if (p >= 1) { landed = Math.max(landed, 1 - (t - c.t0 - 0.7) / 0.1); continue; }
+      const sx = AR.x + AR.w / 2 + (c.x - cam.x) * cam.z, sy = AR.y + AR.h / 2 + (c.y - cam.y) * cam.z + UI_DY;
+      const e = p * p, mx = (sx + x0 + 34) / 2, my = Math.min(sy, gy) - 120;
+      const x = (1 - e) * (1 - e) * sx + 2 * (1 - e) * e * mx + e * e * (x0 + 34), y = (1 - e) * (1 - e) * sy + 2 * (1 - e) * e * my + e * e * gy;
+      disc(ctx, x, y, (c.g >= 30 ? 10 : 7) * (1 - 0.35 * p), COL.gold, 2);
+    }
+    const bump = 1 + 0.22 * clamp(landed, 0, 1);
+    ctx.save(); ctx.translate(x0 + 34, gy); ctx.scale(bump, bump); ctx.translate(-(x0 + 34), -gy);
     disc(ctx, x0 + 34, gy, 16, COL.gold, 3); ctx.font = font(18, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = INK; ctx.fillText('$', x0 + 34, gy + 1);
+    ctx.restore();
     this.fitText(ctx, `${Math.round(this.goldShown)} GOLD`, x0 + 60, gy, 210, 32, 800, true, COL.gold, 'left', 18);
     // what's next
     let next = '';
@@ -643,9 +653,54 @@ const DRAW = {
     // the cards and the boss bar are in arena coordinates; the panel is in screen coordinates
     this.drawBossBar(ctx);
     this.drawCardsTD(ctx);
+    this.drawHooks(ctx);
     ctx.save(); ctx.translate(0, -(this.layDY || 0)); const dy = this.layDY; this.layDY = 0; this.drawPanel(ctx); this.layDY = dy; ctx.restore();
   },
   drawEvolveCards() {}, drawShopCard() {}, drawCouncil2() {},
+  // retention hooks (looks only, arena coordinates): the guess prompt, the combo counter, the final countdown and the danger glow
+  drawHooks(ctx) {
+    const t = this.t, T = this.fightT, fight = this.phase === 'fight';
+    ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // 1) "what's your guess?" just after the line-ups: two choices to comment
+    const g0 = 8.7, g1 = 12.6;
+    if (t > g0 && t < g1 && fight) {
+      const a = Math.min(clamp((t - g0) / 0.3, 0, 1), clamp((g1 - t) / 0.4, 0, 1)), pop = easeOutBack(clamp((t - g0) / 0.35, 0, 1));
+      ctx.globalAlpha = a; ctx.save(); ctx.translate(VW / 2, AR.y + 92); ctx.scale(pop, pop);
+      roundRect(ctx, -330, -58, 660, 136, 20); ctx.fillStyle = 'rgba(8,11,20,0.92)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = COL.gold; ctx.stroke();
+      ctx.font = font(34, 800); strokeText(ctx, "WHAT'S YOUR GUESS?", 0, -26, COL.white, COL.ink, 6);
+      [['SURVIVES', TEAMS[DEF].c, -150], ['FALLS', TEAMS[ATK].c, 150]].forEach(([w, c, x], i) => {
+        const wob = 1 + 0.04 * Math.sin(t * 6 + i * 2);
+        ctx.save(); ctx.translate(x, 30); ctx.scale(wob, wob);
+        roundRect(ctx, -120, -26, 240, 52, 26); ctx.fillStyle = c; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = COL.ink; ctx.stroke();
+        ctx.font = font(30, 800); ctx.fillStyle = COL.white; ctx.fillText(w, 0, 2);
+        ctx.restore();
+      });
+      ctx.restore(); ctx.globalAlpha = 1;
+      if (this.lay) this.lay.push({ kind: 'box', x: VW / 2 - 330, y: AR.y + 34 + (this.layDY || 0), w: 660, h: 136 });
+    }
+    // 2) the combo counter: kills in quick succession
+    if (fight && this.killLog.length) {
+      let n = 0; for (let i = this.killLog.length - 1; i >= 0 && t - this.killLog[i] < 2.5; i--) n++;
+      if (n >= 5) {
+        const last = this.killLog[this.killLog.length - 1], pop = 1 + 0.25 * clamp(1 - (t - last) / 0.18, 0, 1);
+        const x = AR.x + AR.w - 96, y = AR.y + AR.h - 70;
+        ctx.save(); ctx.translate(x, y); ctx.rotate(-0.08); ctx.scale(pop, pop);
+        ctx.font = font(n >= 12 ? 64 : 54, 800); strokeText(ctx, `x${n}`, 0, -6, n >= 12 ? '#FF7A45' : COL.gold, COL.ink, 9);
+        ctx.font = font(22, 800); strokeText(ctx, 'COMBO', 0, 30, COL.white, COL.ink, 5);
+        ctx.restore();
+      }
+    }
+    // 3) the final countdown: the last 10 seconds, big and see-through over the battle
+    const left = this.cap - T;
+    if (fight && left <= 10 && left > 0.2) {
+      const n = Math.ceil(left), f = n - left, k = 1 - f;
+      ctx.globalAlpha = 0.18 + 0.32 * clamp(k * 1.4 - 0.3, 0, 1);
+      ctx.save(); ctx.translate(VW / 2, AR.y + AR.h / 2); const sc = 1.25 - 0.25 * easeOutCubic(clamp(f / 0.25, 0, 1)); ctx.scale(sc, sc);
+      ctx.font = font(300, 800); strokeText(ctx, String(n), 0, 0, n <= 3 ? '#FF5A5A' : COL.white, COL.ink, 16);
+      ctx.restore(); ctx.globalAlpha = 1;
+    }
+    ctx.restore(); ctx.textBaseline = 'alphabetic';
+  },
   // the ending: a flash, a band in the winner's colour, SURVIVED! or FALLEN!, and how
   drawOutro(ctx) {
     if (this.phase !== 'outro' || this.holdOutro) return;
@@ -681,11 +736,11 @@ const DRAW = {
     // background: violet with rays (the channel's colours)
     const lg = ctx.createLinearGradient(0, 0, 0, VH); lg.addColorStop(0, '#3B2A7A'); lg.addColorStop(0.5, '#1E1546'); lg.addColorStop(1, '#0B0820');
     ctx.fillStyle = lg; ctx.fillRect(0, 0, VW, VH);
-    ctx.save(); ctx.translate(VW / 2, 980); ctx.globalAlpha = 0.09; ctx.fillStyle = '#C9B8FB';
+    ctx.save(); ctx.translate(VW / 2, 960); ctx.globalAlpha = 0.09; ctx.fillStyle = '#C9B8FB';
     for (let i = 0; i < 18; i++) { ctx.rotate(TAU / 18); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-90, -1500); ctx.lineTo(90, -1500); ctx.closePath(); ctx.fill(); }
     ctx.restore();
     // the battle, framed
-    const fx = 70, fy = 470, fw = VW - 140, fh = fw, sy = AR.y + UI_DY;
+    const fw = 780, fh = fw, fx = (VW - fw) / 2, fy = 575, sy = AR.y + UI_DY;
     ctx.save(); ctx.translate(fx + fw / 2, fy + fh / 2); ctx.rotate(-0.025);
     roundRect(ctx, -fw / 2 - 10, -fh / 2 - 10, fw + 20, fh + 20, 30); ctx.fillStyle = COL.ink; ctx.fill();
     roundRect(ctx, -fw / 2, -fh / 2, fw, fh, 22); ctx.save(); ctx.clip();
@@ -696,14 +751,14 @@ const DRAW = {
     ctx.restore();
     // the logo and the question
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = font(60, 800); spaced(ctx, 6); strokeText(ctx, 'TOWER CLASH', VW / 2, 120, '#C9B8FB', COL.ink, 10); spaced(ctx, 0);
+    ctx.font = font(60, 800); spaced(ctx, 6); strokeText(ctx, 'TOWER CLASH', VW / 2, 262, '#C9B8FB', COL.ink, 10); spaced(ctx, 0);
     const q = this.mode ? MODES[this.mode].hook : 'WILL THE BASE SURVIVE?';
     const words = q.split(' '), lines = []; let cur = '';
-    let fs0 = 132; ctx.font = font(fs0, 800);
+    let fs0 = 118; ctx.font = font(fs0, 800);
     for (const w of words) { const s = cur ? cur + ' ' + w : w; if (ctx.measureText(s).width > 940 && cur) { lines.push(cur); cur = w; } else cur = s; }
     if (cur) lines.push(cur);
-    if (lines.length > 2) { fs0 = 104; ctx.font = font(fs0, 800); }
-    const ly0 = lines.length > 1 ? 250 : 300;
+    if (lines.length > 2) { fs0 = 92; ctx.font = font(fs0, 800); }
+    const ly0 = lines.length > 1 ? (lines.length > 2 ? 345 : 370) : 420;
     lines.forEach((l, i) => { ctx.save(); ctx.translate(VW / 2, ly0 + i * fs0 * 0.95); ctx.rotate(-0.04); strokeText(ctx, l, 0, 0, i === lines.length - 1 ? COL.gold : COL.white, COL.ink, 16); ctx.restore(); });
     // the best tower (bottom left) against the boss (bottom right)
     const best = this.towers.slice().sort((a, b) => (b.tier - a.tier) || (b.kills - a.kills))[0];
@@ -716,12 +771,12 @@ const DRAW = {
       try { this.drawPortrait(ctx, type, team); } catch (e) { /* no portrait */ }
       ctx.restore();
       ctx.font = font(46, 800); spaced(ctx, 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      let fz = 46; while (fz > 26 && ctx.measureText(name).width > 440) { fz -= 2; ctx.font = font(fz, 800); }
-      strokeText(ctx, name, cx, cy + r + 52, COL.white, COL.ink, 9); spaced(ctx, 0);
+      let fz = 46; while (fz > 24 && ctx.measureText(name).width > 380) { fz -= 2; ctx.font = font(fz, 800); }
+      strokeText(ctx, name, cx, cy + r + 40, COL.white, COL.ink, 9); spaced(ctx, 0);
     };
-    if (best) fig(best.u.type, DEF, 270, 1560, 165, TEAMS[DEF].c, best.def.name);
-    fig(this.bossType, ATK, VW - 270, 1560, 185, TEAMS[ATK].c, (BOSSES[this.bossType] || {}).name || labelOf(this.bossType));
-    ctx.save(); ctx.translate(VW / 2, 1560); ctx.rotate(-0.06); ctx.font = font(120, 800); strokeText(ctx, 'VS', 0, 0, COL.gold, COL.ink, 14); ctx.restore();
+    if (best) fig(best.u.type, DEF, 280, 1470, 125, TEAMS[DEF].c, best.def.name);
+    fig(this.bossType, ATK, VW - 280, 1470, 135, TEAMS[ATK].c, (BOSSES[this.bossType] || {}).name || labelOf(this.bossType));
+    ctx.save(); ctx.translate(VW / 2, 1475); ctx.rotate(-0.06); ctx.font = font(104, 800); strokeText(ctx, 'VS', 0, 0, COL.gold, COL.ink, 14); ctx.restore();
     void t; ctx.textBaseline = 'alphabetic';
   },
 };

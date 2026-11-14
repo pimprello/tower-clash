@@ -23,6 +23,7 @@ const VID = rules.video || {};
 const FPS = 60, W = 1080, H = 1920, SR = 48000, RS = Math.max(1, Math.min(2, Number(process.env.SCALE || VID.scale || 1)));
 RVB.RS = RS;
 const { TD } = require('./td-game.js');
+const { TDCam } = require('./td-cam.js');
 const OUTRO = VID.outroSeconds || 3, FIGHT = VID.fightSeconds || 60;
 const SECS = process.env.SECS ? Number(process.env.SECS) : FIGHT + OUTRO;
 const MAXFRAMES = FPS * (SECS + 12);
@@ -117,7 +118,7 @@ async function main() {
   fs.mkdirSync(OUT, { recursive: true });
   const power = process.env.POWER ? Number(process.env.POWER) : (closeFinish() ?? tune());
   const game = new TD(seed, optsFor(power, seed));
-  const director = rules.cinematic !== false ? new RVB.Director(game, { seed }) : null;
+  const director = rules.cinematic !== false ? new TDCam(game, { seed }) : null;
   if (!director) { game.fixedTicks = true; game.tickAcc = 0; }
   const synth = new RVB.Synth(SR, MAXFRAMES / FPS + 4);
   const canvas = createCanvas(W * RS, H * RS), ctx = canvas.getContext('2d');
@@ -136,6 +137,7 @@ async function main() {
   // ----- the thumbnail, made before the video from a headless copy of the same battle (it plays out identically): the
   // busiest moment of the middle of the battle (many attackers on the board, the base still up) as its background. -----
   let thumbCv = null, nFrames = 0;
+  const timeline = [];
   if ((rules.thumbnail || {}).on !== false) {
     const tt0 = Date.now(), g2 = new TD(seed, optsFor(power, seed)), cv2 = createCanvas(W * RS, H * RS), c2 = cv2.getContext('2d');
     g2.fixedTicks = true; g2.tickAcc = 0;
@@ -176,6 +178,7 @@ async function main() {
     if (stills) { if (stillAt.some(s => Math.abs(i / FPS - s) < 0.5 / FPS)) fs.writeFileSync(path.join(OUT, `still-${String(Math.round(i / FPS)).padStart(2, '0')}.png`), canvas.toBuffer('image/png')); }
     else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
     nFrames++;
+    timeline.push({ f: game.fightT, fight: game.phase === 'fight', hp: game.base.hp, boss: !!(game.bossU && !game.bossU.dead), wave: game.waveNow || 0 });
     if (game.finished || nFrames >= FPS * SECS + FPS * 10) break;
     if (process.env.SECS && nFrames >= FPS * SECS) break;
     if (director) director.advance(1 / FPS); else game.frame(1 / FPS);

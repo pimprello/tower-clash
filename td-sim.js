@@ -515,7 +515,10 @@ const SIM = {
     const dmg = Df.dmg * TIER.dmg[tw.tier] * (u.bigT > T ? 1.8 : 1) * (tw.growT > T ? 1.5 : 1) * (this.pushK > 1 ? 1 + (this.pushK - 1) * 0.8 : 1);
     u.muzzle = 1; u.lunge = 1; tw.shotT = this.t;
     const pan = this.pan(u.x);
-    this.snd(Df.sfx || 'volley', { pan, quiet: Df.cd < 0.6 });
+    // (sound only) each kind of tower is heard at most every 0.45 s, and the ringing ones (frost, storm, lasers) softly, so the
+    // shots don't turn into one long chime under the music
+    { const nm = Df.sfx || 'volley', last = (this.sfxLast || (this.sfxLast = {}))[nm] ?? -9;
+      if (this.t - last >= 0.45) { this.sfxLast[nm] = this.t; this.snd(nm, { pan, quiet: Df.cd < 0.6 || ['freeze', 'zap', 'pop', 'laser'].includes(nm), gain: ['freeze', 'zap'].includes(nm) ? 0.45 : undefined }); } }
     const el = tw.el;
     const fx = { burn: Df.burn || (el === 'fire' ? 1 : 0), slow: Df.slow || (el === 'frost' ? [0.6, 1.5] : null), poison: el === 'acid' ? 1 : 0, zap: el === 'storm', holy: el === 'holy' };
     switch (Df.shot) {
@@ -792,6 +795,7 @@ const SIM = {
       if (!u.gone && !u.fly && u.lane !== undefined && !u.summoned) { this.fallenSpots.push({ x: u.x, y: u.y, lane: u.lane, s: u.s || 0 }); if (this.fallenSpots.length > 30) this.fallenSpots.shift(); }
       const g = Math.round(this.bounty(u));
       this.coins.push({ x: u.x, y: u.y, t0: this.t, g, x1: 0, y1: 0 });
+      this.killLog.push(this.t); if (this.killLog.length > 60) this.killLog.shift();
       this.gold += g;
       // the tower that made the kill
       const tw = from && from.tw ? from.tw : from && from.owner && from.owner.tw ? from.owner.tw : null;
