@@ -1,0 +1,41 @@
+[
+ {
+  "id": "_UcX0kkRa-w",
+  "date": "2026-11-14 21:33",
+  "title": "The Magma Colossus vs 7 Towers 🔥",
+  "seed": 1566560107,
+  "slot": 0,
+  "seconds": 63.45,
+  "titleKind": "bossvs",
+  "layout": "snake",
+  "map": "beach",
+  "mode": "swarm",
+  "teams": [
+   "GOLD",
+   "PURPLE"
+  ],
+  "defense": "FROST AND STORM",
+  "attack": "THE HORDE",
+  "order": "THE BRASS BASTION",
+  "warband": "THE HOLLOW CROWN RAIDERS",
+  "boss": "magmacolossus",
+  "power": 1.225,
+  "winner": "SURVIVED!",
+  "winTeam": 0,
+  "detail": "THE BASE HOLDS AT 98% · 10 TOWERS STANDING",
+  "fight": 59.4,
+  "built": 7,
+  "upgrades": 24,
+  "fell": 0,
+  "lowBase": 98,
+  "spells": [
+   "rage",
+   "chainstorm"
+  ],
+  "views": 0,
+  "likes": 0,
+  "comments": 0,
+  "secs": 63.45,
+  "published": "2026-11-14T21:33:53Z"
+ }
+]
