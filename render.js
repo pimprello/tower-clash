@@ -15,6 +15,7 @@ registerFont(path.join(__dirname, 'fonts/BarlowCondensed-ExtraBoldItalic.ttf'), 
 registerFont(path.join(__dirname, 'fonts/BarlowCondensed-Bold.ttf'), { family: 'Barlow Condensed', weight: '700', style: 'normal' });
 
 const RVB = require('./engine.js');
+const Music = require('./music.js');
 RVB.makeCanvas = (w, h) => createCanvas(w, h);
 const D = require('./td-data.js');
 const rules = JSON.parse(fs.readFileSync(path.join(__dirname, 'rules.json'), 'utf8'));
@@ -50,7 +51,7 @@ const pair = pairs[slot % pairs.length];
 RVB.setTeams(pair[0], pair[1]);
 const events = (rules.events || []).map(type => ({ type }));
 
-const optsFor = (power, s) => ({ map, layout, target: FIGHT, fixedLength: FIGHT + OUTRO, outroSecs: OUTRO, ui: 2, art: 2, anim: true, shine: { on: true, gloss: 1, rim: 1 },
+const optsFor = (power, s) => ({ map, layout, target: FIGHT, fixedLength: FIGHT + OUTRO, outroSecs: OUTRO, ui: 2, art: 2, anim: true, humans: (rules.ui || {}).humans !== false, ...((rules.ui || {}).blood && rules.ui.blood.on ? { blood: rules.ui.blood } : {}), shine: { on: true, gloss: 1, rim: 1 },
   tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s });
 
 // ----- balance on the spot: quick headless battles with this set-up and other dice, aiming at an even chance -----
@@ -156,9 +157,22 @@ async function main() {
     console.log(`thumbnail made in ${((Date.now() - tt0) / 1000).toFixed(0)} s`);
   }
   const stillAt = [2, 6, 15, 30, 45, 58];
+  // ----- music (rules.music, music.js, shared with Army Clash): an original soundtrack written from the seed, following the
+  // battle; the camera punches in on the beat in the last seconds, and the outro fades into the cover frame so the replay loops -----
+  const MU = rules.music || {}, muOn = MU.on !== false;
+  const mp = muOn ? Music.plan(seed, ['epic', 'ancient'][seed % 2]) : null, mtr = muOn ? Music.tracker() : null;
+  let firstCv = null;
   for (let i = 0; i < MAXFRAMES; i++) {
     ctx.setTransform(RS, 0, 0, RS, 0, 0);
+    const z0 = game.cam && game.cam.z, punch = muOn && MU.pulse !== false && game.cam && game.phase === 'fight' && game.fightT > FIGHT - 6 ? Music.pulse(mp, i / FPS) : 0;
+    if (punch) game.cam.z = z0 * (1 + punch);
     game.draw(ctx);
+    if (punch) game.cam.z = z0;
+    if (muOn && MU.loop !== false) {
+      if (i === 0) { firstCv = createCanvas(W * RS, H * RS); firstCv.getContext('2d').drawImage(canvas, 0, 0); }
+      const left = game.phase === 'outro' && game.outroLen ? game.outroLen - game.outroT : 9;
+      if (firstCv && left < 0.45 && !game.holdOutro) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = Math.min(1, (0.45 - left) / 0.4); ctx.drawImage(firstCv, 0, 0); ctx.globalAlpha = 1; }
+    }
     if (stills) { if (stillAt.some(s => Math.abs(i / FPS - s) < 0.5 / FPS)) fs.writeFileSync(path.join(OUT, `still-${String(Math.round(i / FPS)).padStart(2, '0')}.png`), canvas.toBuffer('image/png')); }
     else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
     nFrames++;
@@ -166,6 +180,7 @@ async function main() {
     if (process.env.SECS && nFrames >= FPS * SECS) break;
     if (director) director.advance(1 / FPS); else game.frame(1 / FPS);
     for (const ev of game.sfx) synth.play(ev, (i + 1) / FPS);
+    if (mtr) mtr.frame((i + 1) / FPS, game);
     game.sfx.length = 0;
     if ((i + 1) % (FPS * 6) === 0) console.log(`frame ${i + 1} (${((i + 1) / FPS).toFixed(0)} s of video) after ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   }
@@ -176,8 +191,14 @@ async function main() {
     const frames = Math.round(SR * DUR), gain = game.audioGain || 1;
     const L = new Float32Array(frames), R = new Float32Array(frames);
     for (let i = 0; i < frames; i++) { L[i] = Math.tanh(synth.L[i] * gain); R[i] = Math.tanh(synth.R[i] * gain); }
+    let mixed = { L, R };
+    if (muOn) {
+      const mus = Music.render(mp, { sr: SR, dur: DUR, cues: mtr.cues() });
+      mixed = Music.mix(L, R, mus, { sr: SR, volume: MU.volume ?? 0.45, duck: MU.duck ?? 0.45 });
+      console.log(`Music: ${mp.style}, ${mp.bpm} bpm, the drop at ${mus.drop.toFixed(1)} s, the final hit at ${mus.fin.toFixed(1)} s`);
+    }
     const wav = path.join(OUT, 'sound.wav');
-    writeWav(wav, L, R, frames);
+    writeWav(wav, mixed.L, mixed.R, frames);
     await ffmpeg(['-i', silent, '-i', wav, '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-t', DUR.toFixed(3), '-movflags', '+faststart', final]).done;
     fs.rmSync(silent); fs.rmSync(wav);
   }

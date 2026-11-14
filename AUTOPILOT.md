@@ -7,4 +7,4 @@ Once a day:
 3. **Add one new thing** in the spirit of the game (a tower, a boss, a spell, a map style, a mode, a title kind, a visual touch). Test it (crash batch, balance, stills) before pushing.
 4. **Log it** in `CHANGELOG.md`.
 
-Guardrails: never change the number of posts a day; never touch `pimprello/army-clash`; never spend the YouTube quota on anything but the scheduled posts and stats; keep titles free of spoilers and of real people, groups or insignia.
+Guardrails: never change the number of posts a day; never touch `pimprello/army-clash`; never spend the YouTube quota on anything but the scheduled posts and stats; keep titles free of spoilers and of real people, groups or insignia; keep `rules.music` on and never add licensed or downloaded music (`music.js` writes it; keep it identical to Army Clash's copy).
