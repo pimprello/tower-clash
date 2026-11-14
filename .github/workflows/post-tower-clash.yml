@@ -66,6 +66,10 @@ jobs:
 
       - name: Add it to uploads.md
         if: steps.slot.outputs.go == 'yes'
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -75,7 +79,8 @@ jobs:
             git fetch -q origin main
             git checkout -q -B main origin/main
             node log-upload.js
-            git add uploads.md videos.jsonl
+            node fix-thumbs.js || true
+            git add -A uploads.md videos.jsonl thumbs
             git commit -q -m "Posted: $(node -p "require('./out/uploaded.json').title")" || true
             if git push -q origin main; then pushed=1; break; fi
             sleep 5

@@ -133,6 +133,8 @@ async function main() {
       fs.writeFileSync(path.join(OUT, 'uploaded.json'), JSON.stringify({ id, url, title: body.snippet.title, winner: meta.winner, privacy, date: new Date().toISOString().slice(0, 16).replace('T', ' ') }, null, 2));
       console.log(`Uploaded "${body.snippet.title}" as ${privacy}: ${url}`);
       const first = await setThumb(id, token).catch(() => 'error');
+      // (recorded, so videos posted before the channel could take custom thumbnails get theirs later: fix-thumbs.js)
+      const rec = path.join(OUT, 'uploaded.json'); fs.writeFileSync(rec, JSON.stringify({ ...JSON.parse(fs.readFileSync(rec, 'utf8')), thumb: first }, null, 2));
       if (first === 'set') await thumbAfterProcessing(id, token).catch(e => console.log(`::warning title=Thumbnail::${String(e.message).slice(0, 300)}`));
       return;
     } catch (e) {
@@ -145,4 +147,5 @@ async function main() {
   }
 }
 
-main().catch(() => process.exit(1));
+if (require.main === module) main().catch(() => process.exit(1));
+module.exports = { accessToken };

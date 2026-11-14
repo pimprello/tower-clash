@@ -132,16 +132,35 @@ async function main() {
     '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
     '-r', String(FPS), silent,
   ]);
-  // the thumbnail's background: the busiest moment of the middle of the battle (many attackers on the board, base still up)
-  let thumbBg = null, thumbScore = -1, nFrames = 0;
+  // ----- the thumbnail, made before the video from a headless copy of the same battle (it plays out identically): the
+  // busiest moment of the middle of the battle (many attackers on the board, the base still up) as its background. It is
+  // also the video's first 0.2 s, so it can be picked as the Short's cover frame while YouTube refuses custom thumbnails. -----
+  let thumbCv = null, nFrames = 0;
+  if ((rules.thumbnail || {}).on !== false) {
+    const tt0 = Date.now(), g2 = new TD(seed, optsFor(power, seed)), cv2 = createCanvas(W * RS, H * RS), c2 = cv2.getContext('2d');
+    g2.fixedTicks = true; g2.tickAcc = 0;
+    let thumbBg = null, thumbScore = -1, k = 0;
+    while (!g2.finished && k < FPS * (FIGHT + OUTRO + 12)) {
+      if (g2.phase === 'fight' && k % 30 === 0 && g2.fightT > FIGHT * 0.35 && g2.fightT < FIGHT * 0.85) {
+        const atk = g2.units.filter(u => u.team === 1 && !u.dead && !u.gone).length, sc = atk * (1 + (g2.bossU && !g2.bossU.dead ? 1 : 0)) * (g2.base.hp > 0 ? 1 : 0);
+        if (sc > thumbScore) { thumbScore = sc; c2.setTransform(RS, 0, 0, RS, 0, 0); const cards = g2.cards; g2.cards = []; g2.draw(c2); g2.cards = cards; thumbBg = thumbBg || createCanvas(W, H); const bc = thumbBg.getContext('2d'); bc.clearRect(0, 0, W, H); bc.drawImage(cv2, 0, 0, W, H); }
+      }
+      g2.frame(1 / FPS); g2.sfx.length = 0; k++;
+    }
+    if (!thumbBg) { c2.setTransform(RS, 0, 0, RS, 0, 0); g2.draw(c2); thumbBg = createCanvas(W, H); thumbBg.getContext('2d').drawImage(cv2, 0, 0, W, H); }
+    const tcv = createCanvas(W, H), tctx = tcv.getContext('2d');
+    const keepRS = RVB.RS; RVB.RS = 1;
+    g2.drawThumbTD(tctx, thumbBg);
+    RVB.RS = keepRS;
+    fs.writeFileSync(path.join(OUT, 'thumb.jpg'), tcv.toBuffer('image/jpeg', { quality: 0.92 }));
+    thumbCv = createCanvas(W * RS, H * RS); thumbCv.getContext('2d').drawImage(tcv, 0, 0, W * RS, H * RS);
+    console.log(`thumbnail made in ${((Date.now() - tt0) / 1000).toFixed(0)} s`);
+  }
   const stillAt = [2, 6, 15, 30, 45, 58];
   for (let i = 0; i < MAXFRAMES; i++) {
     ctx.setTransform(RS, 0, 0, RS, 0, 0);
     game.draw(ctx);
-    if (game.phase === 'fight' && i % 30 === 0 && game.fightT > FIGHT * 0.35 && game.fightT < FIGHT * 0.85 && !game.cards.some(c => game.t >= c.t0 && game.t <= c.t0 + c.dur)) {
-      const atk = game.units.filter(u => u.team === 1 && !u.dead && !u.gone).length, sc = atk * (1 + (game.bossU && !game.bossU.dead ? 1 : 0)) * (game.base.hp > 0 ? 1 : 0);
-      if (sc > thumbScore) { thumbScore = sc; thumbBg = thumbBg || createCanvas(W, H); thumbBg.getContext('2d').drawImage(canvas, 0, 0, W, H); }
-    }
+    if (thumbCv && i < Math.round(FPS * 0.2)) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(thumbCv, 0, 0); }
     if (stills) { if (stillAt.some(s => Math.abs(i / FPS - s) < 0.5 / FPS)) fs.writeFileSync(path.join(OUT, `still-${String(Math.round(i / FPS)).padStart(2, '0')}.png`), canvas.toBuffer('image/png')); }
     else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
     nFrames++;
@@ -163,16 +182,6 @@ async function main() {
     writeWav(wav, L, R, frames);
     await ffmpeg(['-i', silent, '-i', wav, '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-t', DUR.toFixed(3), '-movflags', '+faststart', final]).done;
     fs.rmSync(silent); fs.rmSync(wav);
-  }
-
-  // ----- the thumbnail -----
-  if ((rules.thumbnail || {}).on !== false) {
-    if (!thumbBg) { thumbBg = createCanvas(W, H); thumbBg.getContext('2d').drawImage(canvas, 0, 0, W, H); }
-    const tcv = createCanvas(W, H), tctx = tcv.getContext('2d');
-    const keepRS = RVB.RS; RVB.RS = 1;
-    game.drawThumbTD(tctx, thumbBg);
-    RVB.RS = keepRS;
-    fs.writeFileSync(path.join(OUT, 'thumb.jpg'), tcv.toBuffer('image/jpeg', { quality: 0.9 }));
   }
 
   // ----- title, description and tags (the title never gives the result away) -----

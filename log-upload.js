@@ -20,5 +20,8 @@ fs.writeFileSync(file, head + `| ${cell(info.date)} | ${cell(info.title)} | ${ce
 let meta = {};
 try { meta = JSON.parse(fs.readFileSync(path.join(__dirname, 'out', 'meta.json'), 'utf8')); } catch (e) { /* older render */ }
 const { description, tags, ...rest } = meta;
-fs.appendFileSync(path.join(__dirname, 'videos.jsonl'), JSON.stringify({ date: info.date, id: info.id, ...rest, title: info.title }) + '\n');
+// a thumbnail YouTube refused is kept in thumbs/ so it can be set once the channel is allowed custom thumbnails
+const pic = path.join(__dirname, 'out', 'thumb.jpg');
+if (info.thumb !== 'set' && fs.existsSync(pic)) { fs.mkdirSync(path.join(__dirname, 'thumbs'), { recursive: true }); fs.copyFileSync(pic, path.join(__dirname, 'thumbs', `${info.id}.jpg`)); }
+fs.appendFileSync(path.join(__dirname, 'videos.jsonl'), JSON.stringify({ date: info.date, id: info.id, ...rest, title: info.title, thumb: info.thumb }) + '\n');
 console.log('uploads.md and videos.jsonl updated');
