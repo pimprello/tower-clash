@@ -1,0 +1,111 @@
+name: Post Tower Clash
+
+on:
+  schedule:
+    # A Short every 2 hours, on the even hours London time (rules.schedule). GitHub's timer runs in UTC and is often late, so it
+    # wakes every 15 minutes all day (covering summer time too); slot.js lets only the first run after each slot starts post.
+    - cron: '3,18,33,48 * * * *'
+  workflow_dispatch:
+    inputs:
+      privacy:
+        description: 'Who can see the video'
+        type: choice
+        options: [public, unlisted, private]
+        default: public
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: post-tower-clash
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    # (a 4K video takes about 20 to 30 minutes to make and up to 13 more to upload and set the thumbnail; slots are 2 hours apart)
+    timeout-minutes: 100
+    steps:
+      - name: Note the start time
+        run: echo "START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v4
+
+      # Scheduled runs post only in an upload slot that hasn't been used yet; a manual run (Run workflow) always posts.
+      - name: Is it time to post?
+        id: slot
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "go=yes" >> "$GITHUB_OUTPUT"; echo "manual run: posting now"; else node slot.js; fi
+
+      - uses: actions/setup-node@v4
+        if: steps.slot.outputs.go == 'yes'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install ffmpeg
+        if: steps.slot.outputs.go == 'yes'
+        run: command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+
+      - run: npm ci
+        if: steps.slot.outputs.go == 'yes'
+
+      - name: Make the video (4K 2160x3840, 60 fps, sound)
+        if: steps.slot.outputs.go == 'yes'
+        run: node render.js
+
+      - name: Upload to YouTube
+        if: steps.slot.outputs.go == 'yes'
+        run: node upload.js
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          PRIVACY: ${{ inputs.privacy || 'public' }}
+
+      - name: Add it to uploads.md
+        if: steps.slot.outputs.go == 'yes'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          pushed=0
+          for i in 1 2 3; do
+            # Start from the latest main every time, so an older checkout can't cause a merge conflict.
+            git fetch -q origin main
+            git checkout -q -B main origin/main
+            node log-upload.js
+            git add uploads.md videos.jsonl
+            git commit -q -m "Posted: $(node -p "require('./out/uploaded.json').title")" || true
+            if git push -q origin main; then pushed=1; break; fi
+            sleep 5
+          done
+          test "$pushed" = 1 || { echo "Could not record the upload in uploads.md"; exit 1; }
+
+      # Once a day, fetch view counts for every posted video into stats/ (used by the autopilot to learn what works).
+      - name: Update view stats (once a day)
+        if: steps.slot.outputs.go == 'yes'
+        continue-on-error: true
+        env:
+          # (also accepts the key saved under another common name)
+          YT_API_KEY: ${{ secrets.YT_API_KEY || secrets.YOUTUBE_API_KEY || secrets.YT_KEY || secrets.API_KEY || secrets.GOOGLE_API_KEY }}
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+        run: |
+          node stats.js || true
+          if [ -n "$(git status --porcelain stats)" ]; then
+            for i in 1 2 3; do
+              git add stats && git commit -q -m "View stats update" || true
+              git pull -q --rebase origin main && git push -q origin main && break
+              sleep 5
+            done
+          fi
+
+      - name: Keep the video if the upload failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tower-clash-video
+          path: out/
+          retention-days: 3

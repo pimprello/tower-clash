@@ -668,7 +668,7 @@ const SIM = {
     if (this.affOn) this._elK = el === 'fire' ? 'fire' : null;
     this._shXk = c.kind; this._shBx = c.x; this._shBy = c.y;
     let n = 0;
-    if (c.tower && !c.tower.dead) { this._kind = 'blast'; this.damage(c.tower, c.dmg, c.from && !c.from.dead ? c.from : null); this._kind = undefined; }
+    if (c.tower && !c.tower.dead) { this._kind = 'blast'; this.damage(c.tower.u || c.tower, c.dmg, c.from && !c.from.dead ? c.from : null); this._kind = undefined; }
     else for (const o of this.near(c.x, c.y, c.r + 40)) {
       if (o.team === c.team || o.dead || o.gone) continue;
       if (o.flying && !o.grounded && !c.air) continue;
@@ -767,7 +767,7 @@ const SIM = {
       if (ld) this.endHow = 'kill';
     } else {
       b.hp = 0; b.fallT = this.t;
-      this.end(ATK, 'FALLEN!', `${this.atkName().toUpperCase()} BREAK ${this.baseName()}`);
+      this.end(ATK, 'FALLEN!', `${this.atkBand[0]} ${this.atkBand[0].endsWith('S') && !/TIDE|BAND|LEGION|HORDE|PACK|SWARM|BROOD|KIN|DUNE|HAMMER|WARBAND/.test(this.atkBand[0]) ? 'BREAK' : 'BREAKS'} ${this.baseName()}`);
       this.endHow = 'kill';
       this.burst(b.x, b.y, '#B8A88A', 50, 600, 1, 12, 300); this.shake(24); this.snd('boom', { gain: 1 });
     }
