@@ -213,7 +213,7 @@ async function main() {
 
   // ----- title, description and tags (the title never gives the result away) -----
   const bossName = tc(((D.BOSSES[game.bossType] || {}).name || RVB.labelOf(game.bossType)).replace(/^THE /, 'The '));
-  const nTow = game.stat.built, waves = game.waveN, band = tc(atkBand[0]), order = tc(defOrder[0]);
+  const nTow = Math.max(game.towers.length, game.stat.built, 1), waves = game.waveN, band = tc(atkBand[0]), order = tc(defOrder[0]);
   const baseName = tc(D.BASE_NAME[game.base.style] || 'The Base');
   const fell = game.stat.fell.length, low = Math.round(game.stat.lowBase);
   const M = D.MODES[mode];
