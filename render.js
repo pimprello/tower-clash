@@ -133,8 +133,7 @@ async function main() {
     '-r', String(FPS), silent,
   ]);
   // ----- the thumbnail, made before the video from a headless copy of the same battle (it plays out identically): the
-  // busiest moment of the middle of the battle (many attackers on the board, the base still up) as its background. It is
-  // also the video's first 0.2 s, so it can be picked as the Short's cover frame while YouTube refuses custom thumbnails. -----
+  // busiest moment of the middle of the battle (many attackers on the board, the base still up) as its background. -----
   let thumbCv = null, nFrames = 0;
   if ((rules.thumbnail || {}).on !== false) {
     const tt0 = Date.now(), g2 = new TD(seed, optsFor(power, seed)), cv2 = createCanvas(W * RS, H * RS), c2 = cv2.getContext('2d');
@@ -160,7 +159,6 @@ async function main() {
   for (let i = 0; i < MAXFRAMES; i++) {
     ctx.setTransform(RS, 0, 0, RS, 0, 0);
     game.draw(ctx);
-    if (thumbCv && i < Math.round(FPS * 0.2)) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(thumbCv, 0, 0); }
     if (stills) { if (stillAt.some(s => Math.abs(i / FPS - s) < 0.5 / FPS)) fs.writeFileSync(path.join(OUT, `still-${String(Math.round(i / FPS)).padStart(2, '0')}.png`), canvas.toBuffer('image/png')); }
     else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
     nFrames++;
