@@ -767,7 +767,7 @@ const DRAW = {
       const rg = ctx.createRadialGradient(cx, cy, 10, cx, cy, r * 1.45); rg.addColorStop(0, rgba(col, 0.75)); rg.addColorStop(1, rgba(col, 0));
       ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(cx, cy, r * 1.45, 0, TAU); ctx.fill();
       disc(ctx, cx, cy, r, rgba(col, 0.35), 8);
-      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r - 4, 0, TAU); ctx.clip(); ctx.translate(cx, cy); const s = clamp((r * 0.55) / U.r, 0.5, 6); ctx.scale(s, s); ctx.rotate(-Math.PI / 2);
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r - 4, 0, TAU); ctx.clip(); ctx.translate(cx, cy); const hum = this.opts.humans && E.HUMAN && E.HUMAN[type], s = clamp((r * (hum ? 0.66 : 0.55)) / U.r, 0.5, 8); if (hum) ctx.translate(0, r * 0.12); ctx.scale(s, s); if (!hum) ctx.rotate(-Math.PI / 2);
       try { this.drawPortrait(ctx, type, team); } catch (e) { /* no portrait */ }
       ctx.restore();
       ctx.font = font(46, 800); spaced(ctx, 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
