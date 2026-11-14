@@ -13220,16 +13220,16 @@ const RVB = (() => {
         big('VS', x, y + r * 0.04, r * 1.2, r * 0.95, COL.white, r * 0.16, -0.12);
       };
 
-      // 3) the logo
-      big('ARMY CLASH', W / 2, 238, W - 120, 150, COL.white, 20, -0.035);
-      ctx.save(); ctx.translate(W / 2, 330); ctx.rotate(-0.035);
+      // 3) the logo (everything is kept between y 200 and 1720: YouTube's Shorts shelf shows the picture cut to about 1080x1560)
+      big('ARMY CLASH', W / 2, 300, W - 160, 132, COL.white, 18, -0.035);
+      ctx.save(); ctx.translate(W / 2, 384); ctx.rotate(-0.035);
       roundRect(ctx, -300, -9, 600, 18, 9); ctx.fillStyle = COL.gold; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = ink; ctx.stroke();
       ctx.restore();
       // the mode, if there is one (always in the same ribbon)
       if (o.tag) {
         ctx.font = font(52, 800, true); const tw = Math.min(W - 200, ctx.measureText(o.tag).width + 70);
-        roundRect(ctx, W / 2 - tw / 2, 382, tw, 78, 16); ctx.fillStyle = '#0A0E19'; ctx.fill(); ctx.lineWidth = 6; ctx.strokeStyle = COL.gold; ctx.stroke();
-        big(o.tag, W / 2, 423, tw - 50, 52, COL.gold, 8);
+        roundRect(ctx, W / 2 - tw / 2, 420, tw, 74, 16); ctx.fillStyle = '#0A0E19'; ctx.fill(); ctx.lineWidth = 6; ctx.strokeStyle = COL.gold; ctx.stroke();
+        big(o.tag, W / 2, 458, tw - 50, 50, COL.gold, 8);
       }
 
       // 4) the armies
@@ -13254,7 +13254,7 @@ const RVB = (() => {
       });
 
       // 5) the question (never the answer)
-      big('WHO WINS?', W / 2, 1560, W - 110, 210, COL.gold, 24, -0.05);
+      big('WHO WINS?', W / 2, 1545, W - 140, 176, COL.gold, 22, -0.05);
       ctx.restore();
     },
   };
