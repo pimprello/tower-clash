@@ -2,7 +2,7 @@
 
 ## 2026-11-14 (night): cyan defenders, accurate About text
 - The defenders are always cyan (TEAL) now, against a rotating attacker colour (red, orange, purple, crimson, magenta, amber, pink, coral, rose, yellow), so viewers always know which side is which.
-- The thumbnail's background is the defenders' cyan, top to bottom, with a soft touch of the attackers' colour rising from the bottom right behind the boss.
+- The thumbnail's background is one colour taken from the defenders' cyan, turned a little towards deep blue and darkening downwards, so it complements the cyan towers instead of copying them.
 - New About text for both channels (CHANNEL.md): accurate schedule (Tower Clash 12/16/19/22, Army Clash 10/14/18/22 UK time), no fixed team colours, says it's a simulation. Tower Clash's is set automatically.
 
 ## 2026-11-14 (late): 4 a day, top quality
