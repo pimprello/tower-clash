@@ -49,6 +49,8 @@ const LAYOUTS = {
   },
 };
 const LAYOUT_KEYS = Object.keys(LAYOUTS);
+// how strong the attackers come on each layout (tested over many battles: some layouts are easier to defend than others)
+const LAYOUT_POWER = { snake: 1, twin: 1.15, three: 1.1, spiral: 1.3, cross: 0.85, split: 1, bridge: 1.1 };
 
 // ----- maps (reusing Army Clash's ground themes): the path colour, the base and what the ground does -----
 // ground: 'lava' vents beside the path that flare and burn, 'ice' patches on the path that make walkers slide faster,
@@ -237,4 +239,4 @@ const CHAMP_TITLES = [['TITAN SLAYER', u => u.titanKills >= 1], ['WALL OF IRON',
 // friendly rivalries only: never countries at war or with a painful wartime history, no leaders or insignia
 const NATION_PAIRS = [['UK', 'USA'], ['BRAZIL', 'ARGENTINA'], ['NORWAY', 'SWEDEN'], ['SPAIN', 'PORTUGAL'], ['AUSTRALIA', 'NEWZEALAND'], ['CANADA', 'USA'], ['NETHERLANDS', 'BELGIUM'], ['DENMARK', 'FINLAND'], ['ITALY', 'FRANCE']];
 
-module.exports = { LAYOUTS, LAYOUT_KEYS, TD_MAPS, MAP_KEYS, BASE_NAME, TCLASS, TOWERS, TOWER_KEYS, TOWER_ERA, TIER, ELEM, ELEM_KEYS, DEF_LINEUPS, WAVE_KINDS, BOSSES, BOSS_KEYS, SIEGE, RAIDERS, ATK_LINEUPS, BOOK, BOOK_KEYS, SHAMAN, SHAMAN_KEYS, MODES, MODE_KEYS, SKINS, ORDERS, WARBANDS, TRAITS, CHAMP_TITLES, NATION_PAIRS };
+module.exports = { LAYOUTS, LAYOUT_KEYS, LAYOUT_POWER, TD_MAPS, MAP_KEYS, BASE_NAME, TCLASS, TOWERS, TOWER_KEYS, TOWER_ERA, TIER, ELEM, ELEM_KEYS, DEF_LINEUPS, WAVE_KINDS, BOSSES, BOSS_KEYS, SIEGE, RAIDERS, ATK_LINEUPS, BOOK, BOOK_KEYS, SHAMAN, SHAMAN_KEYS, MODES, MODE_KEYS, SKINS, ORDERS, WARBANDS, TRAITS, CHAMP_TITLES, NATION_PAIRS };

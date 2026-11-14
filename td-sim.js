@@ -19,7 +19,7 @@ const SIM = {
     if (mode === 'bossrush') kinds = ['giants', 'titans', 'giants', 'titans', 'titans'];
     if (mode === 'swarm') kinds = ['swarm', 'swarm', 'infantry', 'swarm', 'swarm', 'infantry', 'swarm', 'swarm'];
     const nNormal = mode === 'swarm' ? 8 : mode === 'bossrush' ? 4 : 5 + R.int(0, 2);       // 6 to 8 waves with the boss
-    const bossAt = this.cap - 24 + R.range(-1, 1);
+    const bossAt = this.cap - (o.bossLead || 17) + R.range(-1, 1);
     const first = 3.2;
     this.plan = [];
     const endless = this.trait.atk === 'endless' ? 1.15 : 1, reckless = this.trait.atk === 'reckless';
@@ -424,7 +424,7 @@ const SIM = {
     // pacing: before the boss wave has had its say, the gate holds (a leak still hurts, less the lower the base is), so the
     // battle is decided at the end, not in the first half
     const bw = this.plan.find(w => w.boss && !w.mini);
-    if (bw && !(u.boss || u.escort) && T < bw.at + 12) dmg *= clamp((b.hp - 18) / 60, 0.12, 1);
+    if (bw && !(u.boss || u.escort) && T < bw.at + 9) dmg *= clamp((b.hp - 18) / 60, 0.12, 1);
     if (this.sp3.domes.some(d => d.base && T < d.end)) { dmg *= 0.3; const dm = this.sp3.domes.find(d => d.base); if (dm && dm.hits.length < 12) dm.hits.push([u.x, u.y, this.t]); }
     b.hp = Math.max(0, b.hp - dmg); b.hitT = this.t; b.shake = 1; this.stat.breaches++;
     this.stat.lowBase = Math.min(this.stat.lowBase, b.hp);
