@@ -55,7 +55,7 @@ function tracker() {
     cues() {
       const st = rows.find(r => r.phase === 'fight'), start = st ? st.t : 1.5;
       const en = rows.find(r => r.t > start && r.phase !== 'fight' && r.phase !== 'intro'), end = en ? en.t : (rows.length ? rows[rows.length - 1].t - 3 : 60);
-      const fk = rows.find(r => r.t > start && r.ko), first = fk ? fk.t : start + 2.5;
+      const fk = rows.find(r => r.t > start && r.ko), first = Math.min(fk ? fk.t : start + 2.5, start + 4);   // (never a long wait for the drop)
       // busy-ness per half second, smoothed, 0..1
       const N = Math.ceil(((rows.length ? rows[rows.length - 1].t : 63) + 1) * 2), busy = new Float32Array(N);
       for (const r of rows) busy[Math.min(N - 1, Math.floor(r.t * 2))] += r.n;
