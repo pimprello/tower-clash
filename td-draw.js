@@ -295,7 +295,9 @@ const DRAW = {
   drawTowerBase(ctx, tw) {
     const t = this.t, u = tw.u, k = tw.tier, R = Math.max(25, u.r + 11) + (k >= 3 ? 4 : 0) + (k >= 5 ? 3 : 0);
     const drop = tw.drop !== undefined ? clamp((t - tw.drop) / 0.35, 0, 1) : 1, s = lerp(1.5, 1, easeOutCubic(drop));
-    ctx.save(); ctx.translate(tw.x, tw.y); if (drop < 1) { ctx.globalAlpha = drop; ctx.scale(s, s); }
+    // (a shot makes the platform give a little, like a recoil)
+    const kk = tw.kick !== undefined ? clamp(1 - (t - tw.kick) / 0.12, 0, 1) : 0, rs = 1 - 0.035 * kk;
+    ctx.save(); ctx.translate(tw.x, tw.y); if (drop < 1) { ctx.globalAlpha = drop; ctx.scale(s, s); } else if (kk) ctx.scale(rs, rs);
     // tier 5: a golden aura; tier 4: the element's glow
     if (k >= 5) { const p = 0.5 + 0.5 * Math.sin(t * 3 + tw.x); const rg = ctx.createRadialGradient(0, 0, R * 0.6, 0, 0, R + 26); rg.addColorStop(0, 'rgba(255,210,63,0.45)'); rg.addColorStop(1, 'rgba(255,210,63,0)'); ctx.beginPath(); ctx.arc(0, 0, R + 22 + 4 * p, 0, TAU); ctx.fillStyle = rg; ctx.fill(); }
     if (k >= 4 && tw.el) { const p = 0.5 + 0.5 * Math.sin(t * 4 + tw.y); ctx.beginPath(); ctx.arc(0, 0, R + 6, 0, TAU); ctx.lineWidth = 5; ctx.strokeStyle = rgba(ELEM[tw.el].col, 0.45 + 0.4 * p); ctx.stroke(); }
@@ -389,6 +391,14 @@ const DRAW = {
       this.marks = this.marks.filter(m => t - m.t0 < 4);
       for (const m of this.marks) {
         const age = t - m.t0;
+        if (m.kind === 'slash') {
+          // a melee blow: a bright crescent sweeping across the target, fading in a quarter of a second
+          if (age > 0.25) continue; const k = age / 0.25, sw = m.side * (0.9 + 1.2 * k), a0 = m.a + Math.PI / 2 * m.side;
+          ctx.save(); ctx.globalAlpha = 1 - k; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.arc(m.x, m.y, m.r, a0 - sw * 0.5 - 0.6, a0 - sw * 0.5 + 0.6); ctx.lineWidth = 7 * (1 - k * 0.6); ctx.strokeStyle = rgba(m.col, 0.45); ctx.stroke();
+          ctx.lineWidth = 2.6 * (1 - k * 0.5); ctx.strokeStyle = '#FFFFFF'; ctx.stroke();
+          ctx.restore(); continue;
+        }
         if (m.kind === 'heart') {
           const u = m.u; if (!u || u.dead || !(u.charmT > T)) continue;
           const y = u.y - u.r - 16 - 3 * Math.sin(t * 6), x = u.x;

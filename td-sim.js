@@ -99,7 +99,7 @@ const SIM = {
     if (type === 'livingfortress') { u.escort = true; hp = U.hp * 3.2 * this.hpK; this.escortU = u; this.chapter('THE SIEGE ENGINE ROLLS IN', '#FDBA74'); }
     u.max = hp; u.hp = hp;
     // (every layout takes about as long to walk, short or winding: speeds scale with the lane's length)
-    u.vk = walkSpeed(type) * this.spdK * (u.boss ? 0.85 : 1) * (U.flying ? 1 : clamp(L.len / 1900, 0.55, 1.7));
+    u.vk = walkSpeed(type) * this.spdK * (u.boss ? 0.62 : 1) * (U.flying ? 1 : clamp(L.len / 1900, 0.55, 1.7));
     if (U.flying) { const b = this.base; u.fly = { x0: u.x, y0: AR.y - 30, len: Math.hypot(b.x - u.x, b.y - (AR.y - 30)) }; u.s = 0; }
     return u;
   },
@@ -514,6 +514,11 @@ const SIM = {
     u.cd = Df.cd * TIER.cd[tw.tier] * this.R.range(0.94, 1.06) * (this.wNow ? this.worldCd() : 1);
     const dmg = Df.dmg * TIER.dmg[tw.tier] * (u.bigT > T ? 1.8 : 1) * (tw.growT > T ? 1.5 : 1) * (this.pushK > 1 ? 1 + (this.pushK - 1) * 0.8 : 1);
     u.muzzle = 1; u.lunge = 1; tw.shotT = this.t;
+    // (looks only) a puff and a few sparks where the shot leaves, and the tower kicks back a touch
+    { const F = this.FX, fx = u.x + Math.cos(u.face) * (u.r + 6), fy = u.y + Math.sin(u.face) * (u.r + 6), heavy = ['cannonball', 'mortar', 'boulder', 'snipe'].includes(Df.shot);
+      if (this.parts.length < 900) { for (let k = 0; k < (heavy ? 6 : 3); k++) { const a = u.face + F.range(-0.5, 0.5), sp = F.range(60, heavy ? 260 : 160); this.parts.push({ x: fx, y: fy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: F.range(0.12, 0.26), age: 0, size: F.range(1.2, 2.2), color: heavy ? '#FFD27A' : '#FFF6D8', grav: 0, streak: 0.03, drag: 6 }); }
+        if (heavy) this.parts.push({ x: fx, y: fy, vx: Math.cos(u.face) * 40, vy: Math.sin(u.face) * 40, life: 0.5, age: 0, size: 9, color: '#B9B4AA', grav: 0, smoke: true, drag: 3 }); }
+      tw.kick = this.t; }
     const pan = this.pan(u.x);
     // (sound only) each kind of tower is heard at most every 0.45 s, and the ringing ones (frost, storm, lasers) softly, so the
     // shots don't turn into one long chime under the music
@@ -787,8 +792,28 @@ const SIM = {
     // (from about a third of the damage when it arrives to all of it in the last 8 s)
     if (u.boss && u === this.bossU && this.bossAt0 !== undefined) dmg *= clamp(0.35 + 0.65 * (this.fightT - this.bossAt0) / Math.max(1, this.cap - 8 - this.bossAt0), 0.35, 1);
     const was = !u.dead;
+    if (dmg > 0 && this._kind !== 'blast') this.fxImpact(u, dmg, from);
     RVB.Army.prototype.damage.call(this, u, dmg, from);
     if (was && u.dead) this.onKill(u, from);
+  },
+  // (looks only, cosmetic dice) every hit throws sparks the way the blow came from, with a quick ring; a melee blow leaves a
+  // bright slash arc; arrows and bolts splinter, magic glitters in its element's colour, stone towers chip
+  fxImpact(t, dmg, from) {
+    const F = this.FX, Df = from && from.tw ? from.tw.def : null, el = from && from.tw ? from.tw.el : null;
+    const ang = from ? Math.atan2(t.y - from.y, t.x - from.x) : F.range(0, Math.PI * 2);
+    const shot = Df ? Df.shot : from && from.team === ATK ? (UNIT[from.type].range > 60 ? 'throw' : 'melee') : 'other';
+    const ELC = { fire: '#FFB347', frost: '#BFEFFF', storm: '#C4B5FD', acid: '#B5F23D', holy: '#FFF3B0' };
+    const col = el ? ELC[el] || '#FFFFFF' : shot === 'arrow' || shot === 'bolt' ? '#FFE7A8' : shot === 'snipe' ? '#FFFFFF' : shot === 'laser' ? '#7DF9FF'
+      : shot === 'melee' ? (t.tower ? '#C9CED8' : '#FFFFFF') : shot === 'throw' ? '#F3D9A4' : Df && Df.cls === 'magic' ? '#E9D5FF' : '#FFFFFF';
+    const hx = t.x - Math.cos(ang) * t.r * 0.6, hy = t.y - Math.sin(ang) * t.r * 0.6;
+    const n = Math.max(4, Math.min(14, Math.round(3 + dmg * 0.7)));
+    if (this.parts.length < 900) for (let k = 0; k < n; k++) {
+      const a = ang + Math.PI + F.range(-1, 1) * (shot === 'melee' ? 1.3 : 0.9), sp = F.range(150, 430);
+      this.parts.push({ x: hx, y: hy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: F.range(0.16, 0.36), age: 0, size: F.range(1.4, 2.8), color: k % 3 ? col : '#FFFFFF', grav: 0, streak: 0.035, drag: 5 });
+    }
+    if (t.tower && shot === 'melee') for (let k = 0; k < 3; k++) { const a = ang + Math.PI + F.range(-1.2, 1.2), sp = F.range(80, 220); this.parts.push({ x: hx, y: hy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: F.range(0.35, 0.6), age: 0, size: F.range(4, 7), color: '#8C95A8', grav: 0, shard: true, rot: F.range(0, 6), spin: F.range(-12, 12), drag: 3 }); }
+    if (this.shRings) this.shRings.push({ x: hx, y: hy, r0: 4, r1: t.r + (dmg > 8 ? 26 : 14), t0: this.t, life: 0.22, col, w: dmg > 8 ? 4 : 2.5 });
+    if (shot === 'melee' || shot === 'throw') this.marks.push({ kind: 'slash', x: t.x, y: t.y, r: t.r + 8, a: ang, t0: this.t, col, side: from && from.swordSide ? from.swordSide : 1 });
   },
   onKill(u, from) {
     if (u.team === ATK) {
