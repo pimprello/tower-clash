@@ -58,7 +58,23 @@ function quick(power, s) {
   const g = new TD(s, optsFor(power, s));
   g.fixedTicks = true; g.tickAcc = 0;
   let k = 0; while (g.phase === 'fight' && k < FPS * 90) { g.frame(1 / FPS); g.sfx.length = 0; k++; }
-  return { def: g.tdWinner === 0, T: g.fightT };
+  return { def: g.tdWinner === 0, T: g.fightT, hp: g.base.hp, fell: g.stat.fell.length };
+}
+// a close finish for this very battle: the dice pick which side should win (an even chance), then the attackers' strength
+// is chosen so that side wins late and narrowly (the base scraped down, or broken in the last seconds). The battle itself
+// is the same with or without the camera, so the headless run predicts the video.
+function closeFinish() {
+  const want = pick.next() < ((rules.balance || {}).target ?? 0.5) ? 'def' : 'atk';
+  const t0 = Date.now(); let best = null;
+  for (let p = 0.6; p <= 5.2; p *= 1.12) {
+    const r = quick(p, seed), side = r.def ? 'def' : 'atk';
+    // close: a defenders' win with the base scraped down (about 10-35%), or an attackers' win in the last seconds
+    const close = r.def ? 60 - Math.abs(r.hp - 20) * 1.2 + Math.min(r.T, 58) * 0.4 : Math.min(r.T, 59.4) * 1.1;
+    const sc = close + (side === want ? 40 : 0);
+    if (!best || sc > best.sc) best = { p, sc, r };
+  }
+  console.log(`close finish: wanted the ${want === 'def' ? 'defenders' : 'attackers'}; x${best.p.toFixed(2)} gives ${best.r.def ? 'defenders' : 'attackers'} at ${best.r.T.toFixed(1)} s, base ${Math.round(best.r.hp)}% (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+  return best.sc > 0 ? best.p : null;
 }
 function tune() {
   const B = rules.balance || {}, n = B.tests || 12, steps = B.steps || 4, target = B.target ?? 0.5;
@@ -98,7 +114,7 @@ const tc = s => String(s).toLowerCase().replace(/(^|[\s-])([a-z])/g, (m, a, b) =
 async function main() {
   const t0 = Date.now();
   fs.mkdirSync(OUT, { recursive: true });
-  const power = process.env.POWER ? Number(process.env.POWER) : tune();
+  const power = process.env.POWER ? Number(process.env.POWER) : (closeFinish() ?? tune());
   const game = new TD(seed, optsFor(power, seed));
   const director = rules.cinematic !== false ? new RVB.Director(game, { seed }) : null;
   if (!director) { game.fixedTicks = true; game.tickAcc = 0; }
