@@ -7,7 +7,7 @@ const path = require('path');
 
 const OUT = path.join(__dirname, 'out');
 const file = path.join(OUT, 'tower-clash.mp4');
-const meta = JSON.parse(fs.readFileSync(path.join(OUT, 'meta.json'), 'utf8'));
+const meta = (() => { try { return JSON.parse(fs.readFileSync(path.join(OUT, 'meta.json'), 'utf8')); } catch (e) { return { title: '', description: '', tags: [] }; } })();
 const privacy = ['public', 'unlisted', 'private'].includes(process.env.PRIVACY) ? process.env.PRIVACY : 'public';
 
 const body = {
