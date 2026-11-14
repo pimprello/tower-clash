@@ -8,7 +8,7 @@ const dir = path.join(__dirname, 'thumbs');
 (async () => {
   let now = {};
   try { now = JSON.parse(fs.readFileSync(path.join(__dirname, 'out', 'uploaded.json'), 'utf8')); } catch (e) { /* no upload */ }
-  if (now.thumb !== 'set') { console.log('Custom thumbnails not accepted yet; saved thumbnails kept for later.'); return; }
+  if (now.thumb !== 'set' && !process.env.FORCE) { console.log('Custom thumbnails not accepted yet; saved thumbnails kept for later.'); return; }
   if (!fs.existsSync(dir)) return;
   const files = fs.readdirSync(dir).filter(f => f.endsWith('.jpg')).slice(0, 8);
   if (!files.length) return;
