@@ -1,8 +1,8 @@
 # View stats
 
-Updated 2026-11-14 21:33 UTC. 1 videos, 0 at least a day old (used below). Groups need 3+ videos.
+Updated 2026-11-15 18:56 UTC. 5 videos, 0 at least a day old (used below). Groups need 3+ videos.
 
-Total views: 0. Median views per video: 0.
+Total views: 21. Median views per video: 0.
 
 ### By upload hour (UK time)
 
@@ -73,4 +73,8 @@ Total views: 0. Median views per video: 0.
 
 | Views | Likes | Title |
 | --- | --- | --- |
-| 0 | 0 | The Magma Colossus vs 7 Towers 🔥 |
+| 8 | 0 | The Black Boar Band vs The Brass Bastion: Will The Base Survive? |
+| 5 | 0 | Can 17 Towers Stop The Siege Golem? 🏰 |
+| 4 | 0 | Tier 5 Towers vs The Hydra 🔥 |
+| 4 | 0 | The Glacier Behemoth vs 11 Towers 🔥 |
+| 0 | 0 | 7 Waves. 1 Base. Will It Hold? 🛡️ |
