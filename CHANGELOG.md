@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-15 (morning): shared engine brought back in step with Army Clash
+The daily Clash Autopilot run errored before finishing, and Army Clash's `engine.js` had moved ahead of this copy. Rellz: "fix it".
+- `engine.js` is Army Clash's again plus the `api._` line: riders now sit up on their mounts, names stay on screen and don't print across floating words, and the engine's own banners don't repeat or cover the result. Tower Clash's own intro and notice queue are unchanged.
+- Tested: syntax, 12 headless battles (0 crashes, all finished), stills of the intro and the fight at 6, 15 and 30 s.
+
 ## 2026-11-15: intro card, notices that never stack
 From the Clash Autopilot list (Rellz: "the ui layer on top of each other issue").
 - **Intro card** (`rules.intro`, 2.2 s): every video opens on the thumbnail's layout (the question, the board, the best tower vs the boss), drifting in slowly, then dissolves into the first frame of the fight. Sound and music start under it; the end still loops back to it.

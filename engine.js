@@ -363,6 +363,8 @@ const RVB = (() => {
       const cap = this.shine ? 2600 : 700;
       if (this.parts.length > cap) this.parts.splice(0, this.parts.length - cap);
     }
+    // the finale's window (the slow-motion final blow and the moments before it): nothing new is put over it
+    finWin() { return !!this.finalePlan && this.phase === 'fight' && this.fightT > this.finalePlan.t - FIN_LEAD - 0.4; }
     float(x, y, text, color, size = 56, life = 0.9) {
       // the finale: no new floating labels over the final blow
       if (this.finalePlan && (this.phase !== 'fight' || this.fightT > this.finalePlan.t - FIN_LEAD - 0.4)) return;
@@ -378,8 +380,16 @@ const RVB = (() => {
       // UI 2.0: nothing covers the opening story card: banners wait until it's gone (only the last two are kept)
       if (this.opts.ui >= 2 && this.story && this.t < 4.4) { (this.heldB || (this.heldB = [])).push({ text, color, life }); if (this.heldB.length > 2) this.heldB.shift(); return; }
       // UI 2.0: a banner still being read (on screen under 1.1 s) isn't replaced; the new one waits its turn
+      // (rules.ui.noStack) the same news twice is said once; once the battle is over, no more banners cover the result
+      if (this.opts.noStack && this.opts.ui >= 2) {
+        if (this.phase === 'outro' || this.finWin()) return;
+        if (this.banners.some(b => b.text === text && b.age < b.life - 0.3) || (this.bannerQ || []).some(q => !q.done && q.text === text && q.at > this.fightT)) return;
+      }
       if (this.opts.ui >= 2 && this.bannerQ && this.phase === 'fight') {
         const cur = this.banners.find(b => b.age < 1.1 && b.age < b.life - 0.3);
+        // (rules.ui.noStack) news never piles up: with two already waiting, the newest replaces the last one waiting,
+        // so nothing turns up seconds after it happened
+        if (cur && this.opts.noStack) { const wait = this.bannerQ.filter(q => !q.done && q.at > this.fightT); if (wait.length >= 2) { const last = wait[wait.length - 1]; last.text = text; last.col = color; return; } }
         if (cur) { this.bannerQ.push({ at: this.fightT + (1.1 - cur.age) + 0.05 + this.bannerQ.filter(q => !q.done && q.at > this.fightT).length * 1.2, text, col: color }); return; }
       }
       // Replace a banner that is still on screen rather than stacking them.
@@ -396,6 +406,8 @@ const RVB = (() => {
       for (const f of this.floats) f.age += dt;
       this.floats = this.floats.filter(f => f.age < f.life);
       for (const b of this.banners) b.age += dt;
+      // (rules.ui.noStack) a banner still up when the battle ends fades out quickly instead of sitting over the result
+      if (this.opts.noStack && (this.phase === 'outro' || this.finWin())) for (const b of this.banners) if (!b.cut) { b.cut = true; b.life = Math.min(b.life, b.age + 0.3); }
       this.banners = this.banners.filter(b => b.age < b.life);
       this.shakeAmt *= Math.pow(0.0009, dt);
       if (this.shakeAmt < 0.3) this.shakeAmt = 0;
@@ -627,12 +639,13 @@ const RVB = (() => {
         ctx.globalAlpha = outK;
         // UI 2.0: while the roster strips are up, banners drop below the top strip(s) instead of covering them
         const rosterUp = this.ui2 && this.cmb && this.cmb.roster && this.t > 4.0 && this.t < 8.6;
-        const by = rosterUp ? AR.y + 14 + (this.N === 3 ? 3 * 84 : 100) + 48 : AR.y + 82;
-        ctx.translate(VW / 2, by);
-        ctx.scale(0.6 + 0.4 * inK, 0.6 + 0.4 * inK);
+        let by = rosterUp ? AR.y + 14 + (this.N === 3 ? 3 * 84 : 100) + 48 : AR.y + 82;
         ctx.font = font(54, 800); spaced(ctx, 3);
         const ft = [0, 1].find(i => hasFlag(TEAMS[i]) && (b.text.startsWith(TEAMS[i].name + ' ') || b.text.startsWith(TEAMS[i].name + ':')));
         const tw = ctx.measureText(b.text).width, fw = ft !== undefined ? 66 : 0, w = tw + 70 + fw, maxW = this.ui2 ? 900 : 1040;
+        if (this.noteR) { const kk = Math.min(1, maxW / w); by += this.noteFit('banner', 'banner', VW / 2 - (w / 2 + 16) * kk, by - 40 * kk, (w + 32) * kk, 80 * kk); }
+        ctx.translate(VW / 2, by);
+        ctx.scale(0.6 + 0.4 * inK, 0.6 + 0.4 * inK);
         if (w > maxW) ctx.scale(maxW / w, maxW / w);
         if (this.ui2 && this.lay && inK >= 1 && outK >= 1) { const k = Math.min(1, maxW / w); this.lay.push({ kind: 'banner', x: VW / 2 - (w / 2 + 16) * k, y: by - 40 * k + (this.layDY || 0), w: (w + 32) * k, h: 80 * k, text: b.text }); }
         ctx.beginPath();
@@ -4111,6 +4124,7 @@ const RVB = (() => {
         if (u.lift) ell(SH ? mainCtx : ctx, u.x + 6, u.y + 8, u.r, u.r * 0.6, 0, 'rgba(0,0,0,0.25)', 0);
         const sq = this.anim && this.animOn(ctx, u, x, y);
         this.drawBody(ctx, u, x, y, tm, swordy);
+        if (this.humans && RIDER[u.type] && !(u.sheepT > this.fightT)) this.drawRider(ctx, u, x, y, tm);
         if (ART && !(u.sheepT > this.fightT) && !(this.humans && HUMAN[u.type])) { this.drawWear(ctx, u, x, y); this.artFinish(ctx, u, x, y); }
         if (sq) ctx.restore();
         if (SH) this.shineUnit(ctx, u, x, y);
@@ -4135,7 +4149,17 @@ const RVB = (() => {
       }
       if (ART) this.flushArt(ctx);
       if (SH) { this.shineEnd(mainCtx, ctx); ctx = mainCtx; }
-      if (this._labQ) { const Q = this._labQ; this._labQ = null; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; for (const q of Q) { ctx.font = q.f; strokeText(ctx, ...q.a); } ctx.textBaseline = 'alphabetic'; }
+      if (this._labQ) {
+        // (logic) a name is kept inside what the camera shows, and is left out for a moment while a floating word (a kill streak,
+        // a callout) sits on it, so the two never print across each other
+        const Q = this._labQ, V = this.viewRect(ctx); this._labQ = null; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        for (const q of Q) {
+          ctx.font = q.f; const [text, x0, y0, ...rest] = q.a, w = ctx.measureText(text).width, x = clamp(x0, V.x0 + w / 2 + 6, V.x1 - w / 2 - 6), y = clamp(y0, V.y0 + 14, V.y1 - 14);
+          if (this.floats.some(f => f.age < f.life && Math.abs(f.x - x) < (w + String(f.text).length * f.size * 0.5) / 2 && Math.abs(f.y - 30 - y) < 34)) continue;
+          strokeText(ctx, text, x, y, ...rest);
+        }
+        ctx.textBaseline = 'alphabetic';
+      }
       if (this.cast3on) this.drawCast3Fx(ctx);
       if (this.c4on) this.drawCast4Fx(ctx);
       if (this.g5) this.drawCast5Fx(ctx);
@@ -4180,6 +4204,7 @@ const RVB = (() => {
       }
       this.drawArenaFrame(ctx);
       this.drawFX(ctx);
+      if (U2) this.noteBegin();
       this.drawBanners(ctx);
       if (U2) {
         if (this.tribes) this.drawStory2(ctx);
@@ -9028,7 +9053,7 @@ const RVB = (() => {
       const fake = { fake: true, type, team, r: U.r, x: 0, y: 0, face: -Math.PI / 2 + 0.5, mface: -Math.PI / 2 + 0.5, vx: 0, vy: 0, gait: 1.3, lunge: 0, swing: 0, hp: 1, max: 1, cd: 1,
         heads: U.heads || 0, bodies: [], souls: 0, decoyEnd: 99, look: 'illusion', lives: 1, muzzle: 0, flying: !!U.flying, gear: pool ? (type === 'soldier' ? 'shield' : pool[0]) : undefined };
       if (type === 'king') this.drawKing(ctx, fake, 0, 0, TEAMS[team]);
-      else this.drawBody(ctx, fake, 0, 0, TEAMS[team], !!U.sword);
+      else { this.drawBody(ctx, fake, 0, 0, TEAMS[team], !!U.sword); if (this.humans && RIDER[fake.type]) this.drawRider(ctx, fake, 0, 0, TEAMS[team]); }
     },
   };
   // ----- living tribes (rules.tribes): a fixed pool of invented tribes per genre, so the same tribes come back video after video -----
@@ -9861,8 +9886,10 @@ const RVB = (() => {
           for (let tries = 0; tries < 4 && placed.some(p => Math.abs(p.x - x) < (p.w + w) / 2 + 6 && Math.abs(p.y - y) < 40); tries++) y = clamp(y - 42, AR.y + 34, AR.y + AR.h - 24) === y ? y + 42 : clamp(y - 42, AR.y + 34, AR.y + AR.h - 24);
           L.py = y;
         }
-        const y = clamp(L.py, V.y0 + 24, V.y1 - 24) - 10 * easeOutCubic(k);
-        placed.push({ x, y: L.py, w }); L.px = x; L.w = w;
+        let y = clamp(L.py, V.y0 + 24, V.y1 - 24) - 10 * easeOutCubic(k);
+        // (logic) two tags pushed to the same edge of the view would overlap: the later one steps clear of the earlier
+        for (let tries = 0; tries < 3 && placed.some(p => Math.abs(p.x - x) < (p.w + w) / 2 + 6 && Math.abs(p.y - y) < 40); tries++) y = y - 42 < V.y0 + 24 ? y + 42 : y - 42;
+        placed.push({ x, y, w }); L.px = x; L.w = w;
         ctx.globalAlpha = al;
         roundRect(ctx, x - w / 2, y - 17, w, 34, 17); ctx.fillStyle = 'rgba(8,11,20,0.88)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = TEAMS[tb.team].c; ctx.stroke();
         disc(ctx, x - w / 2 + 17, y, 13, TEAMS[tb.team].c, 2); drawEmblem(ctx, tb.emblem, x - w / 2 + 17, y, 9.5);
@@ -10051,6 +10078,31 @@ const RVB = (() => {
   const SAFE = { x0: 48, x1: 1032, top: 60, bottom: 1560, btnX: 940, btnY0: 900 };
   const shortTribe = n => n.replace(/^THE /, '').replace(/^(ORDER|HOUSE|CREW) OF THE /, '').replace(/ (CLAN|COMPANY|TRIBE|KIN|CIRCLE|SCHOOL|ORDER)$/, '');
   const ARMY_UI2 = {
+    // ----- the notice lane (rules.ui.noStack): screen notices (banners, the chapter pill, upgrade and shop cards) never sit on
+    // top of each other (Rellz, 2026-11-15: "when a notification comes it should not stack on top of each other"). Every frame
+    // each notice claims its box in drawing order; one that would overlap a box already claimed by another kind slides clear
+    // of it (down, or up for the chapter pill at the bottom), easing there so nothing jumps. Looks only: drawn after the battle.
+    noteBegin() {
+      this.noteR = this.opts.noStack ? [] : null;
+      const t = this.t, dt = this.noteT === undefined ? 0 : clamp(t - this.noteT, 0, 0.1);
+      this.noteT = t; this.noteDt = dt;
+      if (!this.noteDY) this.noteDY = {};
+    },
+    noteFit(group, key, x, y, w, h, dir = 1) {
+      if (!this.noteR) return 0;
+      let dy = 0;
+      for (let pass = 0; pass < 4; pass++) {
+        const o = this.noteR.find(r => r.group !== group && x < r.x + r.w && r.x < x + w && y + dy < r.y + r.h + 10 && r.y < y + dy + h + 10);
+        if (!o) break;
+        dy = dir > 0 ? o.y + o.h + 12 - y : o.y - 12 - h - y;
+      }
+      const m = this.noteDY, prev = m[key];
+      let cur = dy;
+      if (prev && this.t - prev.seen < 0.25) cur = prev.dy + (dy - prev.dy) * (1 - Math.exp(-(this.noteDt || 0) * 14));
+      m[key] = { dy: cur, seen: this.t };
+      this.noteR.push({ group, x, y: y + cur, w, h });
+      return cur;
+    },
     // the scoreboard: logo, hook, both armies' names and live counts, the battle clock in the centre pill, and the strength bar
     drawHUD2(ctx) {
       const t = this.t, L = this.alive[0] + this.reserve[0], R = this.alive[1] + this.reserve[1];
@@ -10144,10 +10196,12 @@ const RVB = (() => {
         if (k < 0 || k > 1) continue;
         // (while the roster strip is up at the bottom of the battlefield, the card sits just above it)
         const low = this.N !== 3 && this.cmb && this.cmb.roster && this.t > 4.0 && this.t < 8.6 ? 14 + 92 + 10 : 0;
-        const a = Math.min(1, k * 8, (1 - k) * 6), y = AR.y + AR.h - 40 - low + (1 - Math.min(1, k * 8)) * 20;
+        const a = Math.min(1, k * 8, (1 - k) * 6);
+        let y = AR.y + AR.h - 40 - low + (1 - Math.min(1, k * 8)) * 20;
         ctx.save(); ctx.globalAlpha = a;
         ctx.font = font(28, 800); spaced(ctx, 3);
         const w = Math.min(2 * (SAFE.btnX - VW / 2), ctx.measureText(c.text).width + 80);
+        if (this.noteR) y += this.noteFit('chapter', 'chapter', VW / 2 - w / 2, y - 24, w, 48, -1);
         roundRect(ctx, VW / 2 - w / 2, y - 24, w, 48, 24); ctx.fillStyle = 'rgba(8,11,20,0.9)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = c.col; ctx.stroke();
         for (const sx of [-1, 1]) { const dx = VW / 2 + sx * (w / 2 - 22); ctx.beginPath(); ctx.moveTo(dx, y - 7); ctx.lineTo(dx + 7, y); ctx.lineTo(dx, y + 7); ctx.lineTo(dx - 7, y); ctx.closePath(); ctx.fillStyle = c.col; ctx.fill(); }
         spaced(ctx, 0);
@@ -11534,7 +11588,9 @@ const RVB = (() => {
       for (;;) {
         if (E.show) { const end = E.show.t0 + (E.show.big ? 2.3 : 1.7); if (t <= end) return; E.show = null; E.next = end + 0.6; }
         if (!E.cards.length) return;
-        const start = Math.max(E.next, E.cards[0].at || 0, 8.8);
+        // (rules.ui.noStack: the merchant's shop card and the upgrade cards share a spot, so they take turns)
+        if (this.opts.noStack && (this.shopBusy() || this.finWin())) return;
+        const start = Math.max(E.next, E.cards[0].at || 0, 8.8, this.opts.noStack && this.merch && this.merch.cardFree ? this.merch.cardFree : 0);
         if (t < start) return;
         E.show = E.cards.shift(); E.show.t0 = start;
       }
@@ -11547,7 +11603,9 @@ const RVB = (() => {
       const age = t - c.t0, dur = c.big ? 2.3 : 1.7;
       const tb = c.tb, tm = TEAMS[tb.team], ecol = c.which === 'w' ? this.wCol(tb, c.tier) : c.tier >= 4 ? ELEM[tb.elem].col : A_COL[c.tier];
       const inK = easeOutBack(clamp(age / 0.28, 0, 1)), a = Math.min(1, age / 0.12, (dur - age) / 0.25);
-      const W = 800, H = 150, cx = VW / 2, cy = AR.y + 205;
+      const W = 800, H = 150, cx = VW / 2;
+      let cy = AR.y + 205;
+      if (this.noteR) cy += this.noteFit('evo', 'evo', cx - W / 2, cy - H / 2, W, H);
       ctx.save(); ctx.globalAlpha = a; ctx.translate(cx, cy); ctx.scale(0.7 + 0.3 * inK, 0.7 + 0.3 * inK);
       roundRect(ctx, -W / 2, -H / 2, W, H, 18); ctx.fillStyle = 'rgba(10,14,24,0.92)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = tm.c; ctx.stroke();
       // the element's colour sweeping across the card
@@ -13035,14 +13093,30 @@ const RVB = (() => {
       if (this.mkFx && this.mkFx.length > 12) this.mkFx = this.mkFx.filter(f => t - f.t0 < 2);
       ctx.restore(); ctx.globalAlpha = 1;
     },
+    // (rules.ui.noStack) the shop card is waiting to show or on screen
+    shopBusy() {
+      const m = this.merch;
+      if (!m || !this.market2 || this.phase !== 'fight' || m.cardDone) return false;
+      return this.fightT - m.t0 - 0.3 >= 0 && (m.cardF !== undefined || this.fightT - m.t0 - 0.3 < 4);
+    },
     // the shop card when the merchant arrives: his four wares and their prices
     drawShopCard(ctx) {
       const m = this.merch;
       if (!m || !this.market2 || this.phase !== 'fight') return;
-      const age = this.fightT - m.t0 - 0.3, dur = 1.6;
+      let age = this.fightT - m.t0 - 0.3;
+      const dur = 1.6;
+      if (this.opts.noStack) {
+        // (rules.ui.noStack: wait for an upgrade card that's still on screen, then show the shop for its full time)
+        if (age < 0 || m.cardDone) return;
+        if (m.cardF === undefined) { if (this.finWin()) { m.cardDone = true; return; } if (this.evo && this.evo.show && age < 4) return; m.cardF = this.fightT - Math.max(0, Math.min(age, 0.05)); }
+        age = this.fightT - m.cardF;
+        if (age > dur) { m.cardDone = true; m.cardFree = this.t + 0.5; return; }
+      }
       if (age < 0 || age > dur) return;
       const inK = easeOutBack(clamp(age / 0.28, 0, 1)), a = Math.min(1, age / 0.12, (dur - age) / 0.25);
-      const W = 800, H = 150, cx = VW / 2, cy = AR.y + 205;
+      const W = 800, H = 150, cx = VW / 2;
+      let cy = AR.y + 205;
+      if (this.noteR) cy += this.noteFit('shop', 'shop', cx - W / 2, cy - H / 2, W, H);
       const OLD = { evolve: ['EVOLUTION CORE', '#C084FC'], spell: ['BATTLE SPELL', '#FB923C'], barrage: ['BARRAGE', '#F87171'], summon: ['SUMMONS', '#2DD4BF'] };
       // (rules.spells: this visit's wares from the spell book)
       const wares = m.offer ? m.offer.map(k => BOOK[k] ? [k, BOOK[k].name, BOOK[k].col] : [k, ...OLD[k]]) : Object.entries(OLD).map(([k, v]) => [k, ...v]);
@@ -13167,7 +13241,10 @@ const RVB = (() => {
     thumbPicks(list) {
       const ok = list.filter(([t]) => UNIT[t] && !UNIT[t].uncounted && t !== 'king');
       const pool = ok.length ? ok : list.filter(([t]) => UNIT[t]);
-      const hero = pool.slice().sort((p, q) => UNIT[q[0]].r - UNIT[p[0]].r || q[1] - p[1])[0];
+      // (logic) the big portrait is one of the army's own troops, matching the name under it ("SNIPERS"), not a titan or giant
+      // character that every army now brings along
+      const own = pool.filter(([t]) => !isTitan(t) && !GIANT_POOL.some(([g]) => g === t)), from = own.length ? own : pool;
+      const hero = from.slice().sort((p, q) => UNIT[q[0]].r - UNIT[p[0]].r || q[1] - p[1])[0];
       const rest = pool.filter(p => p !== hero).sort((p, q) => q[1] - p[1]).slice(0, 2);
       return { hero: hero ? hero[0] : 'soldier', rest: rest.map(p => p[0]) };
     },
@@ -15422,6 +15499,11 @@ const RVB = (() => {
       try { const m = ctx.getTransform().inverse(), a = m.transformPoint({ x: AR.x * RS, y: (AR.y + dy) * RS }), b = m.transformPoint({ x: (AR.x + AR.w) * RS, y: (AR.y + AR.h + dy) * RS }); return { x0: Math.min(a.x, b.x), y0: Math.min(a.y, b.y), x1: Math.max(a.x, b.x), y1: Math.max(a.y, b.y) }; }
       catch (e) { return { x0: AR.x, y0: AR.y, x1: AR.x + AR.w, y1: AR.y + AR.h }; }
     },
+    // a rider sitting up on its mount, bobbing with the mount's stride
+    drawRider(ctx, u, x, y, tm) {
+      const bob = Math.hypot(u.vx || 0, u.vy || 0) > 8 ? Math.abs(Math.sin(this.fightT * 9 + (u.gait || 0))) * 1.5 : 0, big = UNIT[u.type].r >= 24;
+      this.drawHuman(ctx, u, x, y - u.r * (big ? 0.55 : 0.12) - bob, tm, RIDER[u.type], big ? u.r * 0.62 : u.r * 0.8);
+    },
     labLater(ctx, ...a) { if (this._labQ) this._labQ.push({ f: ctx.font, a }); else strokeText(ctx, ...a); },
     headR(u) { return this.humans && HUMAN[u.type] ? u.r * 1.6 : u.r; },
     // the map's obstacles alone (trees, rocks, walls), at twice the size so they stay sharp when the camera zooms in
@@ -15480,7 +15562,7 @@ const RVB = (() => {
   const HUMAN = {};
   for (const row of `
     soldier helm sword h cloth|swordsman helm sword h armor|spearman helm spear h cloth|pikeman helm pike h armor|shieldbearer helm shield h armor
-    archer hood bow h cloth|crossbowman helm crossbow h cloth|longbow hood longbow h cloth|firearcher hood firebow h cloth|horsearcher hood bow h cloth
+    archer hood bow h cloth|crossbowman helm crossbow h cloth|longbow hood longbow h cloth|firearcher hood firebow h cloth
     berserker horns axe h fur|healer hood heal h robe|knight fullhelm sword h armor|royalguard fullhelm halberd h armor|duelist hair rapier h coat
     rifleman cap rifle h cloth|gunner cap mg h cloth|sniper beret sniper h cloth|grenadier cap bomb h cloth|musketeer tricorn musket h coat
     trooper visor blaster h suit|jetpack visor blaster h suit|zerog visor blaster h suit|orbitknight visor sword h suit|pulsar visor blaster h suit
@@ -15500,14 +15582,18 @@ const RVB = (() => {
     unqualifiedking crown wand h robe|siren hair trident blue robe|sandman hood staff h robe|gravewitch wizard skullstaff pale robe|medic cap heal h cloth
     robot antenna blaster metal metal|giant helm club h fur
   `.trim().split(/[|\n]/)) { const [k, head, weapon, skin, body] = row.trim().split(/\s+/); if (k) HUMAN[k] = { head, weapon, skin, body }; }
+  // the riders of mounted troops: a little person sitting up on its horse, wolf, boar, elephant, nightmare, griffin or mammoth
+  // (instead of a round rider seen from above)
+  const RIDER = {};
+  for (const row of 'lancer fullhelm spear h armor|horsearcher hood bow h cloth|elephant helm spear h cloth|deathknight fullhelm sword pale armor|wolfrider horns axe goblin fur|boarrider bald cleaver orc fur|griffin helm spear h armor|mammoth fur spear h fur'.split('|')) { const [k, head, weapon, skin, body] = row.split(' '); RIDER[k] = { head, weapon, skin, body, seated: true }; }
   const SKIN = ['#F2C9A0', '#E3B088', '#C98E64', '#9B6A45', '#6E4A30'];
   const SKIN_OF = { orc: '#7FAE4A', goblin: '#8FBF4A', zombie: '#9DB58A', bone: '#EDE6D3', pale: '#E9E4F2', green: '#9CCB7A', fur: '#8A6A4A', metal: '#B8C2CE', gold: '#F5D27A', blue: '#8FD3E8', troll: '#7C9A6A' };
   const ARMY_HUMAN = {
-    drawHuman(ctx, u, x, y, tm, kit) {
-      const T = this.fightT, t = this.t, INK = COL.ink, k = u.r / 9.5, face = u.mface !== undefined && u.mface !== 0 ? u.face : u.face;
+    drawHuman(ctx, u, x, y, tm, kit, rr) {
+      const T = this.fightT, t = this.t, INK = COL.ink, k = (rr || u.r) / 9.5, face = u.mface !== undefined && u.mface !== 0 ? u.face : u.face;
       const cs = Math.cos(face), sn = Math.sin(face), dir = cs >= 0 ? 1 : -1, away = sn < -0.6;
       const al = clamp(Math.atan2(sn, Math.abs(cs)), -1.25, 1.25);       // where it aims, in its own (right-facing) frame
-      const moving = Math.hypot(u.vx || 0, u.vy || 0) > 8, ph = T * 10 + (u.gait || 0), st = moving ? Math.sin(ph) * 2.3 : 0, bob = moving ? Math.abs(Math.cos(ph)) * 0.6 : 0;
+      const moving = !kit.seated && Math.hypot(u.vx || 0, u.vy || 0) > 8, ph = T * 10 + (u.gait || 0), st = moving ? Math.sin(ph) * 2.3 : 0, bob = moving ? Math.abs(Math.cos(ph)) * 0.6 : 0;
       const skin = kit.skin === 'h' ? SKIN[(u.uid || u.gait * 7 | 0) % 3] : SKIN_OF[kit.skin] || SKIN[0];
       const big = kit.weapon === 'greatsword' || kit.weapon === 'club' ? 1.1 : 1;
       ctx.save(); ctx.translate(x, y); ctx.scale(k * dir, k);
@@ -15515,11 +15601,12 @@ const RVB = (() => {
       const dot = (cx, cy, r, c) => { ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.fillStyle = c; ctx.fill(); ctx.lineWidth = lw; ctx.strokeStyle = INK; ctx.stroke(); };
       // shadow and legs
       // (a flying troop, a jetpack or a valkyrie, hovers above its shadow with its legs hanging, instead of standing on the ground)
-      const fly = u.flying || UNIT[u.type].flying;
-      ctx.beginPath(); ctx.ellipse(0, 8.2, fly ? 6 : 7.5, fly ? 1.9 : 2.4, 0, 0, TAU); ctx.fillStyle = fly ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.28)'; ctx.fill();
+      const fly = !kit.seated && (u.flying || UNIT[u.type].flying);
+      if (!kit.seated) { ctx.beginPath(); ctx.ellipse(0, 8.2, fly ? 6 : 7.5, fly ? 1.9 : 2.4, 0, 0, TAU); ctx.fillStyle = fly ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.28)'; ctx.fill(); }
       if (fly) ctx.translate(0, -8 - Math.sin(T * 4 + (u.gait || 0)) * 1.4);
       const pants = kit.body === 'armor' ? '#8E99A8' : kit.body === 'suit' || kit.body === 'suitb' ? '#E8EDF3' : tm.d;
-      if (kit.body !== 'robe') { if (fly) { line(-1.6, 2.5, -3.2, 6.8, 2.6, pants); line(1.6, 2.5, -0.4, 7.2, 2.6, pants); } else { line(-1.6, 2.5, -2.2 + st, 7.4, 2.6, pants); line(1.6, 2.5, 2.2 - st, 7.4, 2.6, pants); } }
+      if (kit.seated) { line(-1.8, 2.5, -4.6, 5.6, 2.6, pants); line(1.8, 2.5, 4.6, 5.6, 2.6, pants); }
+      else if (kit.body !== 'robe') { if (fly) { line(-1.6, 2.5, -3.2, 6.8, 2.6, pants); line(1.6, 2.5, -0.4, 7.2, 2.6, pants); } else { line(-1.6, 2.5, -2.2 + st, 7.4, 2.6, pants); line(1.6, 2.5, 2.2 - st, 7.4, 2.6, pants); } }
       ctx.translate(0, -bob);
       // the weapon arm's pose: swinging, thrusting, drawn or recoiling
       const sw = u.swing > 0 ? u.swing : 0, lunge = u.lunge || 0, rec = (u.muzzle || 0) * 1.6;
