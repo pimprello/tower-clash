@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-15 11:25 | Tier 5 Towers vs The Hydra 🔥 | Survived! | https://youtube.com/shorts/kpFZXyyg4UU |
 | 2026-11-15 11:05 | The Glacier Behemoth vs 11 Towers 🔥 | Fallen! | https://youtube.com/shorts/D9WWjMKt7Qc |
 | 2026-11-15 10:47 | Can 10 Towers Stop The Glacier Behemoth? 🏰 | Survived! | https://youtube.com/shorts/WlP-8_GjvKE |
 | 2026-11-15 05:23 | The Bone Colossus vs 11 Towers 🔥 | Survived! | https://youtube.com/shorts/P9o4_Jb8X_4 |
