@@ -278,7 +278,7 @@ const SIM = {
       return;
     }
     // at the walls: stay there and keep hitting the base
-    if (u.atBase) { this.reachBase(u); return; }
+    if (u.atBase) { this.reachBase(u, h); return; }
     if (!stop) {
       if (u.fly && !u.grounded) {
         u.s += v * h * (back ? -0.6 : 1);
@@ -287,21 +287,21 @@ const SIM = {
         const wob = Math.sin(T * 2 + u.gait) * 18;
         const nx = -(b.y - u.fly.y0) / u.fly.len, ny = (b.x - u.fly.x0) / u.fly.len;
         this.steerTo(u, tx + nx * wob, ty + ny * wob, v, h);
-        if (k >= 1) this.reachBase(u);
+        if (k >= 1 || Math.hypot(u.x - b.x, u.y - b.y) <= this.wallR(u)) this.reachBase(u, h);
         return;
       }
       if (u.grounded) {
         // a flier pulled down by the gravity well: walks the rest of the way, straight at the base
         const b = this.base, dx = b.x - u.x, dy = b.y - u.y, d = Math.hypot(dx, dy) || 1;
         this.steerTo(u, u.x + dx / d * 40, u.y + dy / d * 40, v * 0.6, h);
-        if (d < b.r + u.r) this.reachBase(u);
+        if (d <= this.wallR(u)) this.reachBase(u, h);
         return;
       }
       const L = this.lanes[u.lane];
       u.s = clamp(u.s + v * h * (back ? -0.7 : 1), 0, L.len);
       const p = laneAt(L, u.s + 10);
       this.steerTo(u, p.x + p.nx * u.lat, p.y + p.ny * u.lat, v, h, back);
-      if (u.s >= L.len - 4) this.reachBase(u);
+      if (u.s >= L.len - 4 || Math.hypot(u.x - this.base.x, u.y - this.base.y) <= this.wallR(u)) this.reachBase(u, h);
     } else {
       u.vx *= 0.8; u.vy *= 0.8;
       const t = foe || tgt || wall;
@@ -407,23 +407,42 @@ const SIM = {
   },
   // (rules.video.pace) the whole battle at a slower speed; the simulation still moves in fixed 1/120 s ticks
   frame(dt) { return RVB.Army.prototype.frame.call(this, dt * (this.opts.tdPace || 1)); },
-  reachBase(u) {
+  // how close to the base's centre a troop stands to hit its walls
+  wallR(u) { return 80 + u.r * 0.7; },
+  reachBase(u, h = 1 / 120) {
     if (u.dead) return;
     const b = this.base, T = this.fightT, sz = u.size || sizeOf(u.type);
-    // nobody stands on top of the base: they stop at its walls (looks: the keep is never covered by troops)
-    { const dx = u.x - b.x, dy = u.y - b.y, d = Math.hypot(dx, dy), need = 80 + u.r * 0.7; if (d < need) { const ax = d > 1 ? dx / d : 0, ay = d > 1 ? dy / d : -1; u.x = b.x + ax * need; u.y = b.y + ay * need; } }
+    // nobody stands on top of the base and nobody jumps: a troop walks up to the walls and hits them from where it is. If
+    // others are already there, it walks round the walls (and round them) to a free spot, at its own pace (Rellz 2026-11-15:
+    // smooth, never teleport)
+    {
+      const dx = u.x - b.x, dy = u.y - b.y, d = Math.hypot(dx, dy) || 1, need = this.wallR(u), sp = Math.max(30, (UNIT[u.type].speed || 60) * 0.7) * h;
+      let tx = 0, ty = 0, crowd = false;
+      for (const o of this.units) {
+        if (o === u || o.dead || o.gone || o.team !== ATK || !o.atBase) continue;
+        const ox = u.x - o.x, oy = u.y - o.y, od = Math.hypot(ox, oy), min = u.r + o.r + 3;
+        if (od < min) { crowd = true; const side = (-dy * ox + dx * oy) >= 0 ? 1 : -1; tx += -dy / d * side; ty += dx / d * side; }
+      }
+      // round the walls (tangent) when crowded, and towards the wall line (radial) at walking pace
+      const radial = clamp(need - d, -sp, sp);
+      let mx = dx / d * radial, my = dy / d * radial;
+      if (crowd) { const tl = Math.hypot(tx, ty) || 1; mx += tx / tl * sp; my += ty / tl * sp; }
+      u.x += mx; u.y += my;
+      u.blocked = crowd && (u.blockedT = (u.blockedT || 0) + h) < 1.5;
+      if (!crowd) u.blockedT = 0;
+    }
     // big troops stay and pound the walls; small ones break in and are gone
     if ((sz === 'titan' || sz === 'boss' || (sz === 'giant' && !u.flying)) && !u.escort) {
       if (!u.atBase) { u.atBase = true; u.cd = 0.3; this.callout(u, 'AT THE GATES!', '#FF5A5A'); if (this.camEv) this.camEv.push({ type: 'spot', x: b.x, y: b.y - 40, prio: 70, dur: 1.8, z: 1.6 }); }
-      u.vx = 0; u.vy = 0;
-      if (u.cd <= 0) { u.cd = (UNIT[u.type].cd || 1.2) * 1.1; u.lunge = 1; this.hitBase(SIEGE[sz] * 0.5 * this.pushK, u); }
+      u.vx = 0; u.vy = 0; this.turn(u, Math.atan2(b.y - u.y, b.x - u.x), h);
+      if (u.cd <= 0 && !u.blocked) { u.cd = (UNIT[u.type].cd || 1.2) * 1.1; u.lunge = 1; this.hitBase(SIEGE[sz] * 0.5 * this.pushK, u); }
       return;
     }
     if (u.escort) { this.hitBase(this.base.hp + 1, u); return; }
     // small troops stand at the walls and hack at them three times (each blow a third of their damage), then they're spent
     if (!u.atBase) { u.atBase = true; u.cd = 0.15 + (u.uid % 5) * 0.06; u.baseHits = 0; }
-    u.vx = 0; u.vy = 0; this.turn(u, Math.atan2(b.y - u.y, b.x - u.x), 1 / 30);
-    if (u.cd > 0) return;
+    u.vx = 0; u.vy = 0; this.turn(u, Math.atan2(b.y - u.y, b.x - u.x), h);
+    if (u.cd > 0 || u.blocked) return;
     u.cd = 0.55; u.lunge = 1; const U2 = UNIT[u.type];
     if (U2 && U2.sword) { const side = u.swordSide || -1; u.swingFrom = side; u.swordSide = -side; u.swing = 1; u.swingStart = side * 1.05; }
     this.marks.push({ kind: 'slash', x: b.x + (u.x - b.x) * 0.55, y: b.y + (u.y - b.y) * 0.55, r: 16, a: Math.atan2(b.y - u.y, b.x - u.x), t0: this.t, col: '#E9DCC0', side: u.swordSide || 1 });
@@ -442,7 +461,7 @@ const SIM = {
     if (bw && !(u.boss || u.escort) && T < bw.at + 9) dmg *= clamp((b.hp - 18) / 60, 0.12, 1);
     if (this.sp3.domes.some(d => d.base && T < d.end)) { dmg *= 0.3; const dm = this.sp3.domes.find(d => d.base); if (dm && dm.hits.length < 12) dm.hits.push([u.x, u.y, this.t]); }
     b.hp = Math.max(0, b.hp - dmg); b.hitT = this.t; b.shake = 1; this.stat.breaches++;
-    if (dmg >= 0.5) { const H = b.hits || (b.hits = []); H.push({ t0: this.t, d: dmg, x: (u.x - b.x) * 0.3 }); if (H.length > 8) H.shift(); }
+    if (dmg >= 0.3) { const H = b.hits || (b.hits = []), last = H[H.length - 1]; if (last && this.t - last.t0 < 0.35) { last.d += dmg; last.t0 = this.t; } else { H.push({ t0: this.t, d: dmg, x: (u.x - b.x) * 0.3 }); if (H.length > 8) H.shift(); } }
     this.stat.lowBase = Math.min(this.stat.lowBase, b.hp);
     this.shake(dmg > 6 ? 9 : 4); this.snd(dmg > 6 ? 'boom' : 'thud', { pan: this.pan(b.x), gain: 0.7 });
     this.burst(b.x + (u.x - b.x) * 0.4, b.y + (u.y - b.y) * 0.4, '#B8A88A', 8, 220, 0.5, 8);

@@ -6,8 +6,8 @@
   "quality": { "candidates": 5, "fine": true },
   "cinematic": true,
   "teamPairs": [
-    ["TEAL", "RED"], ["TEAL", "ORANGE"], ["TEAL", "PURPLE"], ["TEAL", "CRIMSON"], ["TEAL", "MAGENTA"],
-    ["TEAL", "AMBER"], ["TEAL", "PINK"], ["TEAL", "CORAL"], ["TEAL", "ROSE"], ["TEAL", "YELLOW"]
+    ["TEAL", "RED"], ["BLUE", "ORANGE"], ["GREEN", "PURPLE"], ["SKY", "CRIMSON"], ["MINT", "MAGENTA"],
+    ["INDIGO", "AMBER"], ["CYAN", "ROSE"], ["LIME", "PURPLE"], ["NAVY", "YELLOW"], ["GREEN", "CORAL"]
   ],
   "modes": { "classic": 6, "bossrush": 1, "swarm": 1, "laststand": 1, "escort": 1, "lava": 1, "night": 0 },
   "balance": { "target": 0.5, "tests": 12, "steps": 4, "lo": 0.55, "hi": 1.9 },

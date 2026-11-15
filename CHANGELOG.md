@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-15 (night): smooth walk-up to the base, defender colours rotate
+- Troops no longer jump to the base's walls: they walk up and start hitting from where they are. When others are already there, they walk round the walls (and round each other) at their own pace to a free spot, and only hit once they've got one (Rellz: smooth animations always).
+- Hits close together on the base add up into one red number instead of a pile of them.
+- Defenders rotate through ten colours (teal, blue, green, sky, mint, indigo, cyan, lime, navy, green), each against a clearly different attacker colour, so thumbnails vary from video to video; the thumbnail's background still follows the defenders' colour.
+
 ## 2026-11-15 (later): attacks on the base, six damage stages, four songs
 - Small attackers no longer vanish into the base: they stand at its walls and hack at it three times (a slash on the wall and a red "-N%" each blow), then they're spent. Nobody stands on top of it.
 - The base shows six stages of damage: cracks, scorch marks, chunks knocked out with rubble at the foot of the walls, fires (one, then three, then five) with smoke, the roof caving in and glowing from inside, and finally heavy smoke and embers.
