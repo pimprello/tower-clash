@@ -235,8 +235,11 @@ class TD extends RVB.Army {
   // on-screen notices never stack (Rellz 2026-11-15): one at a time in a single queue, each fading in and out; a small notice
   // that would only get its turn more than 2.5 s late is dropped (it would be about something that's over), big ones always wait
   card(o) {
-    const q = this.cards, last = q.length ? q[q.length - 1] : null, at = last ? Math.max(this.t, last.t0 + (last.dur || 1.9) + 0.12) : this.t;
-    if (at - this.t > 2.5 && !o.big) return;
+    // (nothing shows over the opening story card: a notice raised under it, like the first wave's, waits until it has faded,
+    // Rellz 2026-11-15 "i dont like how this overlays")
+    const free = Math.max(this.t, this.ui2 ? 4.3 : 0);
+    const q = this.cards, last = q.length ? q[q.length - 1] : null, at = last ? Math.max(free, last.t0 + (last.dur || 1.9) + 0.12) : free;
+    if (at - free > 2.5 && !o.big) return;
     q.push(Object.assign({ t0: at, dur: 1.9 }, o)); if (q.length > 12) q.shift();
   }
   // the engine's chapter banners go through the same queue, as big notices

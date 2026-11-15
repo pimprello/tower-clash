@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-15 (afternoon): nothing over the opening story card
+Rellz (screenshot of "WAVE 1 · CAVALRY CHARGE" sitting on top of the DEFEND vs ATTACK card): "i dont like how this overlays, fix it".
+- Notices raised while the opening story card is up (the first wave's, a new tower's) now wait until it has faded out (4.3 s), then come in one at a time below the line-up strip. `STILL_AT=1,3,4.6` picks still times for testing.
+
 ## 2026-11-15 (midday): the Clash Autopilot's Tower Clash half, finished (it was cut off this morning)
 Today's three ideas: a calm, beautiful new board that looks nothing like the others (cherry blossom in spring, petals drifting over the fighting); a new merchant spell you can see coming from across the board (a red dragon swooping down the path breathing fire); and a battle event that changes how the whole picture looks for a few seconds (a solar eclipse: the board goes dark and only the towers and the base hold back the night).
 - **Blossom Valley** (new map): spring grass with drifts of fallen petals, cherry trees in bloom, stone lanterns and mossy rocks, a temple base, and pink petals drifting across the battle all the time. Its hazard is the stampede.

@@ -168,7 +168,7 @@ async function main() {
     thumbCv = createCanvas(W * RS, H * RS); thumbCv.getContext('2d').drawImage(tcv, 0, 0, W * RS, H * RS);
     console.log(`thumbnail made in ${((Date.now() - tt0) / 1000).toFixed(0)} s`);
   }
-  const stillAt = [2, 6, 15, 30, 45, 58];
+  const stillAt = process.env.STILL_AT ? process.env.STILL_AT.split(',').map(Number) : [2, 6, 15, 30, 45, 58];
   // ----- music (rules.music, music.js, shared with Army Clash): an original soundtrack written from the seed, following the
   // battle; the camera punches in on the beat in the last seconds, and the outro fades into the cover frame so the replay loops -----
   const MU = rules.music || {}, muOn = MU.on !== false;
