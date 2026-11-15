@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-15: logic fixes
+Rellz: "fix every single logical issue one example is acid shouldn't be displayed over a tree".
+- Towers, pads, walls and the base are drawn above acid, lava and frost pools, blood, bones and spell areas (`liveDecorTop`), so nothing on the ground covers them.
+- From the shared engine: no blood pool after acid, fire, lightning or a crack; skeletons fall into bones; flying little people hover; health bars, names and callouts sit above heads; ice blocks cover the whole body; risen skeletons never stand inside obstacles.
+
+## 2026-11-14 (late): bones that stay, rings on the ground
+Rellz: "make every human become bones when they die and some other troops that makes sense also let the bones last longer".
+- Every little person and every flesh-and-blood creature (beasts, riders, trolls, goblins, demons...) is left as a skeleton where it falls (`rules.ui.remains`, now on here too); machines, spirits, stone and titans aren't. The bones lie on a layer of their own that fades over about two minutes, far slower than blood. A torn scrap of the team's colour lies under each pile.
+- Rings round a troop (rage, slows, shields, champions...) lie on the ground at a little person's feet instead of circling it.
 ## 2026-11-15: slower, remains for everyone, cleaner base fights, music over effects
 - The battle plays at 0.85 speed (`rules.video.pace`), so blows and falls can be seen; videos are about 70 s. The camera doesn't race to catch up.
 - Every fallen attacker leaves something that fits it, then fades: people fall apart to their bones, machines scatter gears, plates and bolts (with sparks), slimes and bugs leave a puddle of sludge with crossed-out eyes, beasts leave a stain and a few bones (`corpse` in td-sim.js, `drawCorpses` in td-draw.js). Army Clash's damage marks, acid/fire/lightning remains and cleaner battlefield are switched on too (`shine.damage`, `remains`, `clean`).

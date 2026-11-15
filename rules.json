@@ -13,5 +13,5 @@
   "balance": { "target": 0.5, "tests": 12, "steps": 4, "lo": 0.55, "hi": 1.9 },
   "events": ["airdrop", "airstrike", "meteors", "hazard"],
   "music": { "on": true, "volume": 0.62, "duck": 0.45, "pulse": true, "loop": true },
-  "ui": { "humans": true, "blood": { "on": true, "drops": 1.5, "sparks": 0.4, "stay": 0.6 } }
+  "ui": { "humans": true, "remains": true, "blood": { "on": true, "drops": 1.5, "sparks": 0.4, "stay": 0.6 } }
 }

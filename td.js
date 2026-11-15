@@ -61,7 +61,7 @@ class TD extends RVB.Army {
     super(seed, Object.assign({}, opts, { budgetMul: [0.0001, 0.0001], doctrines: ['KNIGHTS', 'KNIGHTS'], events: undefined, tribes: undefined, titans: undefined, spells: undefined, nav: undefined, minds: undefined, classes: undefined, combat: undefined, mode: undefined, skins: undefined, roster: undefined, formations: undefined }));
     const o = this.opts;
     // (no Army Clash map pieces on the board: the board is the paths)
-    this.obstacles = []; this.decor = []; this.sparkles = null; this.liveDecor = true;
+    this.obstacles = []; this.decor = []; this.sparkles = null; this.liveDecor = true; this.liveDecorTop = true;   // (towers, pads and the base are drawn above acid, blood and spell areas)
     this.key = 'td'; this.title = 'TOWER CLASH'; this.label = 'Tower Clash';
     this.units = []; this.arrows = []; this.alive = [0, 0]; this.reserve = [0, 0]; this.start = [0, 0]; this.waves = [[], []];
     this.alive[9] = 0; this.reserve[9] = 0;
