@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-15 00:06 | The Base Was Down To 13%... 😳 | Survived! | https://youtube.com/shorts/t9zj6GjVS0Q |
 | 2026-11-14 23:51 | The Ashen Horde vs Wardens of the Grey Pass: Will The Base Survive? | Survived! | https://youtube.com/shorts/jLTccw5moDM |
 | 2026-11-14 23:35 | The Iron Swarm Attack The Reactor... Who Wins? ⚔️ | Fallen! | https://youtube.com/shorts/hgRjJZ3TFZo |
 | 2026-11-14 23:22 | Can 0 Towers Stop The Gravity Tyrant? 🏰 | Fallen! | https://youtube.com/shorts/oTcXwTIvapc |
