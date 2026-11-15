@@ -182,14 +182,101 @@ const DRAW = {
     }
     // walls across the path
     for (const w of this.walls) this.drawWall(ctx, w);
+    // where meteors are about to land: on the ground, under everyone
+    for (const m of this.marks) if (m.kind === 'meteor' && T <= m.T1) this.drawMeteorGround(ctx, m, T);
     // what's left of fallen attackers (under everyone)
     this.drawCorpses(ctx);
-    // the base
+    // the base and the towers (the character on top is drawn by the engine with the troops). With the shine on (Rellz
+    // 2026-11-15: "match graphic style and shiny texture to army clash"), only their shadows and glows go on the ground here;
+    // their bodies go on the troops' shine layer (shineBegin below), so they get the same gloss and rim light as the troops
+    this.tdStanding = !!(this.shine && RVB.makeCanvas);
+    if (this.tdStanding) this._pass = 'ground';
     this.drawBase(ctx);
-    // the towers (the character on top is drawn by the engine with the troops)
     for (const tw of this.towers) if (!tw.dead) this.drawTowerBase(ctx, tw);
+    this._pass = null;
     // the merchant's cart beside the base
     if (this.merch && T < this.merch.end + 0.6) this.drawMerchant(ctx);
+  },
+  // the base and the towers' bodies on the troops' shine layer: drawn first (so every troop stands on top of them), then
+  // shaded like the troops (light on the side facing the light, shade away from it, a soft gloss and a hot spot), and marked
+  // so the engine's rim light runs round their outlines too
+  shineBegin(m) {
+    const lc = RVB.Army.prototype.shineBegin.call(this, m);
+    this._shMain = m;
+    if (!this.tdStanding) return lc;
+    const keep = [lc.fillStyle, lc.strokeStyle, lc.lineWidth, lc.lineCap, lc.lineJoin, lc.font, lc.textAlign, lc.textBaseline];
+    this._pass = 'body';
+    try {
+      this.drawBase(lc);
+      for (const tw of this.towers) if (!tw.dead) this.drawTowerBase(lc, tw);
+    } finally { this._pass = null; }
+    const Lx = this._shLx, Ly = this._shLy, b = this.base, bodies = [];
+    if (b) bodies.push([b.x, b.y, b.style === 'ship' ? 92 : 80, b.hp > 0 || b.fallT === undefined]);
+    for (const tw of this.towers) if (!tw.dead && tw.R) bodies.push([tw.x, tw.y, tw.R, true]);
+    lc.save(); lc.globalCompositeOperation = 'source-atop';
+    for (const [x, y, r, solid] of bodies) {
+      this.shMark(x, y, r * 1.6 + 26);
+      if (!solid) continue;
+      // shade: lit side to shadow side across the body
+      const g = lc.createLinearGradient(x + Lx * r, y + Ly * r, x - Lx * r, y - Ly * r);
+      g.addColorStop(0, 'rgba(255,255,255,0.16)'); g.addColorStop(0.45, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,20,0.30)');
+      lc.fillStyle = g; lc.fillRect(x - r - 4, y - r - 4, 2 * r + 8, 2 * r + 8);
+      // gloss: a soft oval towards the light, and a small hot spot
+      const hx = x + Lx * r * 0.38, hy = y + Ly * r * 0.38, rot = Math.atan2(Ly, Lx) + Math.PI / 2;
+      lc.save(); lc.translate(hx, hy); lc.rotate(rot); lc.scale(1, 0.5);
+      const sg = lc.createRadialGradient(0, 0, 0, 0, 0, r * 0.5); sg.addColorStop(0, 'rgba(255,255,255,0.42)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+      lc.fillStyle = sg; lc.beginPath(); lc.arc(0, 0, r * 0.5, 0, TAU); lc.fill(); lc.restore();
+      lc.beginPath(); lc.arc(x + Lx * r * 0.55, y + Ly * r * 0.55, Math.max(2, r * 0.09), 0, TAU); lc.fillStyle = 'rgba(255,255,255,0.75)'; lc.fill();
+    }
+    lc.restore();
+    [lc.fillStyle, lc.strokeStyle, lc.lineWidth, lc.lineCap, lc.lineJoin, lc.font, lc.textAlign, lc.textBaseline] = keep;
+    return lc;
+  },
+  drawMeteorGround(ctx, m, T) {
+    const p = clamp((T - m.T0) / (m.T1 - m.T0), 0, 1), R = m.small ? 54 : 96, t = this.t;
+    // the light of the rock on the ground, growing as it comes, and its shadow tightening under it
+    const lg = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, R * (1.4 - 0.3 * p));
+    lg.addColorStop(0, `rgba(255,170,60,${0.1 + 0.4 * p * p})`); lg.addColorStop(1, 'rgba(255,120,40,0)');
+    ctx.beginPath(); ctx.arc(m.x, m.y, R * 1.4, 0, TAU); ctx.fillStyle = lg; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(m.x, m.y, R * 0.35 * (0.4 + 0.6 * p), R * 0.25 * (0.4 + 0.6 * p), 0, 0, TAU); ctx.fillStyle = `rgba(0,0,0,${0.15 + 0.3 * p})`; ctx.fill();
+    // the target: a red ring that fills in as the rock comes, with a pulse
+    ctx.beginPath(); ctx.arc(m.x, m.y, R, 0, TAU); ctx.fillStyle = `rgba(239,68,68,${0.06 + 0.1 * p})`; ctx.fill();
+    ctx.lineWidth = 3.5; ctx.strokeStyle = `rgba(255,90,60,${0.55 + 0.35 * Math.sin(t * 18)})`; ctx.stroke();
+    ctx.beginPath(); ctx.arc(m.x, m.y, R * p, 0, TAU); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(255,200,120,0.7)'; ctx.stroke();
+  },
+  drawMeteorRock(ctx, m, T) {
+    const p = clamp((T - m.T0) / (m.T1 - m.T0), 0, 1), e = p * p * (0.6 + 0.4 * p), big = !m.small, rr = big ? 19 : 11, t = this.t;
+    const dx = 0.53, dy = -0.85, L = big ? 560 : 420;                 // it comes in from the upper right
+    const fx = m.x + dx * L * (1 - e), fy = m.y + dy * L * (1 - e), tl = (big ? 150 : 95) * (0.6 + 0.6 * p);
+    ctx.save(); ctx.lineCap = 'round';
+    // embers streaming off behind it
+    for (let i = 0; i < (big ? 10 : 6); i++) {
+      const k = ((t * 3 + i * 0.137) % 1), j = H01(i, m.x | 0) - 0.5, ex = fx + dx * tl * 1.3 * k + j * 22 * k, ey = fy + dy * tl * 1.3 * k + 30 * k * k;
+      ctx.globalAlpha = (1 - k) * 0.9; disc(ctx, ex, ey, (big ? 3 : 2) * (1 - k * 0.6), i % 2 ? '#FFD23F' : '#FF7A1A', 0);
+    }
+    ctx.globalAlpha = 1;
+    // the tail: smoke, then red, orange, gold, white-hot at the rock
+    for (const [w, col, len] of [[2.4, 'rgba(60,50,45,0.35)', 1.25], [1.9, 'rgba(220,60,30,0.55)', 1], [1.35, 'rgba(255,140,40,0.8)', 0.8], [0.8, 'rgba(255,220,120,0.95)', 0.55], [0.4, 'rgba(255,255,240,1)', 0.3]]) {
+      const n = 6;
+      for (let i = 0; i < n; i++) {
+        const f0 = i / n * len, f1 = (i + 1) / n * len, wob = Math.sin(t * 30 + i) * 1.5;
+        ctx.beginPath(); ctx.moveTo(fx + dx * tl * f0 + wob, fy + dy * tl * f0); ctx.lineTo(fx + dx * tl * f1, fy + dy * tl * f1);
+        ctx.lineWidth = rr * w * (1 - i / n); ctx.strokeStyle = col; ctx.stroke();
+      }
+    }
+    // the halo
+    const hg = ctx.createRadialGradient(fx, fy, rr * 0.5, fx, fy, rr * 3.2); hg.addColorStop(0, 'rgba(255,190,90,0.55)'); hg.addColorStop(1, 'rgba(255,120,40,0)');
+    ctx.beginPath(); ctx.arc(fx, fy, rr * 3.2, 0, TAU); ctx.fillStyle = hg; ctx.fill();
+    // the rock: dark, tumbling, cracked with glowing lava, lit on its leading side
+    ctx.translate(fx, fy); ctx.rotate(t * 5 + m.x);
+    ctx.beginPath(); for (let k = 0; k < 9; k++) { const a = k / 9 * TAU, q = rr * (0.82 + 0.25 * H01(k, m.y | 0)); ctx.lineTo(Math.cos(a) * q, Math.sin(a) * q); } ctx.closePath();
+    const rg = ctx.createRadialGradient(-rr * 0.3, -rr * 0.3, 1, 0, 0, rr * 1.1); rg.addColorStop(0, '#7A5A48'); rg.addColorStop(1, '#2A1E18');
+    ctx.fillStyle = rg; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
+    ctx.strokeStyle = `rgba(255,${150 + 60 * Math.sin(t * 20) | 0},50,0.95)`; ctx.lineWidth = Math.max(1.5, rr * 0.13);
+    ctx.beginPath(); ctx.moveTo(-rr * 0.5, -rr * 0.2); ctx.lineTo(-rr * 0.05, rr * 0.05); ctx.lineTo(rr * 0.35, -rr * 0.3); ctx.moveTo(-rr * 0.05, rr * 0.05); ctx.lineTo(rr * 0.1, rr * 0.5); ctx.stroke();
+    ctx.rotate(-(t * 5 + m.x));
+    ctx.beginPath(); ctx.arc(-dx * rr * 0.35, -dy * rr * 0.35, rr * 0.55, 0, TAU); ctx.fillStyle = 'rgba(255,200,110,0.45)'; ctx.fill();
+    ctx.restore();
   },
   drawCorpses(ctx) {
     const L = this.corpses; if (!L || !L.length) return;
@@ -259,7 +346,8 @@ const DRAW = {
     ctx.save(); ctx.translate(b.x + Math.sin(t * 70) * shake, b.y);
     const fallen = b.hp <= 0 && b.fallT !== undefined, fk = fallen ? clamp((t - b.fallT) / 0.6, 0, 1) : 0;
     // shadow
-    ctx.beginPath(); ctx.ellipse(8, 12, 80, 62, 0, 0, TAU); ctx.fillStyle = 'rgba(0,0,0,0.32)'; ctx.fill();
+    if (this._pass !== 'body') { ctx.beginPath(); ctx.ellipse(8, 12, 80, 62, 0, 0, TAU); ctx.fillStyle = 'rgba(0,0,0,0.32)'; ctx.fill(); }
+    if (this._pass === 'ground') { ctx.restore(); return; }
     if (fallen) {
       for (let i = 0; i < 22; i++) {
         const a = H01(i, 21) * TAU, d = H01(i, 5) * 70 * (0.5 + 0.5 * fk), rr = 6 + H01(i, 8) * 10;
@@ -353,8 +441,12 @@ const DRAW = {
     const fl = clamp(1 - (t - b.hitT) / 0.12, 0, 1);
     if (fl > 0) { ctx.beginPath(); ctx.arc(0, 0, 70, 0, TAU); ctx.fillStyle = `rgba(255,255,255,${0.35 * fl})`; ctx.fill(); }
     ctx.restore();
-    // health bar under the base
+    // health bar under the base (over the shine layer, so it isn't lit like a body)
     const bw = 150, bx = b.x - bw / 2, by = b.y + 76;
+    if (this._pass === 'body' && this._shHP) { const c0 = ctx; this._shHP.push(() => { const m = this._shMain; if (!m) return; const keep = this._pass; this._pass = null; this.drawBaseBar(m, bx, by, bw, hp); this._pass = keep; }); return; }
+    this.drawBaseBar(ctx, bx, by, bw, hp);
+  },
+  drawBaseBar(ctx, bx, by, bw, hp) {
     if (by < AR.y + AR.h - 4) {
       roundRect(ctx, bx - 3, by - 3, bw + 6, 16, 8); ctx.fillStyle = INK; ctx.fill();
       roundRect(ctx, bx, by, bw * clamp(hp, 0, 1), 10, 5); ctx.fillStyle = hp > 0.5 ? '#4ADE80' : hp > 0.25 ? '#FACC15' : '#F43F5E'; ctx.fill();
@@ -367,12 +459,16 @@ const DRAW = {
     // (a shot makes the platform give a little, like a recoil)
     const kk = tw.kick !== undefined ? clamp(1 - (t - tw.kick) / 0.12, 0, 1) : 0, rs = 1 - 0.035 * kk;
     ctx.save(); ctx.translate(tw.x, tw.y); if (drop < 1) { ctx.globalAlpha = drop; ctx.scale(s, s); } else if (kk) ctx.scale(rs, rs);
+    tw.R = R;
+    if (this._pass !== 'body') {
     // tier 5: a golden aura; tier 4: the element's glow
     if (k >= 5) { const p = 0.5 + 0.5 * Math.sin(t * 3 + tw.x); const rg = ctx.createRadialGradient(0, 0, R * 0.6, 0, 0, R + 26); rg.addColorStop(0, 'rgba(255,210,63,0.45)'); rg.addColorStop(1, 'rgba(255,210,63,0)'); ctx.beginPath(); ctx.arc(0, 0, R + 22 + 4 * p, 0, TAU); ctx.fillStyle = rg; ctx.fill(); }
     if (k >= 4 && tw.el) { const p = 0.5 + 0.5 * Math.sin(t * 4 + tw.y); ctx.beginPath(); ctx.arc(0, 0, R + 6, 0, TAU); ctx.lineWidth = 5; ctx.strokeStyle = rgba(ELEM[tw.el].col, 0.45 + 0.4 * p); ctx.stroke(); }
     // shadow (taller towers cast a longer one)
     const sh = 5 + k * 2;
     ctx.beginPath(); ctx.ellipse(sh, sh + 2, R + 2, R * 0.9, 0, 0, TAU); ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
+    }
+    if (this._pass === 'ground') { ctx.restore(); return; }
     // the wall
     const hit = u.flash > 0 ? u.flash : 0;
     ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU);
@@ -477,13 +573,9 @@ const DRAW = {
           ctx.beginPath(); ctx.moveTo(m.x0, m.y0); ctx.lineTo(m.x, m.y); ctx.lineWidth = 4 * (1 - p); ctx.strokeStyle = 'rgba(165,180,252,0.8)'; ctx.stroke();
           for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(m.x, m.y, 50 * (1 - ((p + i / 3) % 1)), 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = `rgba(165,180,252,${0.7 * (1 - p)})`; ctx.stroke(); }
         } else if (m.kind === 'meteor') {
-          if (T > m.T1) continue; const p = clamp((T - m.T0) / (m.T1 - m.T0), 0, 1), r = (m.small ? 50 : 90) * (1.3 - 0.3 * p);
-          ctx.setLineDash([10, 8]); ctx.beginPath(); ctx.arc(m.x, m.y, r, 0, TAU); ctx.lineWidth = 4; ctx.strokeStyle = `rgba(255,90,60,${0.5 + 0.4 * Math.sin(t * 20)})`; ctx.stroke(); ctx.setLineDash([]);
-          // the rock coming down
-          const fx = m.x + 260 * (1 - p), fy = m.y - 420 * (1 - p), rr = m.small ? 12 : 22;
-          ctx.beginPath(); ctx.moveTo(fx + rr * 3, fy - rr * 5); ctx.lineTo(fx, fy); ctx.lineWidth = rr * 1.2; ctx.strokeStyle = 'rgba(255,150,40,0.5)'; ctx.lineCap = 'round'; ctx.stroke();
-          disc(ctx, fx, fy, rr, '#5B4636', 3);
-        } else if (m.kind === 'clock') {
+          // (the target on the ground is drawn under the troops: drawMeteorGround) the rock coming down, faster and faster,
+          // glowing, with a fiery tail, a halo and embers streaming off it, the way Army Clash's meteors fall
+          if (T > m.T1) continue; this.drawMeteorRock(ctx, m, T);        } else if (m.kind === 'clock') {
           if (T > m.T1) continue;
           ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, TAU); ctx.fillStyle = 'rgba(147,197,253,0.16)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(147,197,253,0.85)'; ctx.stroke();
           ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x, m.y - m.r * 0.6); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x + m.r * 0.4, m.y); ctx.lineWidth = 5; ctx.strokeStyle = '#DBEAFE'; ctx.stroke();

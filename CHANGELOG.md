@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-15 (late morning): electric face-off, Army Clash's shine on towers and base, real meteors, better music, same times as Army Clash
+Rellz: "match graphic style and shiny texture to army clash ... fix the meteor in tower clash", "change the music make it sound better add the better intro which is like a face off animated with electricity and do the same for army clash", "both channels always upload at same time same amount of videos a day".
+- **Electric face-off intro** (`faceoff.js`, the same file as Army Clash's, 2.6 s): the best tower and the boss each in a big glossy ring on a band of their side's colour; the bands slam in from opposite sides, a lightning seam strikes between them, VS slams onto it, arcs crackle round the rings and sparks fly (whoosh, thunder, zaps), then a white flash into the fight.
+- **The shine on everything standing**: the base and the towers' platforms are now drawn on the troops' shine layer (`shineBegin` in `td-draw.js`), so they get Army Clash's rim light, plus shading towards the light, a soft gloss and a hot spot. Their shadows and glows stay on the ground; the base's health bar sits over the shine.
+- **Meteors** like Army Clash's: a dark tumbling rock with glowing lava cracks, a white-hot to red fiery tail, a halo and embers, speeding up as it falls; on the ground, under everyone, a target that fills in, the rock's glow growing and its shadow tightening.
+- **Better music** (`music.js`, the same in both games): its own two-bar hook on a lead per video, wide pads breathing with the kick, strings or an arpeggio, claps, a hall reverb and an echo, a swell and a sub boom into the drop, the same loudness for every style.
+- **Same times as Army Clash**: 10:00, 14:00, 18:00 and 22:00 London, 4 a day (was 12/16/19/22). The About text says so.
+- Tested: syntax, stills (intro, fight, a meteor test frame), a full short render with sound for each game.
+
 ## 2026-11-15: UI never jumps (Rellz: "no glitch or teleporting ui for both games")
 Rellz, from the Army Clash chat about a banner that hopped up when the line-ups left: "i mean that for all ui even in tower clash ... no glitch or teleporting ui for both games!"
 - **Cards glide, never jump:** the wave/tower/spell cards sat in one of three spots (under the line-ups, under the boss bar, or at the top) and snapped between them when the line-ups left or the boss arrived or fell. Now they glide there (`glide()` and `rosterK()`, the same helpers as Army Clash's engine).

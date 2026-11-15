@@ -24,6 +24,8 @@ const FPS = 60, W = 1080, H = 1920, SR = 48000, RS = Math.max(1, Math.min(2, Num
 RVB.RS = RS;
 const { TD } = require('./td-game.js');
 const { TDCam } = require('./td-cam.js');
+const FO = require('./faceoff.js');
+const E = RVB._, { DEF, ATK } = require('./td.js');
 const OUTRO = VID.outroSeconds || 3, FIGHT = VID.fightSeconds || 60;
 const SECS = process.env.SECS ? Number(process.env.SECS) : FIGHT + OUTRO;
 // rules.video.pace: the battle plays at this fraction of real speed (0.85: a little slower, so every blow and every fall can be
@@ -142,7 +144,7 @@ async function main() {
   ]);
   // ----- the thumbnail, made before the video from a headless copy of the same battle (it plays out identically): the
   // busiest moment of the middle of the battle (many attackers on the board, the base still up) as its background. -----
-  let thumbCv = null, nFrames = 0;
+  let thumbCv = null, nFrames = 0, introInfo = null;
   const timeline = [];
   if ((rules.thumbnail || {}).on !== false) {
     const tt0 = Date.now(), g2 = new TD(seed, optsFor(power, seed)), cv2 = createCanvas(W * RS, H * RS), c2 = cv2.getContext('2d');
@@ -159,6 +161,8 @@ async function main() {
     const tcv = createCanvas(W, H), tctx = tcv.getContext('2d');
     const keepRS = RVB.RS; RVB.RS = 1;
     g2.drawThumbTD(tctx, thumbBg);
+    { const best = g2.towers.slice().sort((x, y) => (y.tier - x.tier) || (y.kills - x.kills))[0];
+      introInfo = { g: g2, towerType: best && best.u.type, towerName: best ? best.def.name : 'THE TOWERS', towers: Math.max(g2.towers.length, g2.stat.built, 1), bossType: g2.bossType, bossName: (D.BOSSES[g2.bossType] || {}).name || E.labelOf(g2.bossType), waves: g2.plan.filter(w => !w.mini).length }; }
     RVB.RS = keepRS;
     fs.writeFileSync(path.join(OUT, 'thumb.jpg'), tcv.toBuffer('image/jpeg', { quality: 0.92 }));
     thumbCv = createCanvas(W * RS, H * RS); thumbCv.getContext('2d').drawImage(tcv, 0, 0, W * RS, H * RS);
@@ -173,7 +177,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
   let firstCv = null;
   // ----- the intro card (rules.intro, Rellz 2026-11-15): the thumbnail's layout (who vs who) for a couple of seconds before the
   // battle, drifting in slowly, then dissolving into the first frame of the fight. Sound and music start under it. -----
-  const INTRO = (rules.intro || {}).on !== false && thumbCv ? Math.round(FPS * ((rules.intro || {}).seconds || 2.2)) : 0, IOFF = INTRO / FPS;
+  const INTRO = (rules.intro || {}).on !== false && thumbCv && introInfo ? Math.round(FPS * ((rules.intro || {}).seconds || 2.6)) : 0, IOFF = INTRO / FPS;
   for (let i = 0; i < MAXFRAMES; i++) {
     ctx.setTransform(RS, 0, 0, RS, 0, 0);
     const z0 = game.cam && game.cam.z, punch = muOn && MU.pulse !== false && game.cam && game.phase === 'fight' && game.fightT > FIGHT - 6 ? Music.pulse(mp, i / FPS) : 0;
@@ -181,15 +185,23 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     game.draw(ctx);
     if (punch) game.cam.z = z0;
     if (i === 0 && INTRO) {
+      // the electric face-off (faceoff.js, shared with Army Clash): the best tower against the boss, then a flash into the fight
       const b0 = createCanvas(W * RS, H * RS); b0.getContext('2d').drawImage(canvas, 0, 0);
-      const fadeN = Math.round(FPS * 0.4);
+      const bg1 = createCanvas(W, H); bg1.getContext('2d').drawImage(canvas, 0, 0, W, H);
+      const keepRS = RVB.RS; RVB.RS = 1;
+      const pic = (g, type, team) => FO.portraitCanvas((c, r) => { const U = E.UNIT[type] || E.UNIT.soldier, hum = g.opts.humans && E.HUMAN && E.HUMAN[type], sc = (r * (hum ? 0.8 : 0.72)) / U.r;
+        if (hum) c.translate(0, r * 0.12); c.scale(sc, sc); if (!hum) c.rotate(-Math.PI / 2); g.drawPortrait(c, type, team); }, 210 * RS, 1);
+      const IS = introInfo, sides = [
+        { col: E.TEAMS[DEF], name: IS.towerName, sub: game.defOrder[0], count: `${IS.towers} TOWERS`, portrait: IS.towerType ? pic(IS.g, IS.towerType, DEF) : null },
+        { col: E.TEAMS[ATK], name: IS.bossName, sub: game.atkBand[0], count: `${IS.waves} WAVES`, portrait: pic(IS.g, IS.bossType, ATK) },
+      ];
+      RVB.RS = keepRS;
+      const fo = { W, H, RS, seed, dur: IOFF, title: 'TOWER CLASH', tag: '', question: game.hook, sides, bg: bg1, battle0: b0 };
+      FO.faceoffSounds(synth, IOFF);
       for (let j = 0; j < INTRO; j++) {
-        const z = 1 + 0.035 * (j / INTRO), fk = clamp01((j - (INTRO - fadeN)) / fadeN);
-        ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W * RS, H * RS);
-        ctx.save(); ctx.translate(W * RS / 2, H * RS / 2); ctx.scale(z, z); ctx.drawImage(thumbCv, -W * RS / 2, -H * RS / 2); ctx.restore();
-        if (fk > 0) { ctx.globalAlpha = fk * fk * (3 - 2 * fk); ctx.drawImage(b0, 0, 0); ctx.globalAlpha = 1; }
+        FO.drawFaceoff(ctx, j / FPS, fo);
         if (j === 0 && muOn && MU.loop !== false) { firstCv = createCanvas(W * RS, H * RS); firstCv.getContext('2d').drawImage(canvas, 0, 0); }
-        if (stills) { if (j === Math.round(FPS * 1) || j === INTRO - Math.round(fadeN / 2)) fs.writeFileSync(path.join(OUT, `still-intro-${j}.png`), canvas.toBuffer('image/png')); }
+        if (stills) { if ([12, 30, 60, 100, INTRO - 10].includes(j)) fs.writeFileSync(path.join(OUT, `still-intro-${String(j).padStart(3, '0')}.png`), canvas.toBuffer('image/png')); }
         else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
       }
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(b0, 0, 0); ctx.setTransform(RS, 0, 0, RS, 0, 0);
@@ -199,6 +211,8 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
       const left = game.phase === 'outro' && game.outroLen ? game.outroLen - game.outroT : 9;
       if (firstCv && left < 0.45 && !game.holdOutro) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = Math.min(1, (0.45 - left) / 0.4); ctx.drawImage(firstCv, 0, 0); ctx.globalAlpha = 1; }
     }
+    // (testing: STILL_MARK=meteor also saves a still while one is coming down)
+    if (stills && process.env.STILL_MARK) { const mk = game.marks.find(m => m.kind === process.env.STILL_MARK && m.T1 && (game.fightT - m.T0) / (m.T1 - m.T0) > 0.55 && !m.shot); if (mk) { mk.shot = true; fs.writeFileSync(path.join(OUT, `still-mark-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png')); } }
     if (stills) { if (stillAt.some(s => Math.abs(i / FPS - s) < 0.5 / FPS)) fs.writeFileSync(path.join(OUT, `still-${String(Math.round(i / FPS)).padStart(2, '0')}.png`), canvas.toBuffer('image/png')); }
     else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
     nFrames++;

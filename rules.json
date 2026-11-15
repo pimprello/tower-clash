@@ -1,9 +1,9 @@
 {
-  "schedule": { "timeZone": "Europe/London", "hours": [12, 16, 19, 22], "windowMinutes": 110 },
+  "schedule": { "timeZone": "Europe/London", "hours": [10, 14, 18, 22], "windowMinutes": 110 },
   "video": { "scale": 2, "fightSeconds": 60, "outroSeconds": 3, "pace": 0.85 },
   "sound": { "sfx": 0.7 },
   "thumbnail": { "on": true },
-  "intro": { "on": true, "seconds": 2.2 },
+  "intro": { "on": true, "seconds": 2.6 },
   "quality": { "candidates": 5, "fine": true },
   "cinematic": true,
   "teamPairs": [

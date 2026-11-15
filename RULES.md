@@ -2,7 +2,7 @@
 
 | Rule | What it does |
 | --- | --- |
-| `schedule.hours` | London-time hours a scheduled run may post at (4 a day: 12, 16, 19, 22). Don't add more without Rellz asking. |
+| `schedule.hours` | London-time hours a scheduled run may post at (4 a day: 10, 14, 18, 22, the same as Army Clash). Don't add more without Rellz asking. |
 | `quality` | `candidates`: how many battles `pick-seed.js` tries before keeping the most dramatic; `fine`: a finer search for the close finish. |
 | `schedule.windowMinutes` | How late after a slot a run may still post (GitHub's timer is often late). |
 | `video.scale` | 2 = 4K (2160x3840), 1 = 1080x1920. |
@@ -19,7 +19,11 @@
 Layouts, maps, defender line-ups and attacker line-ups rotate with the number of videos posted (`videos.jsonl`).
 
 ## Music (`rules.music`)
-Every video has its own original soundtrack, written by code from the seed (`music.js`, identical to Army Clash's). `on` (true), `volume` (0.45, under the effects), `duck` (0.45, how far it dips under loud effects), `pulse` (true: the camera punches in on the beat in the last six seconds of the fight), `loop` (true: the outro's last 0.4 s fades into the cover frame so the replay flows on). It follows the battle: a soft intro, the drop after the first kill, busier when more is happening, a heartbeat, riser and a beat of silence before the end, a huge hit, then a victory fanfare.
+Every video has its own original soundtrack, written by code from the seed (`music.js`, identical to Army Clash's). `on` (true), `volume` (0.45, under the effects), `duck` (0.45, how far it dips under loud effects), `pulse` (true: the camera punches in on the beat in the last six seconds of the fight), `loop` (true: the outro's last 0.4 s fades into the cover frame so the replay flows on). Each video has its own two-bar hook on a lead (brass, flute, square lead or synth by style), wide pads breathing with the kick, strings or an arpeggio, a hall reverb and an echo. It follows the battle: a soft intro, the drop after the first kill, busier when more is happening, a heartbeat, riser and a beat of silence before the end, a huge hit, then a victory fanfare.
 
 ## Looks (`rules.ui`)
 `humans` (true): person-shaped troops are drawn as little people (`HUMAN`/`drawHuman` in `engine.js`). `blood` (on): blood jets, splatter on the ground, pools and spattered killers instead of sparks (`drops`, `sparks`, `stay`). Looks only.
+
+## `intro`
+
+`on` (true), `seconds` (2.6): every video opens with the electric face-off (`faceoff.js`, the same file as Army Clash's): the best tower against the boss, each in a ring on a band of its side's colour, a lightning seam between them, VS, then a flash into the fight. Everything after it (sound, music) is shifted by its length.
