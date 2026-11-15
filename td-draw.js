@@ -638,7 +638,23 @@ const DRAW = {
     for (const c of this.cards) {
       const k = (t - c.t0) / c.dur;
       if (k < 0 || k > 1) continue;
-      const inK = easeOutBack(clamp((t - c.t0) / 0.22, 0, 1)), a = clamp(Math.min(k * 10, (1 - k) * 6), 0, 1);
+      const inK = easeOutBack(clamp((t - c.t0) / 0.3, 0, 1)), a0 = clamp(Math.min((t - c.t0) / 0.3, (c.t0 + c.dur - t) / 0.4), 0, 1), a = a0 * a0 * (3 - 2 * a0);
+      if (c.kind === 'guess') {
+        // "what's your guess?": two choices to comment
+        const pop = easeOutBack(clamp((t - c.t0) / 0.35, 0, 1));
+        ctx.save(); ctx.globalAlpha = a; ctx.translate(VW / 2, AR.y + 92); ctx.scale(pop, pop); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        roundRect(ctx, -330, -58, 660, 136, 20); ctx.fillStyle = 'rgba(8,11,20,0.92)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = COL.gold; ctx.stroke();
+        ctx.font = font(34, 800); strokeText(ctx, "WHAT'S YOUR GUESS?", 0, -26, COL.white, COL.ink, 6);
+        [['SURVIVES', TEAMS[DEF].c, -150], ['FALLS', TEAMS[ATK].c, 150]].forEach(([w, col, x], n) => {
+          const wob = 1 + 0.04 * Math.sin(t * 6 + n * 2);
+          ctx.save(); ctx.translate(x, 30); ctx.scale(wob, wob);
+          roundRect(ctx, -120, -26, 240, 52, 26); ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = COL.ink; ctx.stroke();
+          ctx.font = font(30, 800); ctx.fillStyle = COL.white; ctx.fillText(w, 0, 2); ctx.restore();
+        });
+        ctx.restore();
+        if (this.lay && a >= 1) this.lay.push({ kind: 'box', x: VW / 2 - 330, y: AR.y + 34 + (this.layDY || 0), w: 660, h: 136 });
+        continue;
+      }
       const boss = this.bossU && !this.bossU.dead && this.phase === 'fight';
       const y = AR.y + (rosterUp ? 14 + 92 + 46 : boss ? 112 : 70);
       const hasIcon = c.tk || c.spell || c.shaman, iconW = hasIcon ? 60 : 0;
@@ -747,23 +763,6 @@ const DRAW = {
   drawHooks(ctx) {
     const t = this.t, T = this.fightT, fight = this.phase === 'fight';
     ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    // 1) "what's your guess?" just after the line-ups: two choices to comment
-    const g0 = 8.7, g1 = 12.6;
-    if (t > g0 && t < g1 && fight) {
-      const a = Math.min(clamp((t - g0) / 0.3, 0, 1), clamp((g1 - t) / 0.4, 0, 1)), pop = easeOutBack(clamp((t - g0) / 0.35, 0, 1));
-      ctx.globalAlpha = a; ctx.save(); ctx.translate(VW / 2, AR.y + 92); ctx.scale(pop, pop);
-      roundRect(ctx, -330, -58, 660, 136, 20); ctx.fillStyle = 'rgba(8,11,20,0.92)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = COL.gold; ctx.stroke();
-      ctx.font = font(34, 800); strokeText(ctx, "WHAT'S YOUR GUESS?", 0, -26, COL.white, COL.ink, 6);
-      [['SURVIVES', TEAMS[DEF].c, -150], ['FALLS', TEAMS[ATK].c, 150]].forEach(([w, c, x], i) => {
-        const wob = 1 + 0.04 * Math.sin(t * 6 + i * 2);
-        ctx.save(); ctx.translate(x, 30); ctx.scale(wob, wob);
-        roundRect(ctx, -120, -26, 240, 52, 26); ctx.fillStyle = c; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = COL.ink; ctx.stroke();
-        ctx.font = font(30, 800); ctx.fillStyle = COL.white; ctx.fillText(w, 0, 2);
-        ctx.restore();
-      });
-      ctx.restore(); ctx.globalAlpha = 1;
-      if (this.lay) this.lay.push({ kind: 'box', x: VW / 2 - 330, y: AR.y + 34 + (this.layDY || 0), w: 660, h: 136 });
-    }
     // 2) the combo counter: kills in quick succession
     if (fight && this.killLog.length) {
       let n = 0; for (let i = this.killLog.length - 1; i >= 0 && t - this.killLog[i] < 2.5; i--) n++;

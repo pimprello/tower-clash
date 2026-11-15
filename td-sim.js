@@ -175,6 +175,7 @@ const SIM = {
     this.eventTick(h);
     // the final push: in the last 10 s of the fight both sides go all out, so the battle always reaches its ending
     const push = T >= this.pushAt[0];
+    if (!this.guessed && this.t >= 8.6) { this.guessed = true; this.card({ kind: 'guess', text: "WHAT'S YOUR GUESS?", dur: 3.8, big: true }); }
     if (push && !this.pushed) { this.pushed = true; this.chapter('THE FINAL PUSH', COL.gold); this.snd('alarm'); if (this.camEv) this.camEv.push({ type: 'push', stage: 1 }); }
     this.pushK = push ? 1 + clamp((T - this.pushAt[0]) / 6, 0, 1) * 0.9 : 1;
     for (const u of this.units) {

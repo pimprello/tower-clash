@@ -169,15 +169,33 @@ async function main() {
   // battle; the camera punches in on the beat in the last seconds, and the outro fades into the cover frame so the replay loops -----
   const MU = rules.music || {}, muOn = MU.on !== false;
   const mp = muOn ? Music.plan(seed, ['epic', 'ancient', 'modern', 'scifi'][slot % 4])  /* (four songs in turn, one per video: Rellz 2026-11-15) */ : null, mtr = muOn ? Music.tracker() : null;
+const clamp01 = x => Math.max(0, Math.min(1, x));
   let firstCv = null;
+  // ----- the intro card (rules.intro, Rellz 2026-11-15): the thumbnail's layout (who vs who) for a couple of seconds before the
+  // battle, drifting in slowly, then dissolving into the first frame of the fight. Sound and music start under it. -----
+  const INTRO = (rules.intro || {}).on !== false && thumbCv ? Math.round(FPS * ((rules.intro || {}).seconds || 2.2)) : 0, IOFF = INTRO / FPS;
   for (let i = 0; i < MAXFRAMES; i++) {
     ctx.setTransform(RS, 0, 0, RS, 0, 0);
     const z0 = game.cam && game.cam.z, punch = muOn && MU.pulse !== false && game.cam && game.phase === 'fight' && game.fightT > FIGHT - 6 ? Music.pulse(mp, i / FPS) : 0;
     if (punch) game.cam.z = z0 * (1 + punch);
     game.draw(ctx);
     if (punch) game.cam.z = z0;
+    if (i === 0 && INTRO) {
+      const b0 = createCanvas(W * RS, H * RS); b0.getContext('2d').drawImage(canvas, 0, 0);
+      const fadeN = Math.round(FPS * 0.4);
+      for (let j = 0; j < INTRO; j++) {
+        const z = 1 + 0.035 * (j / INTRO), fk = clamp01((j - (INTRO - fadeN)) / fadeN);
+        ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W * RS, H * RS);
+        ctx.save(); ctx.translate(W * RS / 2, H * RS / 2); ctx.scale(z, z); ctx.drawImage(thumbCv, -W * RS / 2, -H * RS / 2); ctx.restore();
+        if (fk > 0) { ctx.globalAlpha = fk * fk * (3 - 2 * fk); ctx.drawImage(b0, 0, 0); ctx.globalAlpha = 1; }
+        if (j === 0 && muOn && MU.loop !== false) { firstCv = createCanvas(W * RS, H * RS); firstCv.getContext('2d').drawImage(canvas, 0, 0); }
+        if (stills) { if (j === Math.round(FPS * 1) || j === INTRO - Math.round(fadeN / 2)) fs.writeFileSync(path.join(OUT, `still-intro-${j}.png`), canvas.toBuffer('image/png')); }
+        else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(b0, 0, 0); ctx.setTransform(RS, 0, 0, RS, 0, 0);
+    }
     if (muOn && MU.loop !== false) {
-      if (i === 0) { firstCv = createCanvas(W * RS, H * RS); firstCv.getContext('2d').drawImage(canvas, 0, 0); }
+      if (i === 0 && !firstCv) { firstCv = createCanvas(W * RS, H * RS); firstCv.getContext('2d').drawImage(canvas, 0, 0); }
       const left = game.phase === 'outro' && game.outroLen ? game.outroLen - game.outroT : 9;
       if (firstCv && left < 0.45 && !game.holdOutro) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = Math.min(1, (0.45 - left) / 0.4); ctx.drawImage(firstCv, 0, 0); ctx.globalAlpha = 1; }
     }
@@ -188,14 +206,14 @@ async function main() {
     if (game.finished || nFrames >= FPS * SECS / PACE + FPS * 10) break;
     if (process.env.SECS && nFrames >= FPS * SECS) break;
     if (director) director.advance(1 / FPS); else game.frame(1 / FPS);
-    for (const ev of game.sfx) synth.play(ev, (i + 1) / FPS);
+    for (const ev of game.sfx) synth.play(ev, (i + 1) / FPS + IOFF);
     // (the music's drop comes on the first kill: tower kills don't make a knock-out sound, so they're passed on as one)
     if (mtr) { const kills = game.killLog.length + (game.killLogShifted || 0), ko = kills > (mtr.kills || 0); mtr.kills = kills;
-      mtr.frame((i + 1) / FPS, ko ? { phase: game.phase, sfx: game.sfx.concat({ type: 'ko' }), holdOutro: game.holdOutro, outroLen: game.outroLen, outroT: game.outroT } : game); }
+      mtr.frame((i + 1) / FPS + IOFF, ko ? { phase: game.phase, sfx: game.sfx.concat({ type: 'ko' }), holdOutro: game.holdOutro, outroLen: game.outroLen, outroT: game.outroT } : game); }
     game.sfx.length = 0;
     if ((i + 1) % (FPS * 6) === 0) console.log(`frame ${i + 1} (${((i + 1) / FPS).toFixed(0)} s of video) after ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   }
-  const DUR = nFrames / FPS;
+  const DUR = (nFrames + INTRO) / FPS;
   const final = path.join(OUT, 'tower-clash.mp4');
   if (!stills) {
     enc.p.stdin.end(); await enc.done;

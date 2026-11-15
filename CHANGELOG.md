@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-15: intro card, notices that never stack
+From the Clash Autopilot list (Rellz: "the ui layer on top of each other issue").
+- **Intro card** (`rules.intro`, 2.2 s): every video opens on the thumbnail's layout (the question, the board, the best tower vs the boss), drifting in slowly, then dissolves into the first frame of the fight. Sound and music start under it; the end still loops back to it.
+- **One notice at a time**: wave banners, new-tower/upgrade/spell cards, the engine's chapter banners and the "what's your guess?" prompt all go through one queue, so they never sit on top of each other. Each one fades in and out smoothly (0.3 s in, 0.4 s out). A small notice that would only get its turn more than 2.5 s late is dropped, because by then whatever it's about is already over. Big ones always wait their turn.
+- Tested: syntax, 12 headless battles (no crashes), stills of the intro, its dissolve and the fight.
+
 ## 2026-11-15: one Clash Autopilot for both games, lighter daily run
 - `AUTOPILOT.md` rewritten to match Army Clash's efficiency pass, fitted to Tower Clash: it's now one half of the single daily "Clash Autopilot" run (which covers both games), reads only the last 3 changelog entries and the newest 12 upload rows, adds three unique new things a day from one combined brief, learns from views only when there's enough data and not again within 3 days if nothing crossed a threshold, fixes only what actually looked wrong, and tests only what the day's changes touch.
 - The idea backlog and the "already built" list moved to `IDEAS.md`, opened only when picking new things.

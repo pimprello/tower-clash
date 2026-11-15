@@ -3,6 +3,7 @@
   "video": { "scale": 2, "fightSeconds": 60, "outroSeconds": 3, "pace": 0.85 },
   "sound": { "sfx": 0.7 },
   "thumbnail": { "on": true },
+  "intro": { "on": true, "seconds": 2.2 },
   "quality": { "candidates": 5, "fine": true },
   "cinematic": true,
   "teamPairs": [

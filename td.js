@@ -232,7 +232,16 @@ class TD extends RVB.Army {
   pan(x) { return (x - AR.x) / AR.w * 1.4 - 0.7; }
   say(text, team) { this.ticker.unshift({ text, team, t: this.t }); if (this.ticker.length > 6) this.ticker.length = 6; }
   // a card (wave, upgrade, spell, merchant): one at a time, queued (looks only)
-  card(o) { const q = this.cards, last = q.length ? q[q.length - 1] : null, at = last ? Math.max(this.t, last.t0 + (last.dur || 1.9)) : this.t; q.push(Object.assign({ t0: at, dur: 1.9 }, o)); if (q.length > 8) q.shift(); }
+  // on-screen notices never stack (Rellz 2026-11-15): one at a time in a single queue, each fading in and out; a small notice
+  // that would only get its turn more than 2.5 s late is dropped (it would be about something that's over), big ones always wait
+  card(o) {
+    const q = this.cards, last = q.length ? q[q.length - 1] : null, at = last ? Math.max(this.t, last.t0 + (last.dur || 1.9) + 0.12) : this.t;
+    if (at - this.t > 2.5 && !o.big) return;
+    q.push(Object.assign({ t0: at, dur: 1.9 }, o)); if (q.length > 12) q.shift();
+  }
+  // the engine's chapter banners go through the same queue, as big notices
+  chapter(text, col) { if (!this.ui2) return false; this.card({ text, col: col || '#FFD23F', big: true, dur: 2.2, kind: 'chapter' }); return true; }
+  drawChapters() {}
   callout(u, text, col) {
     const T = this.fightT;
     if (T < (u.coAt || 0)) return;
