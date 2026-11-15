@@ -86,6 +86,7 @@ const PLAY = {
       case 'timefreeze': return 0.3 + near * 0.15;
       case 'reinforce': return 0.5 + (this.units.filter(u => u.team === DEF && !u.tower && !u.dead).length < 3 ? 0.4 : 0);
       case 'chainstorm': return 0.3 + nAtk * 0.05;
+      case 'breath': return 0.35 + packed * 0.1;
     }
     return 0.3;
   },
@@ -168,6 +169,16 @@ const PLAY = {
         const p = laneAt(L, s); this.shake(8); this.snd('thud'); this.snd('clang'); spot(p.x, p.y, 1.7); word(p.x, p.y, 'REINFORCEMENTS!');
         break;
       }
+      case 'breath': {
+        // a dragon swoops down the path towards the crowd, breathing fire on a long stretch of it (burns what it touches)
+        const L = laneOf(c.u), s1 = Math.min(L.len - 10, (c.u ? c.u.s : L.len * 0.5) + 90), s0 = Math.max(0, s1 - 340), pts = [];
+        for (let i = 0; i <= 12; i++) { const p = laneAt(L, s0 + (s1 - s0) * i / 12); pts.push([p.x, p.y]); }
+        this.marks.push({ kind: 'breath', pts, t0: this.t, T0: T, T1: T + 1.7 });
+        for (let i = 0; i < 7; i++) { const [x, y] = pts[Math.round(i * 2)] || pts[pts.length - 1]; this.tdCalls.push({ x, y, at: T + 0.35 + i * 0.16, r: 52, dmg: 8, team: DEF, from: live[0] ? live[0].u : null, kind: 'fireball', fx: { burn: 1.2 } }); }
+        this.snd('roar', { gain: 0.9 }); this.snd('flame', { gain: 1 });
+        const mid = pts[6]; spot(mid[0], mid[1], 1.3, 2.4); word(mid[0], mid[1], "DRAGON'S BREATH!");
+        break;
+      }
       case 'chainstorm': {
         const tg = this.units.filter(o => o.team === ATK && !o.dead && !o.gone).sort((a, b2) => (b2.max - a.max) || a.uid - b2.uid).slice(0, 8);
         tg.forEach((o, i) => { this.tdCalls.push({ x: o.x, y: o.y, at: T + 0.15 * i, r: 34, dmg: 12, team: DEF, from: live[0] ? live[0].u : null, kind: 'bolt', target: o }); });
@@ -229,7 +240,7 @@ const PLAY = {
     this.tdEvents = [];
     const pickT = (a, b) => C * R.range(a, b);
     for (const e of ev) {
-      const chance = e.chance ?? 0.4;
+      const chance = e.chance ?? (e.type === 'eclipse' ? 0.3 : 0.4);
       if (!R.chance(chance)) continue;
       if (e.type === 'hazard') { const h = this.hazardKind(); if (h) this.tdEvents.push({ type: h, at: pickT(0.35, 0.7) }); }
       else this.tdEvents.push({ type: e.type, at: pickT(0.28, 0.66) });
@@ -241,7 +252,7 @@ const PLAY = {
   },
   hazardKind() {
     const m = this.opts.map;
-    return { beach: 'kraken', dunes: 'sandworm', furnace: 'eruption', frozen: 'blizzard', snow: 'blizzard', forest: 'stampede', castle: 'stampede', neon: 'storm', moon: 'storm', graveyard: 'storm', swamp: 'storm', temple: 'storm', enchanted: 'storm', bombed: 'storm' }[m] || 'storm';
+    return { beach: 'kraken', dunes: 'sandworm', furnace: 'eruption', frozen: 'blizzard', snow: 'blizzard', forest: 'stampede', castle: 'stampede', blossom: 'stampede', neon: 'storm', moon: 'storm', graveyard: 'storm', swamp: 'storm', temple: 'storm', enchanted: 'storm', bombed: 'storm' }[m] || 'storm';
   },
   eventTick(h) {
     const T = this.fightT, R = this.EVR;
@@ -252,7 +263,7 @@ const PLAY = {
     }
   },
   eventStart(e) {
-    const R = this.EVR, T = this.fightT, NAME = { airdrop: 'AIRDROP!', airstrike: 'AIRSTRIKE!', meteors: 'METEOR SHOWER!', kraken: 'THE KRAKEN!', sandworm: 'SANDWORM!', eruption: 'THE LAVA ERUPTS!', blizzard: 'BLIZZARD!', stampede: 'STAMPEDE!', storm: 'LIGHTNING STORM!' };
+    const R = this.EVR, T = this.fightT, NAME = { eclipse: 'SOLAR ECLIPSE!', airdrop: 'AIRDROP!', airstrike: 'AIRSTRIKE!', meteors: 'METEOR SHOWER!', kraken: 'THE KRAKEN!', sandworm: 'SANDWORM!', eruption: 'THE LAVA ERUPTS!', blizzard: 'BLIZZARD!', stampede: 'STAMPEDE!', storm: 'LIGHTNING STORM!' };
     this.stat.events.push(e.type);
     this.card({ kind: 'event', text: NAME[e.type], col: '#FDE68A' });
     this.snd('alarm', { gain: 0.6 });
@@ -272,6 +283,7 @@ const PLAY = {
       const s = L.len * R.range(0.3, 0.75), p = laneAt(L, s); e.x = p.x; e.y = p.y; e.end = T + 3; e.hitAt = T + 0.9; e.r = 90;
       if (this.camEv) this.camEv.push({ type: 'spot', x: e.x, y: e.y, prio: 70, dur: 2.5, z: 1.6, ts: 0.5, slowFor: 0.9 });
     } else if (e.type === 'blizzard') { e.end = T + 6; }
+    else if (e.type === 'eclipse') { e.end = T + 6.5; if (this.camEv) this.camEv.push({ type: 'spot', x: AR.x + AR.w / 2, y: AR.y + AR.h / 2, prio: 45, dur: 3, z: 1.02 }); }
   },
   eventRun(e, h) {
     const T = this.fightT, R = this.EVR;
@@ -317,6 +329,11 @@ const PLAY = {
         this.tdCalls.push({ x: e.x, y: e.y, at: T, r: e.r, dmg: 10, team: 9, from: null, kind: e.type === 'eruption' ? 'meteor' : 'stomp', both: true });
         this.marks.push({ kind: e.type, x: e.x, y: e.y, t0: this.t });
         this.snd(e.type === 'kraken' ? 'splash' : 'rumble', { gain: 1 }); this.shake(14);
+        return;
+      }
+      case 'eclipse': {
+        // the moon covers the sun: both sides struggle in the dark (attackers walk 20% slower, towers fire a little slower)
+        if (T >= (e.next || 0)) { e.next = T + 0.5; for (const u of this.units) if (!u.dead) { if (u.tower) u.cd += 0.07; else this.slowDown(u, 0.8, 0.6); } }
         return;
       }
       case 'blizzard': {

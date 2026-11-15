@@ -70,6 +70,8 @@ const TD_MAPS = {
   furnace: { name: 'World Furnace', path: '#4A2E22', edge: '#1E120C', base: 'fortress', ground: 'lava', fire: false, era: 'fantasy' },
   frozen: { name: 'Frozen End', path: '#B8D4EA', edge: '#5F7E99', base: 'keep', ground: 'ice', fire: false, era: 'fantasy' },
   castle: { name: 'Castle Siege', path: '#7A6A55', edge: '#3E3428', base: 'keep', ground: null, fire: true, era: 'medieval' },
+  // (2026-11-15) cherry trees in bloom, stone lanterns, petals drifting over the battle
+  blossom: { name: 'Blossom Valley', path: '#D9C4A2', edge: '#8E6F55', base: 'temple', ground: null, fire: false, era: 'fantasy', petals: true },
 };
 const MAP_KEYS = Object.keys(TD_MAPS);
 const BASE_NAME = { keep: 'THE KEEP', fortress: 'THE FORTRESS', temple: 'THE TEMPLE', reactor: 'THE REACTOR', ship: 'THE FLAGSHIP' };
@@ -186,6 +188,7 @@ const BOOK = {
   timefreeze: { name: 'TIME FREEZE', price: 45, col: '#93C5FD', say: 'one stretch of the path stops in time for 3 s' },
   reinforce: { name: 'REINFORCEMENTS', price: 40, col: '#FDE68A', say: 'four knights drop onto the path' },
   chainstorm: { name: 'LIGHTNING STORM', price: 45, col: '#C4B5FD', say: 'lightning strikes eight attackers' },
+  breath: { name: "DRAGON'S BREATH", price: 50, col: '#F97316', say: 'a dragon swoops down the path, breathing fire' },
 };
 const BOOK_KEYS = Object.keys(BOOK);
 const SHAMAN = {

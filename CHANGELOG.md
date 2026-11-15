@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-15 (midday): the Clash Autopilot's Tower Clash half, finished (it was cut off this morning)
+Today's three ideas: a calm, beautiful new board that looks nothing like the others (cherry blossom in spring, petals drifting over the fighting); a new merchant spell you can see coming from across the board (a red dragon swooping down the path breathing fire); and a battle event that changes how the whole picture looks for a few seconds (a solar eclipse: the board goes dark and only the towers and the base hold back the night).
+- **Blossom Valley** (new map): spring grass with drifts of fallen petals, cherry trees in bloom, stone lanterns and mossy rocks, a temple base, and pink petals drifting across the battle all the time. Its hazard is the stampede.
+- **Dragon's Breath** (new merchant spell, 50 gold): a red dragon swoops down the path towards the thickest crowd, its shadow below it, pouring a jet of fire onto the path; the stretch it passes burns for a couple of seconds, and attackers caught in it are hit and set alight.
+- **Solar Eclipse** (new battle event, 30% of battles): for 6.5 s the board fades to dark, with soft pools of light round every tower, the base and any fire, and a black sun with a burning corona in the corner. Fair to both sides: attackers walk 20% slower and towers fire a little slower. It fades in and out smoothly.
+- Tested: syntax, 40 headless battles (no crashes, all ended, defenders 68% at plain strength before the close-finish search), a test frame with all three on screen.
+
 ## 2026-11-15 (late morning): electric face-off, Army Clash's shine on towers and base, real meteors, better music, same times as Army Clash
 Rellz: "match graphic style and shiny texture to army clash ... fix the meteor in tower clash", "change the music make it sound better add the better intro which is like a face off animated with electricity and do the same for army clash", "both channels always upload at same time same amount of videos a day".
 - **Electric face-off intro** (`faceoff.js`, the same file as Army Clash's, 2.6 s): the best tower and the boss each in a big glossy ring on a band of their side's colour; the bands slam in from opposite sides, a lightning seam strikes between them, VS slams onto it, arcs crackle round the rings and sparks fly (whoosh, thunder, zaps), then a white flash into the fight.

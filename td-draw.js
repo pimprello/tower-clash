@@ -12,6 +12,17 @@ const { TOWERS, TCLASS, ELEM, BOSSES, BOOK, SHAMAN, WAVE_KINDS, LAYOUTS, MODES }
 
 const STONE = '#8C95A8', STONE_D = '#5A6276', STONE_L = '#C3CAD8', INK = COL.ink;
 const H01 = (a, b) => hash01((a * 7919) | 0, (b * 104729) | 0);
+// Blossom Valley's ground (a Tower Clash map, so its floor lives here): spring grass with drifts of fallen petals
+if (!MAP_THEME.blossom) MAP_THEME.blossom = {
+  floor: '#2E4A2C', grid: 'rgba(200,255,210,0.05)', mid: 'rgba(255,230,240,0.08)',
+  texture: g => {
+    const S = E.rng(0xB10550);
+    for (let i = 0; i < 16; i++) { g.beginPath(); g.ellipse(S.range(0, AR.w), S.range(0, AR.h), S.range(40, 100), S.range(26, 60), S.range(0, 3), 0, TAU); g.fillStyle = S.chance(0.5) ? 'rgba(90,160,90,0.12)' : 'rgba(0,0,0,0.12)'; g.fill(); }
+    for (let i = 0; i < 26; i++) { const x = S.range(0, AR.w), y = S.range(0, AR.h); for (let k = 0; k < 9; k++) { g.beginPath(); g.ellipse(x + S.range(-30, 30), y + S.range(-20, 20), 3.2, 1.8, S.range(0, 3), 0, TAU); g.fillStyle = S.chance(0.6) ? 'rgba(249,168,212,0.55)' : 'rgba(253,242,248,0.5)'; g.fill(); } }
+    g.lineCap = 'round'; g.lineWidth = 2.2; g.strokeStyle = '#3F6A3A';
+    for (let i = 0; i < 70; i++) { const x = S.range(10, AR.w - 10), y = S.range(10, AR.h - 10), l = S.range(5, 9); g.beginPath(); for (const a of [-0.5, 0, 0.5]) { g.moveTo(x, y); g.lineTo(x + Math.sin(a) * l, y - Math.cos(a) * l); } g.stroke(); }
+  },
+};
 
 const DRAW = {
   // ---------- the ground: the map's floor, the paths, the spawn gates and the ground patches (painted once) ----------
@@ -87,7 +98,7 @@ const DRAW = {
   // scenery off the paths, in the map's style (fixed spots for each layout and map; looks only)
   paintProps(g) {
     const key = this.opts.map, era = (this.tdMap || {}).era;
-    const kind = { forest: 'tree', enchanted: 'magic', castle: 'tree', swamp: 'swamp', snow: 'pine', frozen: 'pine', beach: 'palm', dunes: 'desert', bombed: 'city', moon: 'moon', neon: 'neon', graveyard: 'grave', furnace: 'ember', temple: 'temple' }[key] || (era === 'scifi' ? 'moon' : 'tree');
+    const kind = { forest: 'tree', enchanted: 'magic', castle: 'tree', swamp: 'swamp', snow: 'pine', frozen: 'pine', beach: 'palm', dunes: 'desert', bombed: 'city', moon: 'moon', neon: 'neon', graveyard: 'grave', furnace: 'ember', temple: 'temple', blossom: 'blossom' }[key] || (era === 'scifi' ? 'moon' : 'tree');
     const pts = [];
     for (const L of this.lanes) for (let s = 0; s < L.len; s += 12) { const p = laneAt(L, s); pts.push([p.x - AR.x, p.y - AR.y]); }
     const free = (x, y, r) => {
@@ -139,6 +150,22 @@ const DRAW = {
       } else if (kind === 'ember') {
         rock(x, y, r * 0.75, '#3A2A24');
         if (v < 0.5) { g.beginPath(); g.arc(x, y, r * 0.25, 0, TAU); g.fillStyle = '#FF7A1A'; g.fill(); }
+      } else if (kind === 'blossom') {
+        // cherry trees in bloom (pink clouds of blossom over a dark trunk), stone lanterns, mossy rocks
+        if (v < 0.55) {
+          const r0 = r; { const r = r0 * 1.3;
+          shadow(x, y, r * 1.05);
+          g.lineCap = 'round'; g.lineWidth = 5; g.strokeStyle = '#4A2E22'; g.beginPath(); g.moveTo(x, y + r * 0.2); g.lineTo(x + Math.cos(p.a) * r * 0.6, y + Math.sin(p.a) * r * 0.6); g.stroke();
+          for (let k = 0; k < 5; k++) { const a = p.a + k * 1.257, d = r * 0.42; blob(x + Math.cos(a) * d, y + Math.sin(a) * d * 0.85, r * 0.5, k % 2 ? '#F9A8D4' : '#F472B6', 2.5); }
+          blob(x, y - r * 0.05, r * 0.48, '#FBCFE8', 0); shade(x, y, r * 0.95);
+          for (let k = 0; k < 5; k++) blob(x + (hash01(k, Math.round(x)) - 0.5) * r * 1.4, y + (hash01(Math.round(y), k) - 0.5) * r * 1.2, 2.2, '#FFFFFF', 0); }
+        } else if (v < 0.75) {
+          // a stone lantern
+          shadow(x, y, r * 0.5); g.save(); g.translate(x, y);
+          g.beginPath(); g.rect(-r * 0.32, -r * 0.32, r * 0.64, r * 0.64); g.fillStyle = '#9CA3AF'; g.fill(); g.lineWidth = 2.5; g.strokeStyle = INK; g.stroke();
+          g.beginPath(); g.moveTo(-r * 0.5, -r * 0.3); g.lineTo(0, -r * 0.62); g.lineTo(r * 0.5, -r * 0.3); g.closePath(); g.fillStyle = '#6B7280'; g.fill(); g.stroke();
+          blob(0, 0, r * 0.14, '#FDE68A', 1.5); g.restore();
+        } else rock(x, y, r * 0.6, '#7C8A6E');
       } else if (kind === 'temple') {
         if (v < 0.45) { shadow(x, y, r * 0.7); blob(x, y, r * 0.6, '#E6DCC0'); blob(x, y, r * 0.38, '#CFC2A0', 2); shade(x, y, r * 0.6); }
         else if (v < 0.8) tree(x, y, r * 0.8, '#3E8F48', '#5DB868');
@@ -575,7 +602,39 @@ const DRAW = {
         } else if (m.kind === 'meteor') {
           // (the target on the ground is drawn under the troops: drawMeteorGround) the rock coming down, faster and faster,
           // glowing, with a fiery tail, a halo and embers streaming off it, the way Army Clash's meteors fall
-          if (T > m.T1) continue; this.drawMeteorRock(ctx, m, T);        } else if (m.kind === 'clock') {
+          if (T > m.T1) continue; this.drawMeteorRock(ctx, m, T);        } else if (m.kind === 'breath') {
+          // DRAGON'S BREATH: a red dragon swoops down the path (a top-down creature, so it turns with its flight), a jet of fire
+          // pouring from its jaws onto the ground ahead, and the path left burning behind it
+          if (T > m.T1 + 1.6) continue;
+          const P = m.pts, n = P.length - 1, p = clamp((T - m.T0) / (m.T1 - m.T0), 0, 1), f = p * n, i0 = Math.min(n - 1, Math.floor(f)), fr = f - i0;
+          // the burning trail
+          for (let i = 0; i <= Math.min(n, Math.floor(f + 1)); i++) {
+            const age = T - (m.T0 + (m.T1 - m.T0) * i / n), a = clamp(1 - age / 2.2, 0, 1); if (age < 0 || a <= 0) continue;
+            const [x, y] = P[i];
+            for (let j = 0; j < 3; j++) { const fx = x + (H01(i, j) - 0.5) * 50, fy = y + (H01(j, i) - 0.5) * 40, h = (16 + 10 * H01(i + j, 9)) * (0.8 + 0.25 * Math.sin(t * 14 + i + j)) * a;
+              ctx.globalAlpha = a; ctx.beginPath(); ctx.moveTo(fx - 7, fy + 4); ctx.quadraticCurveTo(fx - 7, fy - h * 0.5, fx, fy - h); ctx.quadraticCurveTo(fx + 7, fy - h * 0.5, fx + 7, fy + 4); ctx.closePath(); ctx.fillStyle = '#FF7A1A'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke(); }
+          }
+          ctx.globalAlpha = 1;
+          if (p >= 1) continue;
+          // the dragon flies a little behind the head of the flame, high above the path
+          const [ax, ay] = P[i0], [bx, by] = P[i0 + 1], x = lerp(ax, bx, fr), y = lerp(ay, by, fr), dir = Math.atan2(by - ay, bx - ax);
+          const dx = x - Math.cos(dir) * 70, dy = y - Math.sin(dir) * 70 - 40, flap = Math.sin(t * 16);
+          // fire jet from the jaws to the ground
+          const jx = dx + Math.cos(dir) * 34, jy = dy + Math.sin(dir) * 34;
+          for (const [w, col] of [[30, 'rgba(255,90,30,0.45)'], [18, 'rgba(255,170,60,0.85)'], [7, 'rgba(255,245,200,0.95)']]) { ctx.beginPath(); ctx.moveTo(jx, jy); ctx.quadraticCurveTo((jx + x) / 2 + Math.sin(t * 30) * 4, (jy + y) / 2 - 10, x, y); ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.strokeStyle = col; ctx.stroke(); }
+          // its shadow on the ground
+          ctx.beginPath(); ctx.ellipse(dx + 30, dy + 90, 46, 20, dir, 0, TAU); ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fill();
+          ctx.save(); ctx.translate(dx, dy); ctx.rotate(dir);
+          // wings
+          for (const sg of [-1, 1]) { ctx.beginPath(); ctx.moveTo(-6, sg * 8); ctx.quadraticCurveTo(-4, sg * (46 + 10 * flap), -34, sg * (58 + 12 * flap)); ctx.quadraticCurveTo(-26, sg * 30, -30, sg * 10); ctx.closePath(); ctx.fillStyle = '#B91C1C'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke(); }
+          // tail, body, head
+          ctx.beginPath(); ctx.moveTo(-22, 0); ctx.quadraticCurveTo(-48, Math.sin(t * 8) * 10, -66, 0); ctx.lineWidth = 7; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 4; ctx.strokeStyle = '#DC2626'; ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(-6, 0, 24, 12, 0, 0, TAU); ctx.fillStyle = '#DC2626'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(22, 0, 12, 9, 0, 0, TAU); ctx.fillStyle = '#EF4444'; ctx.fill(); ctx.stroke();
+          for (const sg of [-1, 1]) { ctx.beginPath(); ctx.moveTo(16, sg * 6); ctx.lineTo(8, sg * 14); ctx.lineWidth = 3; ctx.strokeStyle = '#FDE68A'; ctx.stroke(); }
+          ctx.beginPath(); ctx.ellipse(-6, -4, 12, 4, 0, 0, TAU); ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill();
+          ctx.restore();
+        } else if (m.kind === 'clock') {
           if (T > m.T1) continue;
           ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, TAU); ctx.fillStyle = 'rgba(147,197,253,0.16)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(147,197,253,0.85)'; ctx.stroke();
           ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x, m.y - m.r * 0.6); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x + m.r * 0.4, m.y); ctx.lineWidth = 5; ctx.strokeStyle = '#DBEAFE'; ctx.stroke();
@@ -619,6 +678,42 @@ const DRAW = {
     }
     // the mirror shift flash
     if (this.mirrorFx !== undefined && t - this.mirrorFx < 0.5) { ctx.fillStyle = `rgba(255,255,255,${0.5 * (1 - (t - this.mirrorFx) / 0.5)})`; ctx.fillRect(AR.x, AR.y, AR.w, AR.h); }
+    // Blossom Valley: petals drifting across the battle on the breeze (looks only)
+    if (this.tdMap && this.tdMap.petals) {
+      for (let i = 0; i < 46; i++) {
+        const sp = 40 + H01(i, 3) * 50, ph = (t * sp / (AR.w + 80) + H01(i, 1)) % 1, x = AR.x - 40 + ph * (AR.w + 80), y = AR.y + H01(i, 2) * AR.h + Math.sin(t * 1.3 + i) * 18 + ph * 60;
+        if (y > AR.y + AR.h) continue;
+        ctx.save(); ctx.translate(x, y); ctx.rotate(t * (1 + H01(i, 4)) + i); ctx.scale(1, 0.55 + 0.45 * Math.sin(t * 3 + i));
+        ctx.beginPath(); ctx.ellipse(0, 0, 4.5, 2.6, 0, 0, TAU); ctx.fillStyle = i % 3 ? 'rgba(249,168,212,0.85)' : 'rgba(253,242,248,0.85)'; ctx.fill(); ctx.restore();
+      }
+    }
+    // the solar eclipse: the board goes dark, lit only round the towers, the base and the fires; fades in and out
+    for (const e of this.tdEvents || []) if (e.type === 'eclipse' && e.on && !e.done) {
+      const T = this.fightT, k0 = clamp(Math.min((T - e.t0) / 0.9, (e.end - T) / 0.9), 0, 1), k = k0 * k0 * (3 - 2 * k0);
+      if (k <= 0) continue;
+      const lights = [];
+      for (const tw of this.towers) if (!tw.dead) lights.push([tw.x, tw.y, 120 + tw.tier * 10]);
+      if (this.base) lights.push([this.base.x, this.base.y, 190]);
+      for (const m of this.marks) if (m.kind === 'meteor' || m.kind === 'breath') { const q = m.pts ? m.pts[6] : [m.x, m.y]; lights.push([q[0], q[1], 120]); }
+      // (on a layer of its own: the darkness, with each pool of light wiped out of it softly, so pools that overlap just merge)
+      const RS = RVB.RS || 1, PW = Math.round(VW * RS), PH = Math.round(VH * RS);
+      if (!this._dark || this._dark.width !== PW) this._dark = RVB.makeCanvas(PW, PH);
+      const dc = this._dark.getContext('2d');
+      dc.setTransform(1, 0, 0, 1, 0, 0); dc.globalCompositeOperation = 'source-over'; dc.clearRect(0, 0, PW, PH);
+      dc.setTransform(ctx.getTransform());
+      dc.fillStyle = `rgba(6,8,24,${0.66 * k})`; dc.fillRect(AR.x - 400, AR.y - 400, AR.w + 800, AR.h + 800);
+      dc.globalCompositeOperation = 'destination-out';
+      for (const [x, y, r] of lights) { const g = dc.createRadialGradient(x, y, r * 0.45, x, y, r); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)'); dc.fillStyle = g; dc.beginPath(); dc.arc(x, y, r, 0, TAU); dc.fill(); }
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(this._dark, 0, 0); ctx.restore();
+      ctx.save();
+      for (const [x, y, r] of lights) { const w = ctx.createRadialGradient(x, y, 0, x, y, r * 0.7); w.addColorStop(0, `rgba(255,200,120,${0.1 * k})`); w.addColorStop(1, 'rgba(255,200,120,0)'); ctx.beginPath(); ctx.arc(x, y, r * 0.7, 0, TAU); ctx.fillStyle = w; ctx.fill(); }
+      // the eclipsed sun at the top of the board: a black disc with a burning corona
+      const sx = AR.x + AR.w - 120, sy = AR.y + 120, cr = 46;
+      const cg = ctx.createRadialGradient(sx, sy, cr * 0.9, sx, sy, cr * 2.2); cg.addColorStop(0, `rgba(255,236,190,${0.9 * k})`); cg.addColorStop(0.35, `rgba(255,190,90,${0.4 * k})`); cg.addColorStop(1, 'rgba(255,150,60,0)');
+      ctx.beginPath(); ctx.arc(sx, sy, cr * 2.2, 0, TAU); ctx.fillStyle = cg; ctx.fill();
+      ctx.globalAlpha = k; disc(ctx, sx, sy, cr, '#05060C', 0); ctx.globalAlpha = 1;
+      ctx.restore();
+    }
   },
 
   // ---------- the screens ----------
