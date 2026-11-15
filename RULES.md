@@ -7,6 +7,8 @@
 | `schedule.windowMinutes` | How late after a slot a run may still post (GitHub's timer is often late). |
 | `video.scale` | 2 = 4K (2160x3840), 1 = 1080x1920. |
 | `video.fightSeconds` / `outroSeconds` | The battle is paced to end near `fightSeconds`; the video ends `outroSeconds` later. |
+| `video.pace` | How fast the battle plays (0.85 = a little slower than real time, so the video runs about 70 s). |
+| `sound.sfx` | How loud the battle's sounds are under the music (0.7). |
 | `thumbnail.on` | Make `out/thumb.jpg` and set it on the video. |
 | `cinematic` | The camera director (zooms, slow motion). Looks only. |
 | `teamPairs` | Defender and attacker colours, used in turn. |

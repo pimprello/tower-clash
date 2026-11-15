@@ -26,7 +26,10 @@ const { TD } = require('./td-game.js');
 const { TDCam } = require('./td-cam.js');
 const OUTRO = VID.outroSeconds || 3, FIGHT = VID.fightSeconds || 60;
 const SECS = process.env.SECS ? Number(process.env.SECS) : FIGHT + OUTRO;
-const MAXFRAMES = FPS * (SECS + 12);
+// rules.video.pace: the battle plays at this fraction of real speed (0.85: a little slower, so every blow and every fall can be
+// seen; Rellz 2026-11-15 "it goes too fast"), so the video is about SECS / PACE long
+const PACE = Math.max(0.5, Math.min(1, VID.pace || 1));
+const MAXFRAMES = Math.ceil(FPS * (SECS / PACE + 12));
 const OUT = path.join(__dirname, 'out');
 const seed = process.env.SEED ? Number(process.env.SEED) >>> 0 : crypto.randomBytes(4).readUInt32LE(0);
 const pick = RVB.rng(seed ^ 0x7D3C1A);
@@ -52,14 +55,14 @@ const pair = pairs[slot % pairs.length];
 RVB.setTeams(pair[0], pair[1]);
 const events = (rules.events || []).map(type => ({ type }));
 
-const optsFor = (power, s) => ({ map, layout, target: FIGHT, fixedLength: FIGHT + OUTRO, outroSecs: OUTRO, ui: 2, art: 2, anim: true, humans: (rules.ui || {}).humans !== false, ...((rules.ui || {}).blood && rules.ui.blood.on ? { blood: rules.ui.blood } : {}), shine: { on: true, gloss: 1, rim: 1 },
+const optsFor = (power, s) => ({ map, layout, target: FIGHT, fixedLength: FIGHT + OUTRO, outroSecs: OUTRO, ui: 2, art: 2, anim: true, humans: (rules.ui || {}).humans !== false, ...((rules.ui || {}).blood && rules.ui.blood.on ? { blood: rules.ui.blood } : {}), shine: { on: true, gloss: 1, rim: 1, damage: true, screen: 1, density: 1.6 }, remains: true, clean: true, tdPace: PACE,
   tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s });
 
 // ----- balance on the spot: quick headless battles with this set-up and other dice, aiming at an even chance -----
 function quick(power, s) {
   const g = new TD(s, optsFor(power, s));
   g.fixedTicks = true; g.tickAcc = 0;
-  let k = 0; while (g.phase === 'fight' && k < FPS * 90) { g.frame(1 / FPS); g.sfx.length = 0; k++; }
+  let k = 0; while (g.phase === 'fight' && k < FPS * 90 / PACE) { g.frame(1 / FPS); g.sfx.length = 0; k++; }
   return { def: g.tdWinner === 0, T: g.fightT, hp: g.base.hp, fell: g.stat.fell.length };
 }
 // a close finish for this very battle: the dice pick which side should win (an even chance), then the attackers' strength
@@ -145,7 +148,7 @@ async function main() {
     const tt0 = Date.now(), g2 = new TD(seed, optsFor(power, seed)), cv2 = createCanvas(W * RS, H * RS), c2 = cv2.getContext('2d');
     g2.fixedTicks = true; g2.tickAcc = 0;
     let thumbBg = null, thumbScore = -1, k = 0;
-    while (!g2.finished && k < FPS * (FIGHT + OUTRO + 12)) {
+    while (!g2.finished && k < FPS * ((FIGHT + OUTRO) / PACE + 12)) {
       if (g2.phase === 'fight' && k % 30 === 0 && g2.fightT > FIGHT * 0.35 && g2.fightT < FIGHT * 0.85) {
         const atk = g2.units.filter(u => u.team === 1 && !u.dead && !u.gone).length, sc = atk * (1 + (g2.bossU && !g2.bossU.dead ? 1 : 0)) * (g2.base.hp > 0 ? 1 : 0);
         if (sc > thumbScore) { thumbScore = sc; c2.setTransform(RS, 0, 0, RS, 0, 0); const cards = g2.cards; g2.cards = []; g2.draw(c2); g2.cards = cards; thumbBg = thumbBg || createCanvas(W, H); const bc = thumbBg.getContext('2d'); bc.clearRect(0, 0, W, H); bc.drawImage(cv2, 0, 0, W, H); }
@@ -182,7 +185,7 @@ async function main() {
     else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
     nFrames++;
     timeline.push({ f: game.fightT, fight: game.phase === 'fight', hp: game.base.hp, boss: !!(game.bossU && !game.bossU.dead), wave: game.waveNow || 0 });
-    if (game.finished || nFrames >= FPS * SECS + FPS * 10) break;
+    if (game.finished || nFrames >= FPS * SECS / PACE + FPS * 10) break;
     if (process.env.SECS && nFrames >= FPS * SECS) break;
     if (director) director.advance(1 / FPS); else game.frame(1 / FPS);
     for (const ev of game.sfx) synth.play(ev, (i + 1) / FPS);
@@ -196,7 +199,8 @@ async function main() {
   const final = path.join(OUT, 'tower-clash.mp4');
   if (!stills) {
     enc.p.stdin.end(); await enc.done;
-    const frames = Math.round(SR * DUR), gain = game.audioGain || 1;
+    // (the battle's sounds a little under the music: Rellz 2026-11-15 "the sfx is louder than the music a bit too much")
+    const frames = Math.round(SR * DUR), gain = (game.audioGain || 1) * ((rules.sound || {}).sfx ?? 0.7);
     const L = new Float32Array(frames), R = new Float32Array(frames);
     for (let i = 0; i < frames; i++) { L[i] = Math.tanh(synth.L[i] * gain); R[i] = Math.tanh(synth.R[i] * gain); }
     let mixed = { L, R };

@@ -403,9 +403,13 @@ const SIM = {
     u.x += u.vx * h; u.y += u.vy * h;
     if (Math.hypot(u.vx, u.vy) > 4) this.turn(u, Math.atan2(u.vy, u.vx) + (back ? Math.PI : 0), h);
   },
+  // (rules.video.pace) the whole battle at a slower speed; the simulation still moves in fixed 1/120 s ticks
+  frame(dt) { return RVB.Army.prototype.frame.call(this, dt * (this.opts.tdPace || 1)); },
   reachBase(u) {
     if (u.dead) return;
     const b = this.base, T = this.fightT, sz = u.size || sizeOf(u.type);
+    // nobody stands on top of the base: they stop at its walls (looks: the keep is never covered by troops)
+    { const dx = u.x - b.x, dy = u.y - b.y, d = Math.hypot(dx, dy), need = 66 + u.r * 0.8; if (d < need) { const ax = d > 1 ? dx / d : 0, ay = d > 1 ? dy / d : -1; u.x = b.x + ax * need; u.y = b.y + ay * need; } }
     // big troops stay and pound the walls; small ones break in and are gone
     if ((sz === 'titan' || sz === 'boss' || (sz === 'giant' && !u.flying)) && !u.escort) {
       if (!u.atBase) { u.atBase = true; u.cd = 0.3; this.callout(u, 'AT THE GATES!', '#FF5A5A'); if (this.camEv) this.camEv.push({ type: 'spot', x: b.x, y: b.y - 40, prio: 70, dur: 1.8, z: 1.6 }); }
@@ -415,7 +419,8 @@ const SIM = {
     }
     if (u.escort) { this.hitBase(this.base.hp + 1, u); return; }
     this.hitBase(SIEGE[sz] || 3, u);
-    this.burst(u.x, u.y, TEAMS[ATK].c, 8, 220, 0.4, 6);
+    this.burst(u.x, u.y, '#C9B79A', 10, 240, 0.45, 6); this.burst(u.x, u.y, TEAMS[ATK].c, 5, 160, 0.35, 5);
+    if (this.shRings) this.shRings.push({ x: u.x, y: u.y, r0: 6, r1: 46, t0: this.t, life: 0.3, col: '#FFFFFF', w: 3 });
     u.hp = 0; u.gone = true; u.dead = true; this.alive[ATK]--;
   },
   hitBase(dmg, u) {
@@ -427,6 +432,7 @@ const SIM = {
     if (bw && !(u.boss || u.escort) && T < bw.at + 9) dmg *= clamp((b.hp - 18) / 60, 0.12, 1);
     if (this.sp3.domes.some(d => d.base && T < d.end)) { dmg *= 0.3; const dm = this.sp3.domes.find(d => d.base); if (dm && dm.hits.length < 12) dm.hits.push([u.x, u.y, this.t]); }
     b.hp = Math.max(0, b.hp - dmg); b.hitT = this.t; b.shake = 1; this.stat.breaches++;
+    if (dmg >= 0.5) { const H = b.hits || (b.hits = []); H.push({ t0: this.t, d: dmg, x: (u.x - b.x) * 0.3 }); if (H.length > 8) H.shift(); }
     this.stat.lowBase = Math.min(this.stat.lowBase, b.hp);
     this.shake(dmg > 6 ? 9 : 4); this.snd(dmg > 6 ? 'boom' : 'thud', { pan: this.pan(b.x), gain: 0.7 });
     this.burst(b.x + (u.x - b.x) * 0.4, b.y + (u.y - b.y) * 0.4, '#B8A88A', 8, 220, 0.5, 8);
@@ -796,6 +802,18 @@ const SIM = {
     RVB.Army.prototype.damage.call(this, u, dmg, from);
     if (was && u.dead) this.onKill(u, from);
   },
+  // (looks only) what a fallen attacker leaves: people their bones, machines their parts and bolts (with sparks), slimes and
+  // blobs a puddle of sludge with crossed-out eyes, beasts a dark stain and a few bones; it settles, then fades into the ground
+  corpse(u, from) {
+    const E2 = RVB._, type = u.type, U = UNIT[type] || {};
+    const kind = (this.opts.humans && E2.HUMAN && E2.HUMAN[type]) ? 'bones' : (E2.MACHINE && E2.MACHINE[type]) || U.machine || /robot|mech|drone|tank|golem|turret|tesla|walker|cannon|catapult/.test(type) ? 'parts'
+      : /slime|blob|ooze|acidwyrm|spider|hydra|wyrm|worm|bug|beetle|swarm|imp/.test(type) && !/queen/.test(type) ? 'sludge' : 'beast';
+    if (u.flying && kind !== 'parts') return;
+    const L = this.corpses || (this.corpses = []);
+    L.push({ kind, x: u.x, y: u.y, r: u.r, f: u.face || 0, t0: this.t, col: TEAMS[ATK].c, seed: (u.uid || 1) * 7 });
+    if (L.length > 70) L.shift();
+    if (kind === 'parts') { const F = this.FX; for (let k = 0; k < 8; k++) { const a = F.range(0, Math.PI * 2), sp = F.range(120, 360); this.parts.push({ x: u.x, y: u.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: F.range(0.2, 0.45), age: 0, size: F.range(1.4, 2.4), color: k % 2 ? '#FFD27A' : '#FFFFFF', grav: 0, streak: 0.03, drag: 5 }); } }
+  },
   // (looks only, cosmetic dice) every hit throws sparks the way the blow came from, with a quick ring; a melee blow leaves a
   // bright slash arc; arrows and bolts splinter, magic glitters in its element's colour, stone towers chip
   fxImpact(t, dmg, from) {
@@ -816,6 +834,7 @@ const SIM = {
     if (shot === 'melee' || shot === 'throw') this.marks.push({ kind: 'slash', x: t.x, y: t.y, r: t.r + 8, a: ang, t0: this.t, col, side: from && from.swordSide ? from.swordSide : 1 });
   },
   onKill(u, from) {
+    if (u.team === ATK && !u.gone) this.corpse(u, from);
     if (u.team === ATK) {
       if (!u.gone && !u.fly && u.lane !== undefined && !u.summoned) { this.fallenSpots.push({ x: u.x, y: u.y, lane: u.lane, s: u.s || 0 }); if (this.fallenSpots.length > 30) this.fallenSpots.shift(); }
       const g = Math.round(this.bounty(u));

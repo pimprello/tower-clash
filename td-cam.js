@@ -6,6 +6,8 @@ const RVB = require('./engine.js');
 const { AR, clamp } = RVB._;
 
 class TDCam extends RVB.Director {
+  // (rules.video.pace) the battle runs slower than the video on purpose; that isn't time owed, so the director doesn't race to catch up
+  get debt() { return this.t * (this.g.opts.tdPace || 1) - this.g.t; }
   // the front of the attack: the attackers closest to the base, and the base itself pulls the framing a little
   front() {
     const g = this.g, b = g.base;

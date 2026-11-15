@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-15: slower, remains for everyone, cleaner base fights, music over effects
+- The battle plays at 0.85 speed (`rules.video.pace`), so blows and falls can be seen; videos are about 70 s. The camera doesn't race to catch up.
+- Every fallen attacker leaves something that fits it, then fades: people fall apart to their bones, machines scatter gears, plates and bolts (with sparks), slimes and bugs leave a puddle of sludge with crossed-out eyes, beasts leave a stain and a few bones (`corpse` in td-sim.js, `drawCorpses` in td-draw.js). Army Clash's damage marks, acid/fire/lightning remains and cleaner battlefield are switched on too (`shine.damage`, `remains`, `clean`).
+- Nobody stands on top of the base any more: attackers stop at its walls. Hits on the base show as red "-N%" numbers rising off it, and troops breaking in go up in dust with a ring.
+- Effects are quieter under the music (`rules.sound.sfx` 0.7, music volume 0.62).
+
 ## 2026-11-14 (midnight): hit effects, slower boss
 - Every hit now has its own effect (looks only): sparks fly back the way the blow came, with a quick ring; sword and spear blows leave a bright slash arc; arrows and bolts splinter in gold, magic glitters in its element's colour, stone chips fly off towers.
 - Every tower shot has a muzzle puff and sparks (cannons and snipers bigger), and the platform gives a little with the recoil.

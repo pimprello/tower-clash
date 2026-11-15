@@ -182,12 +182,55 @@ const DRAW = {
     }
     // walls across the path
     for (const w of this.walls) this.drawWall(ctx, w);
+    // what's left of fallen attackers (under everyone)
+    this.drawCorpses(ctx);
     // the base
     this.drawBase(ctx);
     // the towers (the character on top is drawn by the engine with the troops)
     for (const tw of this.towers) if (!tw.dead) this.drawTowerBase(ctx, tw);
     // the merchant's cart beside the base
     if (this.merch && T < this.merch.end + 0.6) this.drawMerchant(ctx);
+  },
+  drawCorpses(ctx) {
+    const L = this.corpses; if (!L || !L.length) return;
+    const t = this.t;
+    for (const c of L) {
+      const age = t - c.t0, life = 7; if (age > life) continue;
+      const a = Math.min(1, (life - age) / 1.5), k = clamp(age / 0.6, 0, 1), r = c.r;
+      ctx.save(); ctx.globalAlpha = a;
+      if (c.kind === 'bones') {
+        // the body falls apart to a skeleton (the engine's own bones)
+        try { this.drawSkel(ctx, c.x, c.y, r * 0.9, c.f, k, 1); } catch (e) { /* no skeleton */ }
+      } else if (c.kind === 'parts') {
+        // gears, plates and bolts scattered round a scorch mark
+        ctx.beginPath(); ctx.ellipse(c.x, c.y, r * 1.1, r * 0.8, 0, 0, TAU); ctx.fillStyle = 'rgba(20,20,24,0.45)'; ctx.fill();
+        for (let i = 0; i < 7; i++) {
+          const an = H01(c.seed, i) * TAU, d = r * (0.3 + 0.9 * H01(i, c.seed)) * (0.4 + 0.6 * k), px = c.x + Math.cos(an) * d, py = c.y + Math.sin(an) * d;
+          if (i % 3 === 0) { // a gear
+            const gr = r * 0.32; ctx.beginPath(); for (let j = 0; j < 12; j++) { const aa = j / 12 * TAU + an, rr = j % 2 ? gr : gr * 1.3; ctx.lineTo(px + Math.cos(aa) * rr, py + Math.sin(aa) * rr); } ctx.closePath();
+            ctx.fillStyle = '#9AA3B2'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = COL.ink; ctx.stroke(); disc(ctx, px, py, gr * 0.35, '#3A3F4A', 1.5);
+          } else if (i % 3 === 1) { // a plate
+            ctx.save(); ctx.translate(px, py); ctx.rotate(an); ctx.fillStyle = i % 2 ? c.col : '#7C8494'; ctx.fillRect(-r * 0.3, -r * 0.18, r * 0.6, r * 0.36); ctx.lineWidth = 2; ctx.strokeStyle = COL.ink; ctx.strokeRect(-r * 0.3, -r * 0.18, r * 0.6, r * 0.36); ctx.restore();
+          } else disc(ctx, px, py, Math.max(2, r * 0.12), '#C9CED8', 1.5); // a bolt
+        }
+        if (age < 1.2 && Math.sin(age * 40) > 0.6) disc(ctx, c.x + r * 0.3, c.y - r * 0.2, 3, '#FFE58A', 0);
+      } else if (c.kind === 'sludge') {
+        // a puddle of sludge in its colour that spreads out, with two crossed-out eyes
+        const s = 0.6 + 0.5 * easeOutCubic(k);
+        ctx.beginPath(); for (let j = 0; j < 14; j++) { const aa = j / 14 * TAU, rr = r * s * (1.1 + 0.25 * Math.sin(j * 2.3 + c.seed)); ctx.lineTo(c.x + Math.cos(aa) * rr, c.y + Math.sin(aa) * rr * 0.75); } ctx.closePath();
+        ctx.fillStyle = rgba(c.col, 0.85); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = COL.ink; ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(c.x - r * 0.3, c.y - r * 0.25, r * 0.35, r * 0.15, -0.3, 0, TAU); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fill();
+        ctx.lineWidth = 2.6; ctx.strokeStyle = COL.ink; ctx.lineCap = 'round';
+        for (const sx of [-1, 1]) { const ex = c.x + sx * r * 0.32, ey = c.y - r * 0.05, e = r * 0.16; ctx.beginPath(); ctx.moveTo(ex - e, ey - e); ctx.lineTo(ex + e, ey + e); ctx.moveTo(ex + e, ey - e); ctx.lineTo(ex - e, ey + e); ctx.stroke(); }
+      } else {
+        // beasts: a dark stain and a few bones
+        ctx.beginPath(); ctx.ellipse(c.x, c.y, r * 1.0, r * 0.7, c.f, 0, TAU); ctx.fillStyle = 'rgba(60,10,14,0.45)'; ctx.fill();
+        ctx.lineCap = 'round';
+        for (let i = 0; i < 3; i++) { const an = H01(c.seed, i + 9) * TAU, px = c.x + Math.cos(an) * r * 0.5, py = c.y + Math.sin(an) * r * 0.5, la = r * 0.35;
+          ctx.beginPath(); ctx.moveTo(px - Math.cos(an + 1) * la, py - Math.sin(an + 1) * la); ctx.lineTo(px + Math.cos(an + 1) * la, py + Math.sin(an + 1) * la); ctx.lineWidth = 6; ctx.strokeStyle = COL.ink; ctx.stroke(); ctx.lineWidth = 3.5; ctx.strokeStyle = '#F5F0E1'; ctx.stroke(); }
+      }
+      ctx.restore();
+    }
   },
   drawWall(ctx, w) {
     const L = PATH_W + 18;
@@ -440,6 +483,13 @@ const DRAW = {
     }
     // gold from kills: the coins fly to the treasury (drawn with the panel)
     if (this.coins.length) this.coins = this.coins.filter(c => t - c.t0 < 0.8);
+    // the base's damage, as red numbers rising off it
+    if (this.base.hits) for (const h of this.base.hits) {
+      const age = t - h.t0; if (age > 1) continue;
+      const k = age / 1, y = this.base.y - 70 - 46 * easeOutCubic(k), a = Math.min(1, (1 - k) * 2.5) * Math.min(1, age / 0.08);
+      ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = font(h.d >= 4 ? 40 : 30, 800);
+      strokeText(ctx, `-${h.d >= 1 ? Math.round(h.d) : h.d.toFixed(1)}%`, this.base.x + h.x, y, '#FF5A5A', COL.ink, 7); ctx.restore();
+    }
     // the sudden-death lava creeping down from the top
     if (this.lavaY && this.lavaY > AR.y) {
       const h = this.lavaY - AR.y, lg = ctx.createLinearGradient(0, AR.y, 0, this.lavaY);

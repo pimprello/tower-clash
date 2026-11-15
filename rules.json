@@ -1,6 +1,7 @@
 {
   "schedule": { "timeZone": "Europe/London", "hours": [12, 16, 19, 22], "windowMinutes": 110 },
-  "video": { "scale": 2, "fightSeconds": 60, "outroSeconds": 3 },
+  "video": { "scale": 2, "fightSeconds": 60, "outroSeconds": 3, "pace": 0.85 },
+  "sound": { "sfx": 0.7 },
   "thumbnail": { "on": true },
   "quality": { "candidates": 5, "fine": true },
   "cinematic": true,
@@ -11,6 +12,6 @@
   "modes": { "classic": 6, "bossrush": 1, "swarm": 1, "laststand": 1, "escort": 1, "lava": 1, "night": 0 },
   "balance": { "target": 0.5, "tests": 12, "steps": 4, "lo": 0.55, "hi": 1.9 },
   "events": ["airdrop", "airstrike", "meteors", "hazard"],
-  "music": { "on": true, "volume": 0.45, "duck": 0.45, "pulse": true, "loop": true },
+  "music": { "on": true, "volume": 0.62, "duck": 0.45, "pulse": true, "loop": true },
   "ui": { "humans": true, "blood": { "on": true, "drops": 1.5, "sparks": 0.4, "stay": 0.6 } }
 }
