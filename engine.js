@@ -392,11 +392,28 @@ const RVB = (() => {
         if (cur && this.opts.noStack) { const wait = this.bannerQ.filter(q => !q.done && q.at > this.fightT); if (wait.length >= 2) { const last = wait[wait.length - 1]; last.text = text; last.col = color; return; } }
         if (cur) { this.bannerQ.push({ at: this.fightT + (1.1 - cur.age) + 0.05 + this.bannerQ.filter(q => !q.done && q.at > this.fightT).length * 1.2, text, col: color }); return; }
       }
-      // Replace a banner that is still on screen rather than stacking them.
-      this.banners = this.banners.filter(b => b.age > b.life - 0.25);
+      // Replace a banner that is still on screen rather than stacking them: (smooth UI) the old one lifts away and fades
+      // in 0.3 s instead of vanishing from one frame to the next
+      for (const b of this.banners) if (!b.gone) { b.gone = b.age; b.life = Math.min(b.life, b.age + 0.3); }
+      this.banners = this.banners.filter(b => b.age < b.life);
       this.banners.push({ text, color, life, age: 0 });
     }
     shake(a) { this.shakeAmt = Math.max(this.shakeAmt, a); }
+    // (smooth UI, Rellz 2026-11-15: "all ui should be smooth, it should never glitch or teleport") a value on screen
+    // eases to a new target over a few frames instead of jumping there. Video clock only: looks, never the battle.
+    glide(o, k, v, rate = 12) {
+      const tk = k + 'T', t = this.t;
+      if (o[k] === undefined || o[tk] === undefined || t < o[tk] || t - o[tk] > 0.3 || !isFinite(o[k])) { o[k] = v; o[tk] = t; return v; }
+      o[k] += (v - o[k]) * (1 - Math.exp(-(t - o[tk]) * rate)); o[tk] = t;
+      if (Math.abs(o[k] - v) < 0.05) o[k] = v;
+      return o[k];
+    }
+    // how far the roster strips are up (0..1, eased): notices make room for them by gliding, never by jumping
+    rosterK() {
+      if (!this.cmb || !this.cmb.roster) return 0;
+      const t = this.t, e = p => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);
+      return e(clamp((t - 3.85) / 0.4, 0, 1)) * e(clamp((8.8 - t) / 0.45, 0, 1));
+    }
     frame(dt) {
       this.t += dt;
       this.frameNo++;
@@ -638,8 +655,9 @@ const RVB = (() => {
         ctx.save();
         ctx.globalAlpha = outK;
         // UI 2.0: while the roster strips are up, banners drop below the top strip(s) instead of covering them
-        const rosterUp = this.ui2 && this.cmb && this.cmb.roster && this.t > 4.0 && this.t < 8.6;
-        let by = rosterUp ? AR.y + 14 + (this.N === 3 ? 3 * 84 : 100) + 48 : AR.y + 82;
+        // (smooth UI) the drop eases in and out with the strips instead of jumping when they come and go
+        let by = lerp(AR.y + 82, AR.y + 14 + (this.N === 3 ? 3 * 84 : 100) + 48, this.ui2 ? this.rosterK() : 0);
+        if (b.gone !== undefined) by -= 26 * easeOutCubic((b.age - b.gone) / 0.3);
         ctx.font = font(54, 800); spaced(ctx, 3);
         const ft = [0, 1].find(i => hasFlag(TEAMS[i]) && (b.text.startsWith(TEAMS[i].name + ' ') || b.text.startsWith(TEAMS[i].name + ':')));
         const tw = ctx.measureText(b.text).width, fw = ft !== undefined ? 66 : 0, w = tw + 70 + fw, maxW = this.ui2 ? 900 : 1040;
@@ -4153,10 +4171,19 @@ const RVB = (() => {
         // (logic) a name is kept inside what the camera shows, and is left out for a moment while a floating word (a kill streak,
         // a callout) sits on it, so the two never print across each other
         const Q = this._labQ, V = this.viewRect(ctx); this._labQ = null; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        // (smooth UI) names fade in and out over a few frames; a single still (no frame just before it) shows them as they are
+        const live = this._labFT !== undefined && this.t >= this._labFT && this.t - this._labFT < 0.3; this._labFT = this.t;
         for (const q of Q) {
           ctx.font = q.f; const [text, x0, y0, ...rest] = q.a, w = ctx.measureText(text).width, x = clamp(x0, V.x0 + w / 2 + 6, V.x1 - w / 2 - 6), y = clamp(y0, V.y0 + 14, V.y1 - 14);
-          if (this.floats.some(f => f.age < f.life && Math.abs(f.x - x) < (w + String(f.text).length * f.size * 0.5) / 2 && Math.abs(f.y - 30 - y) < 34)) continue;
-          strokeText(ctx, text, x, y, ...rest);
+          const on = q.on !== false && !this.floats.some(f => f.age < f.life && Math.abs(f.x - x) < (w + String(f.text).length * f.size * 0.5) / 2 && Math.abs(f.y - 30 - y) < 34);
+          let al = on ? 1 : 0;
+          if (q.u) {
+            const o = q.u;
+            if (o.labAT === undefined || this.t < o.labAT || this.t - o.labAT > 0.3) { o.labA = live ? 0 : al; o.labAT = this.t; }
+            o.labA += (al - o.labA) * (1 - Math.exp(-(this.t - o.labAT) * 10)); o.labAT = this.t; al = o.labA;
+          }
+          if (al < 0.03) continue;
+          ctx.globalAlpha = al; strokeText(ctx, text, x, y, ...rest); ctx.globalAlpha = 1;
         }
         ctx.textBaseline = 'alphabetic';
       }
@@ -4178,7 +4205,8 @@ const RVB = (() => {
       this.drawMvp(ctx);
       if (this.tag && this.tag.u && !this.tag.u.dead && this.tag.a > 0.01) {
         // the director's hero tag: a team-coloured marker and a kill count above one troop
-        const u = this.tag.u, tx = u.x, ty = u.y - u.r - 20 - 4 * Math.sin(this.t * 6);
+        // (smooth UI) the tag follows its troop with a short glide, so a leap or a blink never makes it jump
+        const u = this.tag.u, tx = this.glide(u, 'tagX', u.x, 16), ty = this.glide(u, 'tagY', u.y - u.r - 20, 16) - 4 * Math.sin(this.t * 6);
         ctx.globalAlpha = this.tag.a;
         ctx.beginPath(); ctx.moveTo(tx - 9, ty - 8); ctx.lineTo(tx + 9, ty - 8); ctx.lineTo(tx, ty + 4); ctx.closePath();
         ctx.fillStyle = TEAMS[u.team].c; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = COL.ink; ctx.stroke();
@@ -5583,16 +5611,17 @@ const RVB = (() => {
         // champions and titled troops carry their name (and kill count) over their head
         const pulse = 0.5 + 0.5 * Math.sin(t * 5 + u.gait);
         if (u.champ) { ctx.beginPath(); this.ring(ctx, u, x, y, r + 6 + pulse * 3, 0, TAU); ctx.fillStyle = rgba(tm.c, 0.16); ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = `rgba(255,210,63,${0.5 + 0.4 * pulse})`; ctx.stroke(); }
-        const name = u.champ ? `${u.champ} · ${u.kills || 0}` : u.title, hb = HPBAR[u.type] && u.hp < u.max ? 14 : 0;
+        // (smooth UI) when the health bar appears the name rises over it gradually instead of hopping
+        const name = u.champ ? `${u.champ} · ${u.kills || 0}` : u.title, hb = this.glide(u, 'hbG', HPBAR[u.type] && u.hp < u.max ? 14 : 0, 10);
         ctx.font = font(u.champ ? 20 : 17, 800, false); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         // in a champion duel the bottom champion's name goes under it, so the two names never overlap
         const ly = u.duelist && u.team === 1 ? y + r + 16 : y - this.headR(u) - 14 - hb;
         // (rules.ui.clean: a name that would overlap one already drawn this frame is left out, so names never pile up; champions first)
-        if (!this.clean || u.champ || this.labFree(x, ly, ctx.measureText(name).width + 8, 22)) this.labLater(ctx, name, x, ly, u.champ ? COL.gold : '#FFE9A8', COL.ink, 5);
+        this.labLaterU(ctx, u, !this.clean || u.champ || this.labFree(x, ly, ctx.measureText(name).width + 8, 22), name, x, ly, u.champ ? COL.gold : '#FFE9A8', COL.ink, 5);
       } else if ((U.boss || u.ancient || U.mythic) && UNIT[u.type].rank === 0) {
         ctx.font = font(16, 800, false); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const name = u.ancient ? 'ANCIENT HUNTER' : u.asleep ? 'CASTLE' : labelOf(u.type).replace(/^THE /, ''), ly = y - this.headR(u) - (u.hp < u.max ? 26 : 12);
-        if (!this.clean || this.labFree(x, ly, ctx.measureText(name).width + 8, 20)) this.labLater(ctx, name, x, ly, u.team === MONSTERS ? '#D9F99D' : '#FFFFFF', COL.ink, 5);
+        const name = u.ancient ? 'ANCIENT HUNTER' : u.asleep ? 'CASTLE' : labelOf(u.type).replace(/^THE /, ''), ly = y - this.headR(u) - this.glide(u, 'hbG', u.hp < u.max ? 26 : 12, 10);
+        this.labLaterU(ctx, u, !this.clean || this.labFree(x, ly, ctx.measureText(name).width + 8, 20), name, x, ly, u.team === MONSTERS ? '#D9F99D' : '#FFFFFF', COL.ink, 5);
       }
       this.drawStatus2(ctx, u, x, y, tm);
       if (u.team === MONSTERS) { ctx.setLineDash([3, 4]); ctx.beginPath(); this.ring(ctx, u, x, y, r + 4, 0, TAU); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(190,242,100,0.75)'; ctx.stroke(); ctx.setLineDash([]); }
@@ -9889,11 +9918,13 @@ const RVB = (() => {
         let y = clamp(L.py, V.y0 + 24, V.y1 - 24) - 10 * easeOutCubic(k);
         // (logic) two tags pushed to the same edge of the view would overlap: the later one steps clear of the earlier
         for (let tries = 0; tries < 3 && placed.some(p => Math.abs(p.x - x) < (p.w + w) / 2 + 6 && Math.abs(p.y - y) < 40); tries++) y = y - 42 < V.y0 + 24 ? y + 42 : y - 42;
-        placed.push({ x, y, w }); L.px = x; L.w = w;
+        // (smooth UI) stepping clear of another tag, or being held inside the view, is a glide, never a hop
+        const gx = this.glide(L, 'gx', x, 14); y = this.glide(L, 'gy', y, 14);
+        placed.push({ x: gx, y, w }); L.px = gx; L.w = w;
         ctx.globalAlpha = al;
-        roundRect(ctx, x - w / 2, y - 17, w, 34, 17); ctx.fillStyle = 'rgba(8,11,20,0.88)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = TEAMS[tb.team].c; ctx.stroke();
-        disc(ctx, x - w / 2 + 17, y, 13, TEAMS[tb.team].c, 2); drawEmblem(ctx, tb.emblem, x - w / 2 + 17, y, 9.5);
-        ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = COL.gold; ctx.fillText(text, x - w / 2 + 36, y + 1);
+        roundRect(ctx, gx - w / 2, y - 17, w, 34, 17); ctx.fillStyle = 'rgba(8,11,20,0.88)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = TEAMS[tb.team].c; ctx.stroke();
+        disc(ctx, gx - w / 2 + 17, y, 13, TEAMS[tb.team].c, 2); drawEmblem(ctx, tb.emblem, gx - w / 2 + 17, y, 9.5);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = COL.gold; ctx.fillText(text, gx - w / 2 + 36, y + 1);
         ctx.globalAlpha = 1;
       }
       ctx.textBaseline = 'alphabetic';
@@ -10195,7 +10226,7 @@ const RVB = (() => {
         const k = (this.t - c.t0) / 1.8;
         if (k < 0 || k > 1) continue;
         // (while the roster strip is up at the bottom of the battlefield, the card sits just above it)
-        const low = this.N !== 3 && this.cmb && this.cmb.roster && this.t > 4.0 && this.t < 8.6 ? 14 + 92 + 10 : 0;
+        const low = this.N !== 3 ? this.rosterK() * (14 + 92 + 10) : 0;
         const a = Math.min(1, k * 8, (1 - k) * 6);
         let y = AR.y + AR.h - 40 - low + (1 - Math.min(1, k * 8)) * 20;
         ctx.save(); ctx.globalAlpha = a;
@@ -13108,8 +13139,9 @@ const RVB = (() => {
       if (this.opts.noStack) {
         // (rules.ui.noStack: wait for an upgrade card that's still on screen, then show the shop for its full time)
         if (age < 0 || m.cardDone) return;
-        if (m.cardF === undefined) { if (this.finWin()) { m.cardDone = true; return; } if (this.evo && this.evo.show && age < 4) return; m.cardF = this.fightT - Math.max(0, Math.min(age, 0.05)); }
-        age = this.fightT - m.cardF;
+        if (m.cardF === undefined) { if (this.finWin()) { m.cardDone = true; return; } if (this.evo && this.evo.show && age < 4) return; m.cardF = this.fightT - Math.max(0, Math.min(age, 0.05)); m.cardV = this.t; }
+        // (smooth UI) once up, the card animates on the video clock, so a hit-stop never freezes it and then makes it jump
+        age = m.cardV !== undefined ? this.t - m.cardV : this.fightT - m.cardF;
         if (age > dur) { m.cardDone = true; m.cardFree = this.t + 0.5; return; }
       }
       if (age < 0 || age > dur) return;
@@ -15505,6 +15537,8 @@ const RVB = (() => {
       this.drawHuman(ctx, u, x, y - u.r * (big ? 0.55 : 0.12) - bob, tm, RIDER[u.type], big ? u.r * 0.62 : u.r * 0.8);
     },
     labLater(ctx, ...a) { if (this._labQ) this._labQ.push({ f: ctx.font, a }); else strokeText(ctx, ...a); },
+    // (smooth UI) a troop's name that has to make room fades out and back in instead of blinking
+    labLaterU(ctx, u, on, ...a) { if (this._labQ) this._labQ.push({ f: ctx.font, a, u, on }); else if (on) strokeText(ctx, ...a); },
     headR(u) { return this.humans && HUMAN[u.type] ? u.r * 1.6 : u.r; },
     // the map's obstacles alone (trees, rocks, walls), at twice the size so they stay sharp when the camera zooms in
     obsLayer() {
@@ -15842,9 +15876,9 @@ const RVB = (() => {
   Object.assign(Army.prototype, ARMY_EXT, ARMY_DRAW, ARMY_MAPS, ARMY_EXT2, ARMY_DRAW2, ARMY_COMBAT, ARMY_TRIBES, ARMY_TRIBES_DRAW, ARMY_PACE, ARMY_UI2, ARMY_WORLD, ARMY_FX2, ARMY_SMART, ARMY_CAST3, ARMY_CAST3_DRAW, ARMY_EVOLVE, ARMY_THUMB, ARMY_NAV, ARMY_MINDS, ARMY_CLASS, ARMY_CAST4, ARMY_MARKET2, ARMY_ANIM, ARMY_SHINE, ARMY_CAST5, ARMY_SP3, ARMY_BLOOD, ARMY_HUMAN);
 
   const GAMES = { territory: Territory, duel: Duel, army: Army };
-  Object.assign(api, { rng, Match, Territory, Duel, Army, Director, Synth, GAMES, WEAPONS, DOCTRINES, MODERN_DOCTRINES, FANTASY_DOCTRINES, GENRES, UNIT_ERA, ALL_DOCTRINES, MAPS, MAP_THEME, UNIT, eraOf, fmtTime, labelOf, docLabel, MAP_MECH, SKINS, MODE_HOOK, specOf, TRIBE_POOL, TRAIT, STAKE, CLASSES, classOf, RETIRED: [...RETIRED_SET], docRetired, CAST4 , isTitan });
   // Tower Clash: the engine's own helpers and tables, for td.js (the tower-defence game is built on this engine)
   api._ = { VW, AR, SW_LEN, COL, TEAMS, MONSTERS, PALETTES, lab, de2000, colourGap, rgba, FONT, TAU, clamp, lerp, easeOutCubic, easeOutBack, font, spaced, fmtTime, rng, distPointSeg, segSeg, roundRect, strokeText, textSprites, textSprite, bgCache, star, bands, unionJack, nordic, MAPLE, FLAG_ART, flagCache, drawFlag, hasFlag, background, Match, PENTA, Territory, WEAPONS, WEAPON_KEYS, Duel, UNIT, LIVING, HPBAR, LOBS, MODERN_INF, CRATE, UNIT_LABEL, NEW_LOOK, LIGHT_FILL, NEW_UNITS, labelOf, DOC_LABEL, docLabel, ROSTER, DARK, DOCTRINES, CHANCE_DOCTRINES, MODERN_DOCTRINES, FANTASY_DOCTRINES, SCIFI_DOCTRINES, PIRATE_DOCTRINES, HORROR_DOCTRINES, SAMURAI_DOCTRINES, EMPIRE_DOCTRINES, REALM_DOCTRINES, DARK_DOCTRINES, GLITCH_DOCTRINES, GENRES, ALL_DOCTRINES, UNIT_ERA, customDoc, eraOf, FORMATIONS, mirrorMap, rotate3, MAPS, scatter, MAP_THEME, vignetteImg, Army, Synth, FIN_LEAD, Director, disc, ell, stick, tri, ARMY_DRAW, MAP_MECH, XOB, CLOCK_PLATES, VINE_ZONES, THICKETS, ARMY_MAPS, CHAMP_FIRST, CHAMP_EPITHET, CALLSIGNS, MODERNISH, MUT_LABEL, SYNERGIES, SYN_TEXT, POWERUPS, OB_HP, OB_DUST, BIG_BLAST, XSHOT, ARMY_EXT, NEW_UNITS2, D2, MACHINE, CAST3, CAST3_ALL, CAST3_SET, REPLACE4, RETIRED_SET, docRetired, rosterDoc, UNIVERSE_ARMIES, ARMY_EXT2, ARMY_DRAW2, STYLE, GEAR_POOL, AGILE, SPEC, STYLE_SPEC, specOf, SKINS, MODE_HOOK, ARMY_COMBAT, TRIBE_POOL, TRIBE_ERAS, TRAIT, TIER_NAMES, TIER_SET, W_COL, A_COL, STAKE, ORD, TAC_SHORT, TAC_WORD, MERCH_ITEMS, drawEmblem, ARMY_PACE, tName, sName, ARMY_TRIBES, ARMY_TRIBES_DRAW, UI_DY, GLOSS_SKIP, FACELESS, SAFE, shortTribe, ARMY_UI2, WORLD, WORLD_KINDS, easeInOut, hash01, ARMY_WORLD, NOFIRE, FIRE_CELL, FIERY, SLASH_STYLE, lens, ARMY_FX2, ARMY_SMART, CAST4, CAST4_ALL, CAST4_SET, G4UP, RETIRED4, SHOT3, eyes3, ARMY_CAST3, ARMY_CAST3_DRAW, ELEM, ELEM_KEYS, ELEM_W, ELEM_A, ARMY_EVOLVE, NAV_C, NAV_D8, angDiff, ARMY_NAV, NAVDIR0, MINDS, ARMY_MINDS, CLASSES, CLASS_OF, classOf, CLASS_VS, vsMul, BACKLINE, ARMY_CLASS, GRAV, ARMY_CAST4, SPELL, BARRAGE, SUMMON, WARE_PRICE, ARMY_MARKET2, ARMY_ANIM, ARMY_THUMB, SH_EL, SH_XK, SH_TRIBE, SH_UNDEAD, SH_LIGHT, shQ, ARMY_SHINE, shStyle, CAST5, CAST5_SET, TITAN_POOL, isTitan, AFF_EL, AFF_TRIBE, AFF_XK, AFF_COL, AFF_WORD, POOL_COL, h01, ARMY_CAST5, CAST6, CAST6_SET, GIANT_POOL, BOOK, BOOK_KEYS, hashS, ARMY_SP3, GAMES, FIN_CLOSE, FIN_SLOW1, FIN_SLOW2, FIN_FREEZE, FIN_HOLD, W_TOP, GRAV_L, SW_R, SW_BODY, VH, BLOOD, BLOOD_OF, HUMAN };
+  Object.assign(api, { rng, Match, Territory, Duel, Army, Director, Synth, GAMES, WEAPONS, DOCTRINES, MODERN_DOCTRINES, FANTASY_DOCTRINES, GENRES, UNIT_ERA, ALL_DOCTRINES, MAPS, MAP_THEME, UNIT, eraOf, fmtTime, labelOf, docLabel, MAP_MECH, SKINS, MODE_HOOK, specOf, TRIBE_POOL, TRAIT, STAKE, CLASSES, classOf, RETIRED: [...RETIRED_SET], docRetired, CAST4 , isTitan });
   return api;
 })();
 if (typeof module !== 'undefined') module.exports = RVB;

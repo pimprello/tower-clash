@@ -634,7 +634,8 @@ const DRAW = {
   drawCardsTD(ctx) {
     const t = this.t;
     if (this.phase !== 'fight' && this.outroT > 0.3) return;
-    const rosterUp = t > 4.0 && t < 8.6;
+    // (smooth UI) the cards make room for the line-ups and the boss bar by gliding, never by jumping
+    const rk = this.rosterK();
     for (const c of this.cards) {
       const k = (t - c.t0) / c.dur;
       if (k < 0 || k > 1) continue;
@@ -656,7 +657,7 @@ const DRAW = {
         continue;
       }
       const boss = this.bossU && !this.bossU.dead && this.phase === 'fight';
-      const y = AR.y + (rosterUp ? 14 + 92 + 46 : boss ? 112 : 70);
+      const y = this.glide(c, 'gy', AR.y + lerp(boss ? 112 : 70, 14 + 92 + 46, rk), 10);
       const hasIcon = c.tk || c.spell || c.shaman, iconW = hasIcon ? 60 : 0;
       ctx.save(); ctx.globalAlpha = a; ctx.translate(VW / 2, y); ctx.scale(0.7 + 0.3 * inK, 0.7 + 0.3 * inK);
       ctx.font = font(c.big ? 46 : 38, 800); spaced(ctx, 2);
@@ -686,8 +687,11 @@ const DRAW = {
   // the boss's health bar across the top of the battlefield while it's alive
   drawBossBar(ctx) {
     const b = this.bossU;
-    if (!b || b.dead || this.phase !== 'fight') return;
-    const a = clamp((this.t - this.bossIntro) / 0.4, 0, 1);
+    if (!b) return;
+    // (smooth UI) when the boss falls or the battle ends, the bar fades away instead of vanishing
+    const on = !b.dead && this.phase === 'fight', fa = this.glide(this, 'bossBarA', on ? 1 : 0, 9);
+    if (fa < 0.02) return;
+    const a = clamp((this.t - this.bossIntro) / 0.4, 0, 1) * fa;
     const x0 = AR.x + 40, w = AR.w - 80, y = AR.y + 20;
     ctx.save(); ctx.globalAlpha = a;
     roundRect(ctx, x0, y, w, 52, 14); ctx.fillStyle = 'rgba(8,11,20,0.9)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#FF5A5A'; ctx.stroke();
@@ -696,7 +700,7 @@ const DRAW = {
     roundRect(ctx, bx, by, bw, 12, 6); ctx.fillStyle = '#2A1218'; ctx.fill();
     roundRect(ctx, bx, by, Math.max(6, bw * f), 12, 6); ctx.fillStyle = '#F43F5E'; ctx.fill();
     for (const k of [1 / 3, 2 / 3]) { ctx.fillStyle = INK; ctx.fillRect(bx + bw * k - 1.5, by, 3, 12); }
-    if (this.lay) this.lay.push({ kind: 'box', x: x0, y: y + (this.layDY || 0), w, h: 52 });
+    if (this.lay && on) this.lay.push({ kind: 'box', x: x0, y: y + (this.layDY || 0), w, h: 52 });
     ctx.restore(); ctx.textBaseline = 'alphabetic';
   },
   // the panel under the battlefield (screen coordinates): the treasury, the next wave, and the towers with their tiers
@@ -764,12 +768,16 @@ const DRAW = {
     const t = this.t, T = this.fightT, fight = this.phase === 'fight';
     ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     // 2) the combo counter: kills in quick succession
-    if (fight && this.killLog.length) {
-      let n = 0; for (let i = this.killLog.length - 1; i >= 0 && t - this.killLog[i] < 2.5; i--) n++;
-      if (n >= 5) {
-        const last = this.killLog[this.killLog.length - 1], pop = 1 + 0.25 * clamp(1 - (t - last) / 0.18, 0, 1);
+    {
+      let n = 0; if (fight) for (let i = this.killLog.length - 1; i >= 0 && t - this.killLog[i] < 2.5; i--) n++;
+      // (smooth UI) the counter fades and grows in when a combo starts and fades out when it ends, instead of blinking
+      if (n >= 5) this.comboN = n;
+      const ca = this.glide(this, 'comboA', n >= 5 ? 1 : 0, 12);
+      if (ca > 0.02 && this.comboN) {
+        n = this.comboN;
+        const last = this.killLog[this.killLog.length - 1] || 0, pop = (1 + 0.25 * clamp(1 - (t - last) / 0.18, 0, 1)) * (0.8 + 0.2 * ca);
         const x = AR.x + AR.w - 96, y = AR.y + AR.h - 70;
-        ctx.save(); ctx.translate(x, y); ctx.rotate(-0.08); ctx.scale(pop, pop);
+        ctx.save(); ctx.globalAlpha = ca; ctx.translate(x, y); ctx.rotate(-0.08); ctx.scale(pop, pop);
         ctx.font = font(n >= 12 ? 64 : 54, 800); strokeText(ctx, `x${n}`, 0, -6, n >= 12 ? '#FF7A45' : COL.gold, COL.ink, 9);
         ctx.font = font(22, 800); strokeText(ctx, 'COMBO', 0, 30, COL.white, COL.ink, 5);
         ctx.restore();

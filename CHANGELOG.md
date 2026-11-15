@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-15: UI never jumps (Rellz: "no glitch or teleporting ui for both games")
+Rellz, from the Army Clash chat about a banner that hopped up when the line-ups left: "i mean that for all ui even in tower clash ... no glitch or teleporting ui for both games!"
+- **Cards glide, never jump:** the wave/tower/spell cards sat in one of three spots (under the line-ups, under the boss bar, or at the top) and snapped between them when the line-ups left or the boss arrived or fell. Now they glide there (`glide()` and `rosterK()`, the same helpers as Army Clash's engine).
+- **The boss bar fades away** when the boss falls or the battle ends, instead of vanishing in one frame.
+- In `engine.js` (the same change as Army Clash's copy): a replaced banner lifts away and fades instead of vanishing; troop names that have to make room fade out and back in instead of blinking.
+- Guardrail added to `AUTOPILOT.md` and `CLAUDE.md`: every banner, card, pill, bar, tag and name glides, fades or slides; nothing ever jumps.
+- Tested: syntax, a frame-by-frame jump probe over a whole battle (before and after), stills. Battles are unchanged (looks only).
+
 ## 2026-11-15 (morning): shared engine brought back in step with Army Clash
 The daily Clash Autopilot run errored before finishing, and Army Clash's `engine.js` had moved ahead of this copy. Rellz: "fix it".
 - `engine.js` is Army Clash's again plus the `api._` line: riders now sit up on their mounts, names stay on screen and don't print across floating words, and the engine's own banners don't repeat or cover the result. Tower Clash's own intro and notice queue are unchanged.
