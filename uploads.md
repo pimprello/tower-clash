@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-15 22:28 | Frostfang Raiders vs The Lantern Guard: Will The Base Survive? | Survived! | https://youtube.com/shorts/ZjhVTAyDRC8 |
 | 2026-11-15 18:52 | 7 Waves. 1 Base. Will It Hold? 🛡️ | Survived! | https://youtube.com/shorts/AYySiSMwYZI |
 | 2026-11-15 14:33 | Can 17 Towers Stop The Siege Golem? 🏰 | Survived! | https://youtube.com/shorts/NLdBXNsDx4I |
 | 2026-11-15 12:45 | The Black Boar Band vs The Brass Bastion: Will The Base Survive? | Survived! | https://youtube.com/shorts/b3b3wF2UXoA |
