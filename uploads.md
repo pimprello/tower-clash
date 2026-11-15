@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-15 04:10 | No New Towers Allowed... Can They Still Hold? 🏰 | Survived! | https://youtube.com/shorts/TkBLHdIEaVs |
 | 2026-11-15 03:55 | 7 Waves. 1 Base. Will It Hold? 🛡️ | Survived! | https://youtube.com/shorts/wHiavC8br58 |
 | 2026-11-15 00:41 | 4 Towers Fell... Did The Base Survive? 😱 | Survived! | https://youtube.com/shorts/jZ4zUJqeIiQ |
 | 2026-11-15 00:25 | The Bone Tide Attack The Fortress... Who Wins? ⚔️ | Fallen! | https://youtube.com/shorts/PEtx0Z07GaA |
