@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-15: one Clash Autopilot for both games, lighter daily run
+- `AUTOPILOT.md` rewritten to match Army Clash's efficiency pass, fitted to Tower Clash: it's now one half of the single daily "Clash Autopilot" run (which covers both games), reads only the last 3 changelog entries and the newest 12 upload rows, adds three unique new things a day from one combined brief, learns from views only when there's enough data and not again within 3 days if nothing crossed a threshold, fixes only what actually looked wrong, and tests only what the day's changes touch.
+- The idea backlog and the "already built" list moved to `IDEAS.md`, opened only when picking new things.
+- `test-battles.js`: a quick headless battle batch for the scoped tests (no drawing).
+- Guardrails unchanged. `engine.js` and `music.js` not touched.
+
 ## 2026-11-15 (later): more logic fixes from the shared engine
 - Troop names drawn after every troop, so none is drawn across another's name; little people's shots leave from chest height; weapon glints at their hands; floating words move above tactic tags.
 
