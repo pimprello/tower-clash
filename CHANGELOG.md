@@ -23,6 +23,8 @@ Rellz, from the Army Clash chat about a banner that hopped up when the line-ups 
 - In `engine.js` (the same change as Army Clash's copy): a replaced banner lifts away and fades instead of vanishing; troop names that have to make room fade out and back in instead of blinking.
 - Guardrail added to `AUTOPILOT.md` and `CLAUDE.md`: every banner, card, pill, bar, tag and name glides, fades or slides; nothing ever jumps.
 - Tested: syntax, a frame-by-frame jump probe over a whole battle (before and after), stills. Battles are unchanged (looks only).
+- **Follow-up, same morning:** `glide()` is now a damped spring, so a label that moves sets off gently instead of hopping its first few pixels; the camera's aim is eased in two stages, so a new shot starts moving from rest instead of jolting off at full speed (the camera only; battles unchanged, same result hash with and without drawing, layout check passed, the finale still centres the falling troop as before).
+- **Crash fixed:** the ground-ring helper for little people (`ring()`, added 2026-11-14) shared its name with the shrinking-arena event's data (`this.ring`), so a video with that event would crash when drawing. The helper is now `gRing()`, in both games' engines.
 
 ## 2026-11-15 (morning): shared engine brought back in step with Army Clash
 The daily Clash Autopilot run errored before finishing, and Army Clash's `engine.js` had moved ahead of this copy. Rellz: "fix it".

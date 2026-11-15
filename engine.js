@@ -403,9 +403,12 @@ const RVB = (() => {
     // eases to a new target over a few frames instead of jumping there. Video clock only: looks, never the battle.
     glide(o, k, v, rate = 12) {
       const tk = k + 'T', t = this.t;
-      if (o[k] === undefined || o[tk] === undefined || t < o[tk] || t - o[tk] > 0.3 || !isFinite(o[k])) { o[k] = v; o[tk] = t; return v; }
-      o[k] += (v - o[k]) * (1 - Math.exp(-(t - o[tk]) * rate)); o[tk] = t;
-      if (Math.abs(o[k] - v) < 0.05) o[k] = v;
+      const vk = k + 'V';
+      if (o[k] === undefined || o[tk] === undefined || t < o[tk] || t - o[tk] > 0.3 || !isFinite(o[k])) { o[k] = v; o[tk] = t; o[vk] = 0; return v; }
+      // a critically damped spring: it sets off gently and settles gently, so even a long move never starts with a hop
+      const dt = t - o[tk], w = rate * 0.85, x = w * dt, e = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x), c = o[k] - v, tmp = ((o[vk] || 0) + w * c) * dt;
+      o[vk] = ((o[vk] || 0) - w * tmp) * e; o[k] = v + (c + tmp) * e; o[tk] = t;
+      if (Math.abs(o[k] - v) < 0.05 && Math.abs(o[vk]) < 1) { o[k] = v; o[vk] = 0; }
       return o[k];
     }
     // how far the roster strips are up (0..1, eased): notices make room for them by gliding, never by jumping
@@ -2924,8 +2927,8 @@ const RVB = (() => {
         ctx.lineCap = 'round';
         for (const u of this.units) {
           if (u.team !== tm || u.dead) continue;
-          if (rage) { ctx.beginPath(); this.ring(ctx, u, u.x, u.y, u.r + 4, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = `rgba(255,90,40,${0.55 + 0.35 * pulse})`; ctx.stroke(); }
-          if (shield) { ctx.beginPath(); this.ring(ctx, u, u.x, u.y, u.r + 6, 0, TAU); ctx.fillStyle = 'rgba(124,200,255,0.16)'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(160,220,255,0.8)'; ctx.stroke(); }
+          if (rage) { ctx.beginPath(); this.gRing(ctx, u, u.x, u.y, u.r + 4, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = `rgba(255,90,40,${0.55 + 0.35 * pulse})`; ctx.stroke(); }
+          if (shield) { ctx.beginPath(); this.gRing(ctx, u, u.x, u.y, u.r + 6, 0, TAU); ctx.fillStyle = 'rgba(124,200,255,0.16)'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(160,220,255,0.8)'; ctx.stroke(); }
           if (speed) {
             const v = Math.hypot(u.vx, u.vy); if (v < 20) continue;
             const ux = u.vx / v, uy = u.vy / v;
@@ -4766,7 +4769,7 @@ const RVB = (() => {
           const score = n - Math.abs(x - this.cx) * 0.02;
           if (score > best) { best = score; bx = x; }
         }
-        g.cam.x = bx; g.cam.z = 1.9; this.lz = Math.log(1.9);
+        g.cam.x = bx; g.cam.z = 1.9; this.lz = Math.log(1.9); this.aimZ = this.lz; this.aimX = bx; this.aimY = g.cam.y;
         this.start('open', { prio: 60, dur: 3.2, x: bx, y: this.cy, z: 1.9, bars: 1, spd: 2, zspd: 2 });
         g.cine.bars = 1;
       }
@@ -4932,16 +4935,23 @@ const RVB = (() => {
       if (sh && sh.tag && sh.follow && !sh.follow.dead) g.tag = { u: sh.follow, text: `${sh.follow.kills} KILLS`, a: Math.min(1, ((g.tag && g.tag.u === sh.follow) ? g.tag.a : 0) + dt * 9) };
       // ease the camera (zoom in log space so pushes feel even), keep the view inside the arena
       const cam = g.cam;
-      this.lz += (Math.log(tz) - this.lz) * (1 - Math.exp(-zspd * dt));
+      // (smooth UI, Rellz 2026-11-15: nothing on screen may jump) the camera's aim is eased first, then the camera eases to the
+      // eased aim, so a new shot starts moving from rest instead of setting off at full speed in one frame (camera only)
+      if (this.aimT !== g.cam || this.aimZ === undefined) { this.aimT = g.cam; this.aimZ = this.lz; this.aimX = cam.x; this.aimY = cam.y; }
+      this.aimZ += (Math.log(tz) - this.aimZ) * (1 - Math.exp(-zspd * 2.2 * dt));
+      this.lz += (this.aimZ - this.lz) * (1 - Math.exp(-zspd * 2.2 * dt));
       cam.z = Math.exp(this.lz); if (cam.z < 1.0015) cam.z = 1;
-      const hv = AR.w / 2 / cam.z, k = 1 - Math.exp(-spd * dt);
+      // (the finale keeps its falling troop centred, so there the two stages are quicker)
+      const hv = AR.w / 2 / cam.z, k = 1 - Math.exp(-spd * (sh && sh.kind === 'finale' ? 3.4 : 2.2) * dt);
       // (during the finale the view may go nearly all the way past the arena's edge, where the floor carries on, so the final
       // blow is centred even at the edge; afterwards that allowance eases back to nothing, so the camera glides back in instead of jumping)
       const ovT = sh && sh.kind === 'finale' && g.endHow !== 'time' ? 0.95 : 0;
       this.ovr = (this.ovr || 0) + (ovT - (this.ovr || 0)) * (1 - Math.exp(-(ovT > (this.ovr || 0) ? 6 : 2.5) * dt));
       const hm = hv * (1 - this.ovr);
       tx = clamp(tx, AR.x + hm, AR.x + AR.w - hm); ty = clamp(ty, AR.y + hm, AR.y + AR.h - hm);
-      cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
+      this.aimX += (tx - this.aimX) * k; this.aimY += (ty - this.aimY) * k;
+      this.aimX = clamp(this.aimX, AR.x + hm, AR.x + AR.w - hm); this.aimY = clamp(this.aimY, AR.y + hm, AR.y + AR.h - hm);
+      cam.x += (this.aimX - cam.x) * k; cam.y += (this.aimY - cam.y) * k;
       cam.x = clamp(cam.x, AR.x + hm, AR.x + AR.w - hm); cam.y = clamp(cam.y, AR.y + hm, AR.y + AR.h - hm);
       const c = g.cine;
       c.bars += (bars - c.bars) * (1 - Math.exp(-(bars > c.bars ? 7 : 4) * dt));
@@ -5572,14 +5582,14 @@ const RVB = (() => {
       if (this.remainsOn && u.ms) this.drawBoneShow(ctx, u, x, y);
       if (u.burnT > T && !U.fireproof) for (let k = 0; k < 3; k++) { const a = t * 9 + k * 2.1 + u.gait, fl = 0.6 + 0.4 * Math.sin(t * 17 + k), bx = x + Math.cos(a) * r * 0.6, by = y - r * 0.2 + Math.sin(a) * r * 0.4; disc(ctx, bx, by, 4.5 * fl + 1.5, 'rgba(255,140,40,0.85)', 0); disc(ctx, bx, by - 2, 2.2 * fl, '#FFE27A', 0); }
       if (u.poisT > T) { ctx.fillStyle = 'rgba(124,255,107,0.75)'; for (let k = 0; k < 3; k++) { const p = (t * 1.4 + k / 3 + u.gait) % 1; ctx.beginPath(); ctx.arc(x + Math.sin(k * 2.3 + u.gait) * r * 0.6, y - r * 0.2 - p * r * 1.2, 2.5 * (1 - p) + 1, 0, TAU); ctx.fill(); } }
-      if (u.slowT > T && u.slowK < 0.75) { ctx.beginPath(); this.ring(ctx, u, x, y, r + 3, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(160,220,255,0.75)'; ctx.stroke(); }
+      if (u.slowT > T && u.slowK < 0.75) { ctx.beginPath(); this.gRing(ctx, u, x, y, r + 3, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(160,220,255,0.75)'; ctx.stroke(); }
       if (u.frozeT > T) { if (this.humans && HUMAN[u.type]) roundRect(ctx, x - r * 0.75, y - r * 1.65, r * 1.5, r * 2.6, 5); else roundRect(ctx, x - r - 4, y - this.headR(u) - 4, (r + 4) * 2, (r + 4) * 2, 5); ctx.fillStyle = 'rgba(191,230,255,0.45)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(230,246,255,0.95)'; ctx.stroke(); }
-      if (u.planted && !this.clean) { ctx.beginPath(); this.ring(ctx, u, x, y, r + u.shell, 0, TAU); ctx.fillStyle = 'rgba(124,200,255,0.08)'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(160,220,255,0.45)'; ctx.stroke(); }
-      if (u.tileT > T) { ctx.beginPath(); this.ring(ctx, u, x, y, r + 3, 0, TAU); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(255,210,63,0.8)'; ctx.stroke(); }
-      if (u.forged) { ctx.beginPath(); this.ring(ctx, u, x, y, r + 1.5, 0, TAU); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(124,243,255,0.85)'; ctx.stroke(); }
-      if (u.mimic || u.mirror) { ctx.setLineDash([5, 4]); ctx.beginPath(); this.ring(ctx, u, x, y, r + 3, t * 2, t * 2 + TAU); ctx.lineWidth = 2.5; ctx.strokeStyle = u.mimic === 'copy' ? 'rgba(192,132,252,0.9)' : 'rgba(220,235,250,0.95)'; ctx.stroke(); ctx.setLineDash([]); }
-      if (u.possessed) { ctx.beginPath(); this.ring(ctx, u, x, y, r + 4 + Math.sin(t * 6) * 1.5, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(168,85,247,0.75)'; ctx.stroke(); }
-      if (u.bribed !== undefined && T - u.bribed < 1.5) { ctx.beginPath(); this.ring(ctx, u, x, y, r + 4, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = `rgba(255,210,63,${1 - (T - u.bribed) / 1.5})`; ctx.stroke(); }
+      if (u.planted && !this.clean) { ctx.beginPath(); this.gRing(ctx, u, x, y, r + u.shell, 0, TAU); ctx.fillStyle = 'rgba(124,200,255,0.08)'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(160,220,255,0.45)'; ctx.stroke(); }
+      if (u.tileT > T) { ctx.beginPath(); this.gRing(ctx, u, x, y, r + 3, 0, TAU); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(255,210,63,0.8)'; ctx.stroke(); }
+      if (u.forged) { ctx.beginPath(); this.gRing(ctx, u, x, y, r + 1.5, 0, TAU); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(124,243,255,0.85)'; ctx.stroke(); }
+      if (u.mimic || u.mirror) { ctx.setLineDash([5, 4]); ctx.beginPath(); this.gRing(ctx, u, x, y, r + 3, t * 2, t * 2 + TAU); ctx.lineWidth = 2.5; ctx.strokeStyle = u.mimic === 'copy' ? 'rgba(192,132,252,0.9)' : 'rgba(220,235,250,0.95)'; ctx.stroke(); ctx.setLineDash([]); }
+      if (u.possessed) { ctx.beginPath(); this.gRing(ctx, u, x, y, r + 4 + Math.sin(t * 6) * 1.5, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(168,85,247,0.75)'; ctx.stroke(); }
+      if (u.bribed !== undefined && T - u.bribed < 1.5) { ctx.beginPath(); this.gRing(ctx, u, x, y, r + 4, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = `rgba(255,210,63,${1 - (T - u.bribed) / 1.5})`; ctx.stroke(); }
       if (u.confT > T) { ctx.font = font(18, 800, false); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; strokeText(ctx, '?', x - r * 0.6, y - this.headR(u) - 6, '#C084FC', COL.ink, 5); }
       if (u.panicT > T || (this.panic[u.team] > T && !(u.crownT > T))) { ctx.font = font(20, 800, false); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; strokeText(ctx, '!', x + r * 0.7, y - this.headR(u) - 6, '#FFFFFF', COL.ink, 5); }
       if (u.mut === 'wings') for (const sd of [-1, 1]) { const fx = Math.cos(u.face), fy = Math.sin(u.face), px = -fy * sd, py = fx * sd, fl = 0.8 + 0.2 * Math.sin(t * 10 + u.gait); tri(ctx, x + px * r * 0.6 - fx * r * 0.2, y + py * r * 0.6 - fy * r * 0.2, x + px * r * 1.6 * fl - fx * r * 0.8, y + py * r * 1.6 * fl - fy * r * 0.8, x + px * r * 0.7 - fx * r * 0.9, y + py * r * 0.7 - fy * r * 0.9, 'rgba(244,246,251,0.9)'); }
@@ -5601,16 +5611,16 @@ const RVB = (() => {
       if (u.lvl >= 2) {
         ctx.lineWidth = 2.5; ctx.strokeStyle = COL.gold; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         for (let k = 0; k < u.lvl - 1; k++) { const cy2 = y + r + 5 + k * 5; ctx.beginPath(); ctx.moveTo(x - 6, cy2 + 3); ctx.lineTo(x, cy2 - 1); ctx.lineTo(x + 6, cy2 + 3); ctx.stroke(); }
-        if (u.lvl >= 3) { ctx.beginPath(); this.ring(ctx, u, x, y, r + 2, 0, TAU); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,210,63,0.8)'; ctx.stroke(); }
+        if (u.lvl >= 3) { ctx.beginPath(); this.gRing(ctx, u, x, y, r + 2, 0, TAU); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,210,63,0.8)'; ctx.stroke(); }
       }
-      if (u.slayer && !u.god) { ctx.beginPath(); this.ring(ctx, u, x, y, r + 3, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(229,72,77,0.85)'; ctx.stroke(); }
+      if (u.slayer && !u.god) { ctx.beginPath(); this.gRing(ctx, u, x, y, r + 3, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(229,72,77,0.85)'; ctx.stroke(); }
       if (u.god) {
         for (let k = 0; k < 6; k++) { const a = t * 3 + k * TAU / 6, fl = 0.6 + 0.4 * Math.sin(t * 11 + k); disc(ctx, x + Math.cos(a) * (r + 6), y + Math.sin(a) * (r + 6), 4 * fl + 2, u.cosmic ? 'rgba(167,139,250,0.8)' : 'rgba(255,190,60,0.8)', 0); }
       }
       if (u.champ || u.title) {
         // champions and titled troops carry their name (and kill count) over their head
         const pulse = 0.5 + 0.5 * Math.sin(t * 5 + u.gait);
-        if (u.champ) { ctx.beginPath(); this.ring(ctx, u, x, y, r + 6 + pulse * 3, 0, TAU); ctx.fillStyle = rgba(tm.c, 0.16); ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = `rgba(255,210,63,${0.5 + 0.4 * pulse})`; ctx.stroke(); }
+        if (u.champ) { ctx.beginPath(); this.gRing(ctx, u, x, y, r + 6 + pulse * 3, 0, TAU); ctx.fillStyle = rgba(tm.c, 0.16); ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = `rgba(255,210,63,${0.5 + 0.4 * pulse})`; ctx.stroke(); }
         // (smooth UI) when the health bar appears the name rises over it gradually instead of hopping
         const name = u.champ ? `${u.champ} · ${u.kills || 0}` : u.title, hb = this.glide(u, 'hbG', HPBAR[u.type] && u.hp < u.max ? 14 : 0, 10);
         ctx.font = font(u.champ ? 20 : 17, 800, false); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -5624,7 +5634,7 @@ const RVB = (() => {
         this.labLaterU(ctx, u, !this.clean || this.labFree(x, ly, ctx.measureText(name).width + 8, 20), name, x, ly, u.team === MONSTERS ? '#D9F99D' : '#FFFFFF', COL.ink, 5);
       }
       this.drawStatus2(ctx, u, x, y, tm);
-      if (u.team === MONSTERS) { ctx.setLineDash([3, 4]); ctx.beginPath(); this.ring(ctx, u, x, y, r + 4, 0, TAU); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(190,242,100,0.75)'; ctx.stroke(); ctx.setLineDash([]); }
+      if (u.team === MONSTERS) { ctx.setLineDash([3, 4]); ctx.beginPath(); this.gRing(ctx, u, x, y, r + 4, 0, TAU); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(190,242,100,0.75)'; ctx.stroke(); ctx.setLineDash([]); }
       ctx.textBaseline = 'alphabetic';
     },
     // projectiles of the new troops
@@ -8498,10 +8508,10 @@ const RVB = (() => {
     drawStatus2(ctx, u, x, y, tm) {
       const T = this.fightT, t = this.t, r = u.r;
       if (u.charmT > T) { const hx = x, hy = y - this.headR(u) - 11 - 2 * Math.sin(t * 6); ctx.beginPath(); ctx.arc(hx - 3, hy, 3.6, 0, TAU); ctx.arc(hx + 3, hy, 3.6, 0, TAU); ctx.moveTo(hx - 6.5, hy + 1); ctx.lineTo(hx, hy + 8); ctx.lineTo(hx + 6.5, hy + 1); ctx.fillStyle = '#F472B6'; ctx.fill(); }
-      if (u.stoneT > T) { ctx.beginPath(); this.ring(ctx, u, x, y, r + 3, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(210,214,220,0.85)'; ctx.stroke(); }
-      if (u.hollow) { ctx.setLineDash([2, 4]); ctx.beginPath(); this.ring(ctx, u, x, y, r + 3, -t * 2, -t * 2 + TAU); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(124,243,255,0.85)'; ctx.stroke(); ctx.setLineDash([]); }
+      if (u.stoneT > T) { ctx.beginPath(); this.gRing(ctx, u, x, y, r + 3, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(210,214,220,0.85)'; ctx.stroke(); }
+      if (u.hollow) { ctx.setLineDash([2, 4]); ctx.beginPath(); this.gRing(ctx, u, x, y, r + 3, -t * 2, -t * 2 + TAU); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(124,243,255,0.85)'; ctx.stroke(); ctx.setLineDash([]); }
       if (u.ghost) disc(ctx, x, y, r + 5, 'rgba(226,232,240,0.16)', 0);
-      if (u.transformed) { ctx.beginPath(); this.ring(ctx, u, x, y, r + 5 + 2 * Math.sin(t * 8), 0, TAU); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(229,72,77,0.7)'; ctx.stroke(); }
+      if (u.transformed) { ctx.beginPath(); this.gRing(ctx, u, x, y, r + 5 + 2 * Math.sin(t * 8), 0, TAU); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(229,72,77,0.7)'; ctx.stroke(); }
     },
     // under the troops: the Worldroot's roots, lightning about to strike, the rising tide
     drawField2(ctx) {
@@ -15338,7 +15348,7 @@ const RVB = (() => {
         // rage: a red glow, steam puffing off and angry red eyes of light
         const k = clamp((u.rageT - T) / 0.5, 0, 1);
         ctx.save(); ctx.globalAlpha = 0.75 * k;
-        ctx.beginPath(); this.ring(ctx, u, x, y, r + 3 + 2 * Math.sin(t * 14 + (u.gait || 0)), 0, TAU); ctx.lineWidth = 4; ctx.strokeStyle = '#EF4444'; ctx.stroke();
+        ctx.beginPath(); this.gRing(ctx, u, x, y, r + 3 + 2 * Math.sin(t * 14 + (u.gait || 0)), 0, TAU); ctx.lineWidth = 4; ctx.strokeStyle = '#EF4444'; ctx.stroke();
         for (let i = 0; i < 2; i++) { const ph = (t * 2.2 + i * 0.5 + (u.gait || 0)) % 1, sx = x + (i ? 1 : -1) * r * 0.5; disc(ctx, sx, y - this.headR(u) * 0.7 - ph * 18, 3 + ph * 4, `rgba(254,226,226,${0.7 * (1 - ph)})`, 0); }
         ctx.restore();
       }
@@ -15520,7 +15530,7 @@ const RVB = (() => {
     },
     // a ring round a troop (a buff, a slow, a champion...): for a little person it lies on the ground at its feet instead of
     // circling its body, so nobody looks trapped inside a circle
-    ring(ctx, u, x, y, R, a0, a1) {
+    gRing(ctx, u, x, y, R, a0, a1) {
       if (this.humans && HUMAN[u.type]) ctx.ellipse(x, y + u.r * 0.8, Math.max(0.5, R), Math.max(0.5, R * 0.38), 0, a0, a1);
       else ctx.arc(x, y, R, a0, a1);
     },
