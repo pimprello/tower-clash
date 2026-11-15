@@ -309,18 +309,44 @@ const DRAW = {
         disc(ctx, sx * R, sy * R, 11, tm.d, 3);
       }
     }
-    // damage: cracks, then fire
-    if (hp < 0.66) {
-      ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.beginPath();
-      ctx.moveTo(-30, -40); ctx.lineTo(-18, -20); ctx.lineTo(-28, -4); ctx.moveTo(26, 30); ctx.lineTo(14, 16); ctx.lineTo(24, 2);
-      if (hp < 0.4) { ctx.moveTo(-44, 26); ctx.lineTo(-26, 34); ctx.lineTo(-16, 50); ctx.moveTo(36, -44); ctx.lineTo(30, -24); }
-      ctx.stroke();
+    // damage in six stages as the health drops (looks only): cracks, scorch marks, chunks knocked out with rubble at the foot of
+    // the walls, fires and smoke, a caved-in roof glowing from inside, and in the end heavy smoke and embers
+    const st6 = hp < 0.1 ? 6 : hp < 0.25 ? 5 : hp < 0.4 ? 4 : hp < 0.55 ? 3 : hp < 0.7 ? 2 : hp < 0.85 ? 1 : 0;
+    const crack = (pts, w) => { ctx.beginPath(); pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.lineWidth = w; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke(); };
+    if (st6 >= 1) { crack([[-30, -40], [-20, -26], [-28, -12]], 2.5); crack([[28, 34], [18, 20], [26, 8]], 2.5); }
+    if (st6 >= 2) {
+      for (const [x, y, r] of [[-22, 18, 22], [26, -24, 18]]) { const g = ctx.createRadialGradient(x, y, 2, x, y, r); g.addColorStop(0, 'rgba(20,16,12,0.6)'); g.addColorStop(1, 'rgba(20,16,12,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+      crack([[-46, 22], [-30, 30], [-22, 46], [-12, 40]], 3); crack([[40, -46], [32, -28], [40, -16]], 3);
     }
-    if (hp < 0.4) for (let i = 0; i < 3; i++) {
-      const fx = [-30, 28, 4][i], fy = [-30, 20, 40][i], f = 0.8 + 0.25 * Math.sin(t * 13 + i * 2.1), h = 26 * f;
-      ctx.beginPath(); ctx.moveTo(fx - 9, fy + 6); ctx.quadraticCurveTo(fx - 9, fy - h * 0.5, fx + Math.sin(t * 9 + i) * 3, fy - h); ctx.quadraticCurveTo(fx + 9, fy - h * 0.5, fx + 9, fy + 6); ctx.closePath();
+    if (st6 >= 3) {
+      // chunks knocked out of the walls (dark gaps), rubble at their foot
+      ctx.fillStyle = '#1A1714';
+      for (const [x, y, a] of [[-50, -12, 0.3], [44, 26, -0.6], [8, -52, 1.2]]) { ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.beginPath(); ctx.moveTo(-9, -6); ctx.lineTo(7, -9); ctx.lineTo(10, 4); ctx.lineTo(-3, 9); ctx.lineTo(-10, 3); ctx.closePath(); ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke(); ctx.restore(); }
+      for (let k = 0; k < 9; k++) { const a = H01(k, 77) * TAU, d = 70 + H01(k, 5) * 14; disc(ctx, Math.cos(a) * d, Math.sin(a) * d * 0.9, 4 + H01(k, 9) * 4, k % 2 ? STONE_D : STONE, 2); }
+    }
+    if (st6 >= 5) {
+      // the roof caves in: a dark hole glowing from the fire inside
+      const g = ctx.createRadialGradient(4, 2, 2, 4, 2, 26); g.addColorStop(0, `rgba(255,${150 + 40 * Math.sin(t * 9)},60,0.95)`); g.addColorStop(0.6, 'rgba(120,30,10,0.9)'); g.addColorStop(1, 'rgba(20,10,8,0.95)');
+      ctx.beginPath(); for (let k = 0; k < 9; k++) { const a = k / 9 * TAU, rr = 22 + 6 * H01(k, 31); ctx.lineTo(4 + Math.cos(a) * rr, 2 + Math.sin(a) * rr); } ctx.closePath(); ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
+    }
+    // fires: one at stage 3, three at stage 4, five from stage 5
+    const nf = st6 >= 5 ? 5 : st6 >= 4 ? 3 : st6 >= 3 ? 1 : 0;
+    const FP = [[-30, -30], [28, 20], [4, 40], [-40, 26], [36, -36]];
+    for (let i = 0; i < nf; i++) {
+      const [fx, fy] = FP[i], f = 0.8 + 0.25 * Math.sin(t * 13 + i * 2.1), h = (st6 >= 5 ? 34 : 26) * f;
+      ctx.beginPath(); ctx.moveTo(fx - 10, fy + 6); ctx.quadraticCurveTo(fx - 10, fy - h * 0.5, fx + Math.sin(t * 9 + i) * 3, fy - h); ctx.quadraticCurveTo(fx + 10, fy - h * 0.5, fx + 10, fy + 6); ctx.closePath();
       ctx.fillStyle = '#FF7A1A'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(fx - 5, fy + 4); ctx.quadraticCurveTo(fx - 5, fy - h * 0.3, fx, fy - h * 0.62); ctx.quadraticCurveTo(fx + 5, fy - h * 0.3, fx + 5, fy + 4); ctx.closePath(); ctx.fillStyle = '#FFD23F'; ctx.fill();
     }
+    // smoke rising from stage 4, thick from stage 6; embers at the end
+    if (st6 >= 4) {
+      const n = st6 >= 6 ? 8 : 4;
+      for (let i = 0; i < n; i++) {
+        const ph = (t * 0.45 + i / n) % 1, sx = FP[i % 5][0] + Math.sin(t + i) * 6, sy = FP[i % 5][1] - 20 - ph * 110, r = 10 + ph * 26;
+        ctx.globalAlpha = (1 - ph) * (st6 >= 6 ? 0.55 : 0.38); disc(ctx, sx + ph * 18, sy, r, '#3B3833', 0); ctx.globalAlpha = 1;
+      }
+    }
+    if (st6 >= 6) for (let i = 0; i < 10; i++) { const ph = (t * 0.8 + i * 0.13) % 1; ctx.globalAlpha = 1 - ph; disc(ctx, Math.sin(i * 7 + t) * 40, 20 - ph * 120, 2.2, i % 2 ? '#FFD23F' : '#FF7A1A', 0); ctx.globalAlpha = 1; }
     // the shield dome glow
     if (b.healT !== undefined && t - b.healT < 0.8) { ctx.beginPath(); ctx.arc(0, 0, 80, 0, TAU); ctx.lineWidth = 6; ctx.strokeStyle = `rgba(124,255,176,${0.8 * (1 - (t - b.healT) / 0.8)})`; ctx.stroke(); }
     // a hit flashes white

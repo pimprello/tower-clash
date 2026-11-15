@@ -277,6 +277,8 @@ const SIM = {
       }
       return;
     }
+    // at the walls: stay there and keep hitting the base
+    if (u.atBase) { this.reachBase(u); return; }
     if (!stop) {
       if (u.fly && !u.grounded) {
         u.s += v * h * (back ? -0.6 : 1);
@@ -409,7 +411,7 @@ const SIM = {
     if (u.dead) return;
     const b = this.base, T = this.fightT, sz = u.size || sizeOf(u.type);
     // nobody stands on top of the base: they stop at its walls (looks: the keep is never covered by troops)
-    { const dx = u.x - b.x, dy = u.y - b.y, d = Math.hypot(dx, dy), need = 66 + u.r * 0.8; if (d < need) { const ax = d > 1 ? dx / d : 0, ay = d > 1 ? dy / d : -1; u.x = b.x + ax * need; u.y = b.y + ay * need; } }
+    { const dx = u.x - b.x, dy = u.y - b.y, d = Math.hypot(dx, dy), need = 80 + u.r * 0.7; if (d < need) { const ax = d > 1 ? dx / d : 0, ay = d > 1 ? dy / d : -1; u.x = b.x + ax * need; u.y = b.y + ay * need; } }
     // big troops stay and pound the walls; small ones break in and are gone
     if ((sz === 'titan' || sz === 'boss' || (sz === 'giant' && !u.flying)) && !u.escort) {
       if (!u.atBase) { u.atBase = true; u.cd = 0.3; this.callout(u, 'AT THE GATES!', '#FF5A5A'); if (this.camEv) this.camEv.push({ type: 'spot', x: b.x, y: b.y - 40, prio: 70, dur: 1.8, z: 1.6 }); }
@@ -418,7 +420,15 @@ const SIM = {
       return;
     }
     if (u.escort) { this.hitBase(this.base.hp + 1, u); return; }
-    this.hitBase(SIEGE[sz] || 3, u);
+    // small troops stand at the walls and hack at them three times (each blow a third of their damage), then they're spent
+    if (!u.atBase) { u.atBase = true; u.cd = 0.15 + (u.uid % 5) * 0.06; u.baseHits = 0; }
+    u.vx = 0; u.vy = 0; this.turn(u, Math.atan2(b.y - u.y, b.x - u.x), 1 / 30);
+    if (u.cd > 0) return;
+    u.cd = 0.55; u.lunge = 1; const U2 = UNIT[u.type];
+    if (U2 && U2.sword) { const side = u.swordSide || -1; u.swingFrom = side; u.swordSide = -side; u.swing = 1; u.swingStart = side * 1.05; }
+    this.marks.push({ kind: 'slash', x: b.x + (u.x - b.x) * 0.55, y: b.y + (u.y - b.y) * 0.55, r: 16, a: Math.atan2(b.y - u.y, b.x - u.x), t0: this.t, col: '#E9DCC0', side: u.swordSide || 1 });
+    this.hitBase((SIEGE[sz] || 3) / 3, u);
+    if (++u.baseHits < 3) return;
     this.burst(u.x, u.y, '#C9B79A', 10, 240, 0.45, 6); this.burst(u.x, u.y, TEAMS[ATK].c, 5, 160, 0.35, 5);
     if (this.shRings) this.shRings.push({ x: u.x, y: u.y, r0: 6, r1: 46, t0: this.t, life: 0.3, col: '#FFFFFF', w: 3 });
     u.hp = 0; u.gone = true; u.dead = true; this.alive[ATK]--;

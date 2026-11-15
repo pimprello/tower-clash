@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-15 (later): attacks on the base, six damage stages, four songs
+- Small attackers no longer vanish into the base: they stand at its walls and hack at it three times (a slash on the wall and a red "-N%" each blow), then they're spent. Nobody stands on top of it.
+- The base shows six stages of damage: cracks, scorch marks, chunks knocked out with rubble at the foot of the walls, fires (one, then three, then five) with smoke, the roof caving in and glowing from inside, and finally heavy smoke and embers.
+- Four songs in turn, one per video (epic, ancient, modern, sci-fi styles of the shared soundtrack, each with its own tempo, key and chords), instead of two picked by chance.
+
 ## 2026-11-15: logic fixes
 Rellz: "fix every single logical issue one example is acid shouldn't be displayed over a tree".
 - Towers, pads, walls and the base are drawn above acid, lava and frost pools, blood, bones and spell areas (`liveDecorTop`), so nothing on the ground covers them.

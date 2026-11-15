@@ -168,7 +168,7 @@ async function main() {
   // ----- music (rules.music, music.js, shared with Army Clash): an original soundtrack written from the seed, following the
   // battle; the camera punches in on the beat in the last seconds, and the outro fades into the cover frame so the replay loops -----
   const MU = rules.music || {}, muOn = MU.on !== false;
-  const mp = muOn ? Music.plan(seed, ['epic', 'ancient'][seed % 2]) : null, mtr = muOn ? Music.tracker() : null;
+  const mp = muOn ? Music.plan(seed, ['epic', 'ancient', 'modern', 'scifi'][slot % 4])  /* (four songs in turn, one per video: Rellz 2026-11-15) */ : null, mtr = muOn ? Music.tracker() : null;
   let firstCv = null;
   for (let i = 0; i < MAXFRAMES; i++) {
     ctx.setTransform(RS, 0, 0, RS, 0, 0);
