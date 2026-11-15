@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-15 (later): more logic fixes from the shared engine
+- Troop names drawn after every troop, so none is drawn across another's name; little people's shots leave from chest height; weapon glints at their hands; floating words move above tactic tags.
+
 ## 2026-11-15 (night): smooth walk-up to the base, defender colours rotate
 - Troops no longer jump to the base's walls: they walk up and start hitting from where they are. When others are already there, they walk round the walls (and round each other) at their own pace to a free spot, and only hit once they've got one (Rellz: smooth animations always).
 - Hits close together on the base add up into one red number instead of a pile of them.

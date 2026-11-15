@@ -368,6 +368,8 @@ const RVB = (() => {
       if (this.finalePlan && (this.phase !== 'fight' || this.fightT > this.finalePlan.t - FIN_LEAD - 0.4)) return;
       // UI 2.0: at most four floating labels a second (two while the opening story card is up), so the battle stays readable (looks only)
       // (rules.ui.clean) a label that would land on top of a fresh one is dropped, so words never pile up (looks only)
+      // (logic) a word that would land on a tribe's tactic tag goes just above the tag instead of across it
+      if (this.clean && this.tacLabels) for (const L of this.tacLabels) if (L.py !== undefined && L.px !== undefined && this.t - L.t0 < 1.8 && Math.abs(L.px - x) < (L.w + String(text).length * size * 0.55) / 2 && Math.abs(L.py - y) < 38) y = L.py - 40;
       if (this.clean) for (const f of this.floats) if (f.age < 0.7 && Math.abs(f.x - x) < (String(f.text).length + String(text).length) * 6 + 20 && Math.abs(f.y - y) < 36) return;
       if (this.opts.ui >= 2) { if (this.t >= (this.flW || 0)) { this.flW = this.t + 1; this.flN = 0; } if (this.flN >= (this.story && this.t < 4.3 ? 2 : 4)) return; this.flN++; }
       this.floats.push({ x, y, text, color, size, life: Math.max(life, 0.95), age: 0 });
@@ -3947,6 +3949,9 @@ const RVB = (() => {
         }
         ctx.restore();
       }
+      // (logic) a little person's shot leaves from its gun or bow, at chest height, not from its feet (drawn only)
+      const lifted = [];
+      if (this.humans) for (const a of this.arrows) { const o = a.from || a.owner; if (o && HUMAN[o.type] && !LOBS[a.kind]) { const lf = o.r * 0.32; a._ly = lf; a.y -= lf; lifted.push(a); } }
       for (const a of this.arrows) {
         const l = Math.hypot(a.vx, a.vy) || 1, ux = a.vx / l, uy = a.vy / l;
         if (XSHOT[a.kind]) { this.drawShot(ctx, a, ux, uy); continue; }
@@ -4000,6 +4005,7 @@ const RVB = (() => {
         ctx.lineWidth = 3; ctx.strokeStyle = COL.steel;
         ctx.beginPath(); ctx.moveTo(a.x - ux * 18, a.y - uy * 18); ctx.lineTo(a.x + ux * 4, a.y + uy * 4); ctx.stroke();
       }
+      for (const a of lifted) { a.y += a._ly; a._ly = undefined; }
       if (tracers.length) {
         ctx.beginPath();
         for (let i = 0; i < tracers.length; i += 4) { ctx.moveTo(tracers[i] - tracers[i + 2] * 16, tracers[i + 1] - tracers[i + 3] * 16); ctx.lineTo(tracers[i], tracers[i + 1]); }
@@ -4067,6 +4073,7 @@ const RVB = (() => {
       // (rules.ui.shine) the troops go on a layer of their own, so the gloss, the damage and the rim light follow every shape
       const SH = !!(this.shine && api.makeCanvas), mainCtx = ctx;
       this._lab = [];
+      this._labQ = [];   // (logic) troop names are drawn after every troop, so no troop is drawn across another's name
       if (SH) { ctx = this.shineBegin(mainCtx); if (this.tribes) this.drawCamps(ctx); }
       for (const u of drawOrder) {
         if (u.dead || (cv && (u.x < cv.x0 - u.r || u.x > cv.x1 + u.r || u.y < cv.y0 - u.r || u.y > cv.y1 + u.r))) continue;
@@ -4128,6 +4135,7 @@ const RVB = (() => {
       }
       if (ART) this.flushArt(ctx);
       if (SH) { this.shineEnd(mainCtx, ctx); ctx = mainCtx; }
+      if (this._labQ) { const Q = this._labQ; this._labQ = null; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; for (const q of Q) { ctx.font = q.f; strokeText(ctx, ...q.a); } ctx.textBaseline = 'alphabetic'; }
       if (this.cast3on) this.drawCast3Fx(ctx);
       if (this.c4on) this.drawCast4Fx(ctx);
       if (this.g5) this.drawCast5Fx(ctx);
@@ -5555,11 +5563,11 @@ const RVB = (() => {
         // in a champion duel the bottom champion's name goes under it, so the two names never overlap
         const ly = u.duelist && u.team === 1 ? y + r + 16 : y - this.headR(u) - 14 - hb;
         // (rules.ui.clean: a name that would overlap one already drawn this frame is left out, so names never pile up; champions first)
-        if (!this.clean || u.champ || this.labFree(x, ly, ctx.measureText(name).width + 8, 22)) strokeText(ctx, name, x, ly, u.champ ? COL.gold : '#FFE9A8', COL.ink, 5);
+        if (!this.clean || u.champ || this.labFree(x, ly, ctx.measureText(name).width + 8, 22)) this.labLater(ctx, name, x, ly, u.champ ? COL.gold : '#FFE9A8', COL.ink, 5);
       } else if ((U.boss || u.ancient || U.mythic) && UNIT[u.type].rank === 0) {
         ctx.font = font(16, 800, false); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         const name = u.ancient ? 'ANCIENT HUNTER' : u.asleep ? 'CASTLE' : labelOf(u.type).replace(/^THE /, ''), ly = y - this.headR(u) - (u.hp < u.max ? 26 : 12);
-        if (!this.clean || this.labFree(x, ly, ctx.measureText(name).width + 8, 20)) strokeText(ctx, name, x, ly, u.team === MONSTERS ? '#D9F99D' : '#FFFFFF', COL.ink, 5);
+        if (!this.clean || this.labFree(x, ly, ctx.measureText(name).width + 8, 20)) this.labLater(ctx, name, x, ly, u.team === MONSTERS ? '#D9F99D' : '#FFFFFF', COL.ink, 5);
       }
       this.drawStatus2(ctx, u, x, y, tm);
       if (u.team === MONSTERS) { ctx.setLineDash([3, 4]); ctx.beginPath(); this.ring(ctx, u, x, y, r + 4, 0, TAU); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(190,242,100,0.75)'; ctx.stroke(); ctx.setLineDash([]); }
@@ -9845,15 +9853,16 @@ const RVB = (() => {
         if (k < 0 || k > 1) continue;
         const tb = L.tb, al = Math.min(1, k * 6, (1 - k) * 4), text = `${L.text}!`;
         ctx.font = font(21, 800);
-        const w = ctx.measureText(text).width + 50, x = clamp(L.x ?? tb.cx, AR.x + w / 2 + 6, AR.x + AR.w - w / 2 - 6);
+        // (logic) kept inside what the camera shows, not just inside the arena, so a zoomed-in camera never cuts a tag in half
+        const V = this.viewRect(ctx), w = ctx.measureText(text).width + 50, x = clamp(L.x ?? tb.cx, Math.max(AR.x, V.x0) + w / 2 + 6, Math.min(AR.x + AR.w, V.x1) - w / 2 - 6);
         // (where it goes is settled once, the first time it's drawn, so it never hops to make room)
         if (L.py === undefined) {
           let y = clamp((L.y ?? tb.cy) - 46, AR.y + 34, AR.y + AR.h - 24);
           for (let tries = 0; tries < 4 && placed.some(p => Math.abs(p.x - x) < (p.w + w) / 2 + 6 && Math.abs(p.y - y) < 40); tries++) y = clamp(y - 42, AR.y + 34, AR.y + AR.h - 24) === y ? y + 42 : clamp(y - 42, AR.y + 34, AR.y + AR.h - 24);
           L.py = y;
         }
-        const y = L.py - 10 * easeOutCubic(k);
-        placed.push({ x, y: L.py, w });
+        const y = clamp(L.py, V.y0 + 24, V.y1 - 24) - 10 * easeOutCubic(k);
+        placed.push({ x, y: L.py, w }); L.px = x; L.w = w;
         ctx.globalAlpha = al;
         roundRect(ctx, x - w / 2, y - 17, w, 34, 17); ctx.fillStyle = 'rgba(8,11,20,0.88)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = TEAMS[tb.team].c; ctx.stroke();
         disc(ctx, x - w / 2 + 17, y, 13, TEAMS[tb.team].c, 2); drawEmblem(ctx, tb.emblem, x - w / 2 + 17, y, 9.5);
@@ -15407,6 +15416,13 @@ const RVB = (() => {
       else ctx.arc(x, y, R, a0, a1);
     },
     // how far a troop reaches above its middle (a little person's head is well above its body's circle)
+    // the part of the battlefield the camera shows right now, in battlefield coordinates
+    viewRect(ctx) {
+      const RS = api.RS || 1, dy = this.opts.ui >= 2 ? UI_DY : 0;
+      try { const m = ctx.getTransform().inverse(), a = m.transformPoint({ x: AR.x * RS, y: (AR.y + dy) * RS }), b = m.transformPoint({ x: (AR.x + AR.w) * RS, y: (AR.y + AR.h + dy) * RS }); return { x0: Math.min(a.x, b.x), y0: Math.min(a.y, b.y), x1: Math.max(a.x, b.x), y1: Math.max(a.y, b.y) }; }
+      catch (e) { return { x0: AR.x, y0: AR.y, x1: AR.x + AR.w, y1: AR.y + AR.h }; }
+    },
+    labLater(ctx, ...a) { if (this._labQ) this._labQ.push({ f: ctx.font, a }); else strokeText(ctx, ...a); },
     headR(u) { return this.humans && HUMAN[u.type] ? u.r * 1.6 : u.r; },
     // the map's obstacles alone (trees, rocks, walls), at twice the size so they stay sharp when the camera zooms in
     obsLayer() {
