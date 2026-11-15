@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-15 00:41 | 4 Towers Fell... Did The Base Survive? 😱 | Survived! | https://youtube.com/shorts/jZ4zUJqeIiQ |
 | 2026-11-15 00:25 | The Bone Tide Attack The Fortress... Who Wins? ⚔️ | Fallen! | https://youtube.com/shorts/PEtx0Z07GaA |
 | 2026-11-15 00:06 | The Base Was Down To 13%... 😳 | Survived! | https://youtube.com/shorts/t9zj6GjVS0Q |
 | 2026-11-14 23:51 | The Ashen Horde vs Wardens of the Grey Pass: Will The Base Survive? | Survived! | https://youtube.com/shorts/jLTccw5moDM |
