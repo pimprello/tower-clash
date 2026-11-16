@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-16 13:18 | Tier 5 Towers vs The Magma Colossus 🔥 | Fallen! | https://youtube.com/shorts/RtphqH3UAAI |
 | 2026-11-16 12:58 | Can 11 Towers Stop The Glacier Behemoth? 🏰 | Survived! | https://youtube.com/shorts/1GSscgYCsYQ |
 | 2026-11-16 10:39 | Can 11 Towers Stop The Bone Colossus? 🏰 | Survived! | https://youtube.com/shorts/ocjYQBvun6o |
 | 2026-11-15 22:28 | Frostfang Raiders vs The Lantern Guard: Will The Base Survive? | Survived! | https://youtube.com/shorts/ZjhVTAyDRC8 |
