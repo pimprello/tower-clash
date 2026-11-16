@@ -92,6 +92,8 @@ const SIM = {
       const B = BOSSES[type] || { hp: 3.5, name: labelOf(type) };
       hp = U.hp * B.hp * this.hpK * (w.mini ? 0.55 : 1); u.boss = true; u.bossName = B.name; u.phase = 1; u.size = 'boss';
       if (!w.mini) { this.bossU = u; this.bossAt0 = this.fightT; }
+      // (retention, 2026-11-16) about one battle in eight has a rare golden boss (looks only: the same boss, drawn in gold)
+      if (!w.mini && this.golden) this.card({ text: `RARE GOLDEN ${String(B.name || labelOf(type)).replace(/^THE /, '')}!`, col: '#FFD23F', big: true, dur: 2.4 });
       if (this.camEv) this.camEv.push({ type: 'spot', follow: u, x: u.x, y: u.y + 120, prio: 90, dur: 3.2, z: 1.9, ts: 0.45, slowFor: 1.4 });
       this.bossIntro = this.t;
       this.shake(10);

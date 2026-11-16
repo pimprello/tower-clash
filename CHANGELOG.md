@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-11-16 (afternoon, Rellz's request from the Tower Clash chat): viewer retention
+
+Rellz: "Add all the updates you believe is the best for viewer retention don't ask me for anything just build and push". Tower Clash only.
+
+- **Cold open** (`rules.tease`, render.js): the video opens on 1.4 s of the scariest moment of the same battle (the boss closest to the base while it still stands, so the result isn't given away), in slow motion with film bars, a COMING UP pill and WAIT FOR IT..., then a white flash into the face-off. Played on a third headless copy; looks only.
+- **Slow-motion final blow** (td-cam.js, render.js): the thumbnail's copy has already played the battle through, so the camera knows when and where the last blow lands and goes there in slow motion (Army Clash's finale: FINAL BLOW and who did it, a short hold, then the result). `rules.video.finale: false` turns it off.
+- **Fast forward through quiet stretches** (td-cam.js): when nobody has been killed for a couple of seconds, no boss is on the board and the base isn't being hit, the battle eases up to 1.8x (1.4x while a notice is on screen, never under the guess prompt) with a FAST FORWARD pill, then eases back the moment the action returns. Video time only: the battle still moves in fixed ticks (checked: the battle ends at the same second as the headless copy). Saves about 2 to 5 s a video, mostly the walk-up before the first kills.
+- **The guess is answered**: under SURVIVED! / FALLEN!, DID YOU CALL IT? with the right answer ticked and the other crossed out.
+- **Episodes**: EPISODE N on the face-off, (Ep. N) at the end of the title (when it fits) and on the description's first line, so the posts read as a series.
+- **Rare golden boss** (`rules.rare.golden`, about 1 in 8): the same boss gilded with a glow, sparkles and a moving glint, a RARE GOLDEN ... card when it arrives, THE GOLDEN ... on the face-off and "A Rare Golden ... Appeared... 😱" as the title. Looks only.
+- The camera pulse in the last seconds now follows the music's real time (it was ignoring the intro's offset). `smooth` is on (the engine's smoother shake and in-between drawing in slow motion).
+- Test hooks: `STILL_AFTER=<battle second>` saves a still every 0.75 s from then on; stills mode also saves the first fast-forward frame and the cold open.
+
 ## 2026-11-16 (Rellz's request, both games): no test uploads, holiday specials
 
 Rellz: "for army clash and tower clash don't do test uploads save usage on update and upload on schedule try to make matches balanced but even if one is overpowered it will make for an interesting short (try to make your own cool updates whenever you can to maintain the video evolution process for both channels and also remember to do specific videos for holidays like Christmas Easter etc etc".

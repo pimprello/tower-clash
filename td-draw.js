@@ -296,6 +296,38 @@ const DRAW = {
     }
     try { return RVB.Army.prototype.draw.call(this, ctx); } finally { for (const [a, ox, oy] of moved) { a.x -= ox; a.y -= oy; } }
   },
+  // (retention, 2026-11-16) the rare golden boss: the same boss in shining gold, with a warm glow and sparkles round it (looks only)
+  drawBody(ctx, u, x, y, tm, swordy) {
+    if (this.golden && u === this.bossU && !u.dead && tm) {
+      const t = this.t, r = (u.r || 14), R = r * 2.6, pl = 0.85 + 0.15 * Math.sin(t * 4);
+      const g = ctx.createRadialGradient(x, y, r * 0.4, x, y, R);
+      g.addColorStop(0, `rgba(255,226,120,${0.42 * pl})`); g.addColorStop(1, 'rgba(255,200,60,0)');
+      ctx.save(); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.fill();
+      for (let i = 0; i < 7; i++) {
+        const k = (t * 0.7 + i / 7) % 1, a = i * 2.39 + H01(i, 5) * 3, d = r * (0.9 + 1.3 * k), sx = x + Math.cos(a) * d, sy = y + Math.sin(a) * d - k * r * 0.8, s2 = (1 - k) * r * 0.22 + 1.5;
+        ctx.globalAlpha = Math.sin(Math.PI * k); ctx.fillStyle = '#FFF6C2';
+        ctx.beginPath(); ctx.moveTo(sx, sy - s2 * 2); ctx.lineTo(sx + s2 * 0.5, sy); ctx.lineTo(sx, sy + s2 * 2); ctx.lineTo(sx - s2 * 0.5, sy); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(sx - s2 * 2, sy); ctx.lineTo(sx, sy + s2 * 0.5); ctx.lineTo(sx + s2 * 2, sy); ctx.lineTo(sx, sy - s2 * 0.5); ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+      tm = Object.assign({}, tm, { c: '#FFC928', d: '#9A6A00', l: '#FFF1A8' });
+      // the whole body gilded: drawn on its own small canvas at the screen's scale, washed in gold, with a moving glint
+      const m = ctx.getTransform(), sc = Math.max(0.5, Math.hypot(m.a, m.b)), half = r * 3.4, S = Math.min(1400, Math.ceil(half * 2 * sc));
+      if (!this._gc || this._gc.width < S) this._gc = RVB.makeCanvas(S, S);
+      const oc = this._gc, o = oc.getContext('2d');
+      o.setTransform(1, 0, 0, 1, 0, 0); o.globalCompositeOperation = 'source-over'; o.globalAlpha = 1; o.clearRect(0, 0, oc.width, oc.height);
+      o.setTransform(sc, 0, 0, sc, half * sc - x * sc, half * sc - y * sc);
+      const out = RVB.Army.prototype.drawBody.call(this, o, u, x, y, tm, swordy);
+      o.setTransform(1, 0, 0, 1, 0, 0); o.globalCompositeOperation = 'source-atop';
+      o.fillStyle = 'rgba(255,196,40,0.5)'; o.fillRect(0, 0, S, S);
+      const gx = ((t * 0.6) % 1.6 - 0.3) * S, gl = o.createLinearGradient(gx - S * 0.25, 0, gx + S * 0.25, S * 0.4);
+      gl.addColorStop(0, 'rgba(255,255,230,0)'); gl.addColorStop(0.5, 'rgba(255,255,230,0.55)'); gl.addColorStop(1, 'rgba(255,255,230,0)');
+      o.fillStyle = gl; o.fillRect(0, 0, S, S); o.globalCompositeOperation = 'source-over';
+      ctx.drawImage(oc, 0, 0, S, S, x - half, y - half, S / sc, S / sc);
+      return out;
+    }
+    return RVB.Army.prototype.drawBody.call(this, ctx, u, x, y, tm, swordy);
+  },
   drawMeteorGround(ctx, m, T) {
     const p = clamp((T - m.T0) / (m.T1 - m.T0), 0, 1), R = m.small ? 54 : 96, t = this.t;
     // the light of the rock on the ground, growing as it comes, and its shadow tightening under it
@@ -1137,6 +1169,19 @@ const DRAW = {
         ctx.restore();
       }
     }
+    // 4) (retention, 2026-11-16) fast forward: a small pill while a quiet stretch plays faster (td-cam.js), fading in and out
+    {
+      const fa = this.glide(this, 'ffA', fight && (this.warpK || 1) > 1.2 ? 1 : 0, 6);
+      if (fa > 0.02) {
+        const x = AR.x + 28, y = AR.y + AR.h - 66, w = 238, h = 48;
+        ctx.save(); ctx.globalAlpha = fa; ctx.translate(x - 30 * (1 - fa), y);
+        roundRect(ctx, 0, -h / 2, w, h, h / 2); ctx.fillStyle = 'rgba(8,11,20,0.82)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.stroke();
+        const ph = (t * 2.2) % 1;
+        for (let i = 0; i < 2; i++) { const ix = 22 + i * 17; ctx.globalAlpha = fa * (0.55 + 0.45 * Math.max(0, Math.sin((ph - i * 0.3) * TAU))); ctx.fillStyle = COL.gold; ctx.beginPath(); ctx.moveTo(ix, -12); ctx.lineTo(ix + 16, 0); ctx.lineTo(ix, 12); ctx.closePath(); ctx.fill(); }
+        ctx.globalAlpha = fa; ctx.textAlign = 'left'; ctx.font = font(26, 800); spaced(ctx, 3); ctx.fillStyle = COL.white; ctx.fillText('FAST FORWARD', 66, 1); spaced(ctx, 0);
+        ctx.restore(); ctx.textAlign = 'center';
+      }
+    }
     // 3) the final countdown: the last 10 seconds, big and see-through over the battle
     // (no countdown any more: there is no time limit, the battle ends when the boss or the base falls)
     const left = 99;
@@ -1172,6 +1217,23 @@ const DRAW = {
       ctx.save(); ctx.globalAlpha = dk; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       let s = 46; ctx.font = font(s, 800); while (s > 24 && ctx.measureText(this.detail).width > 900) { s -= 2; ctx.font = font(s, 800); }
       strokeText(ctx, this.detail, VW / 2, cy + 190, COL.gold, COL.ink, 9);
+      ctx.restore();
+    }
+    // (retention, 2026-11-16) the guess from the start is answered: the right call ticked, the other crossed out
+    const gk = clamp((k - 1.05) / 0.3, 0, 1);
+    if (gk > 0) {
+      const pop = easeOutBack(gk);
+      ctx.save(); ctx.globalAlpha = Math.min(1, gk * 1.5); ctx.translate(VW / 2, cy + 300); ctx.scale(pop, pop); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      roundRect(ctx, -330, -60, 660, 140, 20); ctx.fillStyle = 'rgba(8,11,20,0.92)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = COL.gold; ctx.stroke();
+      ctx.font = font(34, 800); strokeText(ctx, 'DID YOU CALL IT?', 0, -28, COL.white, COL.ink, 6);
+      [['SURVIVES', TEAMS[DEF].c, -150, this.winner === DEF], ['FALLS', TEAMS[ATK].c, 150, this.winner !== DEF]].forEach(([w, col, x, right]) => {
+        ctx.save(); ctx.translate(x, 30); if (right) { const s2 = 1 + 0.06 * Math.max(0, Math.sin((k - 1.2) * 9)) * Math.exp(-(k - 1.2) * 2); ctx.scale(s2, s2); } ctx.globalAlpha *= right ? 1 : 0.45;
+        roundRect(ctx, -120, -26, 240, 52, 26); ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = right ? '#FFFFFF' : COL.ink; ctx.stroke();
+        ctx.font = font(30, 800); ctx.fillStyle = COL.white; ctx.fillText(w, 14, 2);
+        ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.strokeStyle = '#FFFFFF'; ctx.beginPath();
+        if (right) { ctx.moveTo(-96, 0); ctx.lineTo(-86, 10); ctx.lineTo(-68, -10); } else { ctx.moveTo(-94, -9); ctx.lineTo(-76, 9); ctx.moveTo(-76, -9); ctx.lineTo(-94, 9); }
+        ctx.stroke(); ctx.restore();
+      });
       ctx.restore();
     }
     ctx.textBaseline = 'alphabetic';

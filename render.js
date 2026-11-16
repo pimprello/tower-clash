@@ -59,7 +59,7 @@ const pair = pairs[slot % pairs.length];
 RVB.setTeams(pair[0], pair[1]);
 const events = (rules.events || []).map(type => ({ type }));
 
-const optsFor = (power, s) => ({ map, layout, target: FIGHT, fixedLength: FIGHT + OUTRO, outroSecs: OUTRO, ui: 2, art: 2, anim: true, humans: (rules.ui || {}).humans !== false, ...((rules.ui || {}).blood && rules.ui.blood.on ? { blood: rules.ui.blood } : {}), shine: { on: true, gloss: 1, rim: 1, damage: true, screen: 1, density: 1.6 }, remains: true, clean: true, tdPace: PACE,
+const optsFor = (power, s) => ({ map, layout, target: FIGHT, fixedLength: FIGHT + OUTRO, outroSecs: OUTRO, ui: 2, art: 2, anim: true, humans: (rules.ui || {}).humans !== false, ...((rules.ui || {}).blood && rules.ui.blood.on ? { blood: rules.ui.blood } : {}), shine: { on: true, gloss: 1, rim: 1, damage: true, screen: 1, density: 1.6 }, remains: true, clean: true, smooth: true, tdPace: PACE,
   tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s });
 
 // ----- balance on the spot: quick headless battles with this set-up and other dice, aiming at an even chance -----
@@ -129,6 +129,10 @@ async function main() {
   if (process.env.SCORE_ONLY) { fs.writeFileSync(path.join(OUT, `score-${seed}.json`), JSON.stringify({ seed, power, drama: closeFinish.drama ?? 0 })); return; }
   const game = new TD(seed, optsFor(power, seed));
   const director = rules.cinematic !== false ? new TDCam(game, { seed }) : null;
+  // (retention, 2026-11-16) a rare golden boss in about one battle in eight (looks only; rules.rare.golden is the chance)
+  const golden = (Math.imul(seed ^ 0x60D15, 2654435761) >>> 0) / 4294967296 < ((rules.rare || {}).golden ?? 0.125);
+  game.golden = golden;
+  const episode = posted + 1;
   if (!director) { game.fixedTicks = true; game.tickAcc = 0; }
   const synth = new RVB.Synth(SR, MAXFRAMES / FPS + 4);
   const canvas = createCanvas(W * RS, H * RS), ctx = canvas.getContext('2d');
@@ -146,19 +150,28 @@ async function main() {
   ]);
   // ----- the thumbnail, made before the video from a headless copy of the same battle (it plays out identically): the
   // busiest moment of the middle of the battle (many attackers on the board, the base still up) as its background. -----
-  let thumbCv = null, nFrames = 0, introInfo = null;
+  let thumbCv = null, nFrames = 0, introInfo = null, finale = null, teaseT = 0;
   const timeline = [];
   if ((rules.thumbnail || {}).on !== false) {
     const tt0 = Date.now(), g2 = new TD(seed, optsFor(power, seed)), cv2 = createCanvas(W * RS, H * RS), c2 = cv2.getContext('2d');
     g2.fixedTicks = true; g2.tickAcc = 0;
-    let thumbBg = null, thumbScore = -1, k = 0;
+    let thumbBg = null, thumbScore = -1, thumbT = 0, k = 0;
+    const bossS = [];
     while (!g2.finished && k < FPS * ((FIGHT + OUTRO) / PACE + 60)) {
+      // (the cold open: where the boss comes closest to the base while the base still stands)
+      if (g2.phase === 'fight' && k % 6 === 0 && g2.bossU && !g2.bossU.dead && g2.base.hp > 0) bossS.push([g2.fightT, Math.hypot(g2.bossU.x - g2.base.x, g2.bossU.y - g2.base.y)]);
       if (g2.phase === 'fight' && k % 30 === 0 && g2.fightT > FIGHT * 0.35 && g2.fightT < FIGHT * 0.85) {
         const atk = g2.units.filter(u => u.team === 1 && !u.dead && !u.gone).length, sc = atk * (1 + (g2.bossU && !g2.bossU.dead ? 1 : 0)) * (g2.base.hp > 0 ? 1 : 0);
-        if (sc > thumbScore) { thumbScore = sc; c2.setTransform(RS, 0, 0, RS, 0, 0); const cards = g2.cards; g2.cards = []; g2.draw(c2); g2.cards = cards; thumbBg = thumbBg || createCanvas(W, H); const bc = thumbBg.getContext('2d'); bc.clearRect(0, 0, W, H); bc.drawImage(cv2, 0, 0, W, H); }
+        if (sc > thumbScore) { thumbScore = sc; thumbT = g2.fightT; c2.setTransform(RS, 0, 0, RS, 0, 0); const cards = g2.cards; g2.cards = []; g2.draw(c2); g2.cards = cards; thumbBg = thumbBg || createCanvas(W, H); const bc = thumbBg.getContext('2d'); bc.clearRect(0, 0, W, H); bc.drawImage(cv2, 0, 0, W, H); }
       }
       g2.frame(1 / FPS); g2.sfx.length = 0; k++;
     }
+    // (retention, 2026-11-16) the finale: this copy has played the battle through, so the camera knows when and where the
+    // final blow lands and goes there in slow motion (rules.video.finale: false turns it off)
+    { const endT = g2.lastFightT ?? g2.fightT, ld = g2.lastDeath;
+      if (VID.finale !== false && g2.phase !== 'fight') finale = { t: endT, how: ld && ld.t >= endT - 0.05 ? 'kill' : 'time', uid: ld ? ld.uid : 0, by: ld ? ld.by : 0, x: ld ? ld.x : g2.base.x, y: ld ? ld.y : g2.base.y };
+      const ok = bossS.filter(([t]) => t > 12 && t < endT - 4);
+      teaseT = ok.length ? ok.reduce((a, b) => (b[1] < a[1] ? b : a))[0] : (thumbT > 12 && thumbT < endT - 4 ? thumbT : 0); }
     if (!thumbBg) { c2.setTransform(RS, 0, 0, RS, 0, 0); g2.draw(c2); thumbBg = createCanvas(W, H); thumbBg.getContext('2d').drawImage(cv2, 0, 0, W, H); }
     const tcv = createCanvas(W, H), tctx = tcv.getContext('2d');
     const keepRS = RVB.RS; RVB.RS = 1;
@@ -170,6 +183,7 @@ async function main() {
     thumbCv = createCanvas(W * RS, H * RS); thumbCv.getContext('2d').drawImage(tcv, 0, 0, W * RS, H * RS);
     console.log(`thumbnail made in ${((Date.now() - tt0) / 1000).toFixed(0)} s`);
   }
+  if (director && finale) { director.fin = finale; game.finalePlan = finale; game.noLate = true; }
   const stillAt = process.env.STILL_AT ? process.env.STILL_AT.split(',').map(Number) : [2, 6, 15, 30, 45, 58];
   // ----- music (rules.music, music.js, shared with Army Clash): an original soundtrack written from the seed, following the
   // battle; the camera punches in on the beat in the last seconds, and the outro fades into the cover frame so the replay loops -----
@@ -179,10 +193,51 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
   let firstCv = null;
   // ----- the intro card (rules.intro, Rellz 2026-11-15): the thumbnail's layout (who vs who) for a couple of seconds before the
   // battle, drifting in slowly, then dissolving into the first frame of the fight. Sound and music start under it. -----
-  const INTRO = (rules.intro || {}).on !== false && thumbCv && introInfo ? Math.round(FPS * ((rules.intro || {}).seconds || 2.6)) : 0, IOFF = INTRO / FPS;
+  // ----- the cold open (rules.tease, retention 2026-11-16): the first second and a bit is a flash-forward to the scariest
+  // moment of this very battle (the boss closest to the base, the base still standing, so the result isn't given away),
+  // in slow motion with WAIT FOR IT..., then the face-off and the battle from the start. Played on a third copy (looks only). -----
+  let TEASE = 0, ffSecs = 0, ffShot = false;
+  const TZ = rules.tease || {};
+  if (TZ.on !== false && teaseT && !process.env.SECS) {
+    const g3 = new TD(seed, optsFor(power, seed)); g3.golden = golden; g3.fixedTicks = true; g3.tickAcc = 0;
+    let k = 0; while (g3.phase === 'fight' && g3.fightT < teaseT - 0.4 && k < FPS * 400) { g3.frame(1 / FPS); g3.sfx.length = 0; k++; }
+    if (g3.phase === 'fight') {
+      const n = Math.round(FPS * (TZ.seconds || 1.4)), foc = () => (g3.bossU && !g3.bossU.dead ? g3.bossU : g3.base);
+      const f0 = foc(), bx = g3.base.x, by = g3.base.y;
+      g3.cine = { bars: 1, vig: 0.45 };
+      g3.cam = { x: f0.x * 0.75 + bx * 0.25, y: f0.y * 0.75 + by * 0.25, z: 1.55 };
+      for (let j = 0; j < n; j++) {
+        const f = j / n, fc = foc();
+        g3.cam.x += (fc.x * 0.75 + bx * 0.25 - g3.cam.x) * 0.08; g3.cam.y += (fc.y * 0.75 + by * 0.25 - g3.cam.y) * 0.08;
+        g3.cam.z = 1.55 + 0.3 * E.easeOutCubic(f);
+        g3.cards.length = 0;
+        ctx.setTransform(RS, 0, 0, RS, 0, 0); g3.draw(ctx);
+        // WAIT FOR IT... (slams in), a COMING UP pill, and a white flash into the face-off
+        ctx.setTransform(RS, 0, 0, RS, 0, 0); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const sl = E.easeOutBack(clamp01(f / 0.18)), pa = clamp01(f / 0.12);
+        ctx.save(); ctx.globalAlpha = pa; ctx.translate(W / 2, 1735); ctx.rotate(-0.04); ctx.scale(sl * (1 + 0.04 * f), sl * (1 + 0.04 * f));
+        ctx.font = E.font(132, 800); E.strokeText(ctx, 'WAIT FOR IT...', 0, 0, '#FFFFFF', '#0B0F1A', 16); ctx.restore();
+        ctx.save(); ctx.globalAlpha = pa; ctx.translate(W / 2, 1612); E.roundRect(ctx, -150, -30, 300, 60, 30); ctx.fillStyle = '#FFD23F'; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = '#0B0F1A'; ctx.stroke();
+        ctx.font = E.font(36, 800); ctx.fillStyle = '#0B0F1A'; ctx.fillText('COMING UP', 0, 2); ctx.restore();
+        const fl = clamp01((f - 0.86) / 0.14); if (fl > 0) { ctx.fillStyle = `rgba(255,255,255,${0.9 * fl * fl})`; ctx.fillRect(0, 0, W, H); }
+        ctx.textBaseline = 'alphabetic';
+        if (j === 0 && muOn && MU.loop !== false) { firstCv = createCanvas(W * RS, H * RS); firstCv.getContext('2d').drawImage(canvas, 0, 0); }
+        if (stills) { if ([10, Math.round(n / 2), n - 4].includes(j)) fs.writeFileSync(path.join(OUT, `still-tease-${String(j).padStart(3, '0')}.png`), canvas.toBuffer('image/png')); }
+        else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
+        g3.frame((1 / FPS) * (TZ.speed || 0.5));
+        for (const ev of g3.sfx) synth.play(ev, (j + 1) / FPS);
+        g3.sfx.length = 0;
+      }
+      synth.play({ type: 'whoosh' }, Math.max(0, n / FPS - 0.25));
+      TEASE = n;
+      console.log(`cold open: ${(n / FPS).toFixed(1)} s from ${teaseT.toFixed(1)} s into the battle`);
+    }
+  }
+  const TOFF = TEASE / FPS;
+  const INTRO = (rules.intro || {}).on !== false && thumbCv && introInfo ? Math.round(FPS * ((rules.intro || {}).seconds || 2.6)) : 0, IOFF = TOFF + INTRO / FPS;
   for (let i = 0; i < MAXFRAMES; i++) {
     ctx.setTransform(RS, 0, 0, RS, 0, 0);
-    const z0 = game.cam && game.cam.z, punch = muOn && MU.pulse !== false && game.cam && game.phase === 'fight' && game.fightT > FIGHT - 6 ? Music.pulse(mp, i / FPS) : 0;
+    const z0 = game.cam && game.cam.z, punch = muOn && MU.pulse !== false && game.cam && game.phase === 'fight' && game.fightT > FIGHT - 6 ? Music.pulse(mp, i / FPS + IOFF) : 0;
     if (punch) game.cam.z = z0 * (1 + punch);
     game.draw(ctx);
     if (punch) game.cam.z = z0;
@@ -195,14 +250,14 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
         if (hum) c.translate(0, r * 0.12); c.scale(sc, sc); if (!hum) c.rotate(-Math.PI / 2); g.drawPortrait(c, type, team); }, 210 * RS, 1);
       const IS = introInfo, sides = [
         { col: E.TEAMS[DEF], name: IS.towerName, sub: game.defOrder[0], count: `${IS.towers} TOWERS`, portrait: IS.towerType ? pic(IS.g, IS.towerType, DEF) : null },
-        { col: E.TEAMS[ATK], name: IS.bossName, sub: game.atkBand[0], count: `${IS.waves} WAVES`, portrait: pic(IS.g, IS.bossType, ATK) },
+        { col: E.TEAMS[ATK], name: golden ? (/^THE /.test(IS.bossName) ? IS.bossName.replace(/^THE /, 'THE GOLDEN ') : 'GOLDEN ' + IS.bossName) : IS.bossName, sub: game.atkBand[0], count: `${IS.waves} WAVES`, portrait: pic(IS.g, IS.bossType, ATK) },
       ];
       RVB.RS = keepRS;
-      const fo = { W, H, RS, seed, dur: IOFF, title: 'TOWER CLASH', tag: '', question: game.hook, sides, bg: bg1, battle0: b0 };
-      FO.faceoffSounds(synth, IOFF);
+      const fo = { W, H, RS, seed, dur: INTRO / FPS, title: 'TOWER CLASH', tag: `EPISODE ${episode}`, question: game.hook, sides, bg: bg1, battle0: b0 };
+      FO.faceoffSounds(synth, INTRO / FPS, TOFF);
       for (let j = 0; j < INTRO; j++) {
         FO.drawFaceoff(ctx, j / FPS, fo);
-        if (j === 0 && muOn && MU.loop !== false) { firstCv = createCanvas(W * RS, H * RS); firstCv.getContext('2d').drawImage(canvas, 0, 0); }
+        if (j === 0 && muOn && MU.loop !== false && !firstCv) { firstCv = createCanvas(W * RS, H * RS); firstCv.getContext('2d').drawImage(canvas, 0, 0); }
         if (stills) { if ([12, 30, 60, 100, INTRO - 10].includes(j)) fs.writeFileSync(path.join(OUT, `still-intro-${String(j).padStart(3, '0')}.png`), canvas.toBuffer('image/png')); }
         else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
       }
@@ -215,6 +270,9 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     }
     // (testing: STILL_MARK=meteor also saves a still while one is coming down)
     if (stills && process.env.STILL_MARK) { const mk = game.marks.find(m => m.kind === process.env.STILL_MARK && m.T1 && (game.fightT - m.T0) / (m.T1 - m.T0) > 0.55 && !m.shot); if (mk) { mk.shot = true; fs.writeFileSync(path.join(OUT, `still-mark-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png')); } }
+    // (testing: STILL_AFTER=<battle second> also saves a still every 0.75 s of video from then on, through the finale and the end)
+    if (stills && process.env.STILL_AFTER && (game.phase !== 'fight' || game.fightT >= Number(process.env.STILL_AFTER)) && i % 45 === 0) fs.writeFileSync(path.join(OUT, `still-after-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png'));
+    if (game.warpK > 1.2) { ffSecs += 1 / FPS; if (stills && game.warpK > 1.6 && !ffShot) { ffShot = true; fs.writeFileSync(path.join(OUT, `still-ff-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png')); } }
     if (stills) { if (stillAt.some(s => Math.abs(i / FPS - s) < 0.5 / FPS)) fs.writeFileSync(path.join(OUT, `still-${String(Math.round(i / FPS)).padStart(2, '0')}.png`), canvas.toBuffer('image/png')); }
     else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
     nFrames++;
@@ -229,7 +287,8 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     game.sfx.length = 0;
     if ((i + 1) % (FPS * 6) === 0) console.log(`frame ${i + 1} (${((i + 1) / FPS).toFixed(0)} s of video) after ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   }
-  const DUR = (nFrames + INTRO) / FPS;
+  const DUR = (nFrames + INTRO + TEASE) / FPS;
+  if (ffSecs) console.log(`fast forward: ${ffSecs.toFixed(1)} s of video`);
   const final = path.join(OUT, 'tower-clash.mp4');
   if (!stills) {
     enc.p.stdin.end(); await enc.done;
@@ -272,11 +331,16 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
   if (low > 0 && low <= 30 && game.tdWinner === 0) cands.push(['close', `The Base Was Down To ${low}%... 😳`]);
   if (game.stat.big >= 2) cands.push(['tier', `Tier 5 Towers vs ${bossName} 🔥`]);
   const fresh = cands.filter(c => !recent.has(c[0]));
-  const [titleKind, title] = (fresh.length ? fresh : cands)[Math.floor(pick.next() * (fresh.length ? fresh : cands).length)];
+  let [titleKind, title] = (fresh.length ? fresh : cands)[Math.floor(pick.next() * (fresh.length ? fresh : cands).length)];
+  // (retention, 2026-11-16) a golden boss is always in the title; every title carries the episode number, so the posts read as a series
+  if (golden) { titleKind = 'rare'; title = `A Rare Golden ${bossName.replace(/^The /, '')} Appeared... 😱`; }
+  if (title.length <= 86) title = `${title} (Ep. ${episode})`;
 
   const towerNames = [...new Set(game.towers.map(t => t.kind))].map(k => tc(D.TOWERS[k].name));
   const related = pastVideos.slice(-24).filter(v => v.id && /^[\w-]{6,}$/.test(v.id)).pop();
   const description = [
+    `Episode ${episode}${golden ? ' · a rare golden boss' : ''}.`,
+    '',
     `${band} march on ${baseName.toLowerCase().startsWith('the') ? baseName.replace(/^The/, 'the') : baseName}, defended by ${order.replace(/^The/, 'the')}: ${waves} waves and then ${bossName.replace(/^The/, 'the')}. Will the base survive? Call it in the comments before the end!`,
     ...(related ? [`▶ Watch next: ${related.title} https://youtube.com/shorts/${related.id}`] : []),
     '',
@@ -296,6 +360,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     description: HOL ? `${HOL.emoji} ${HOL.line}\n\n${description}`.slice(0, 4900) : description, tags: HOL ? [...new Set([...tags, ...HOL.tags])] : tags,
     layout, map, mode, teams: pair, defense: defense.name, attack: attack.name, order: defOrder[0], warband: atkBand[0], boss: game.bossType,
     power: +power.toFixed(3), winner: game.headline, winTeam: game.tdWinner, detail: game.detail, fight: +game.fightT.toFixed(1),
+    episode, golden: golden || undefined, tease: TEASE ? +teaseT.toFixed(1) : undefined, finale: finale ? +finale.t.toFixed(1) : undefined,
     built: game.stat.built, upgrades: game.stat.upgrades, fell, lowBase: low, spells: game.stat.spells, related: related ? related.id : undefined,
   };
   fs.writeFileSync(path.join(OUT, 'meta.json'), JSON.stringify(meta, null, 2));

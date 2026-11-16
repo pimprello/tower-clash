@@ -19,8 +19,39 @@ class TDCam extends RVB.Director {
     x = x * 0.8 + b.x * 0.2; y = y * 0.8 + b.y * 0.2;
     return { x, y, z: 1.35 };
   }
+  // (retention, 2026-11-16) the quiet stretches (troops still walking up, nobody killed for a couple of seconds, no boss on the
+  // board, the base not being hit, nothing being announced) play faster, up to WARP x, easing in and out so it never jumps;
+  // looks only: the battle still moves in fixed ticks
+  lull() {
+    const g = this.g, T = g.fightT;
+    if (g.phase !== 'fight' || T < 4.6 || g.overtime || (this.fin && T > this.fin.t - 8)) return false;
+    if (g.bossU && !g.bossU.dead) return false;
+    if (this.shot && this.shot.prio > 30 && this.shot.kind !== 'open') return false;
+    const kl = g.killLog || [], lk = kl.length ? kl[kl.length - 1] : -9;
+    if (g.t - lk < 2.2) return false;
+    if (g.base && g.base.hitT !== undefined && g.t - g.base.hitT < 2.5) return false;
+    // a notice on screen: only a little faster, so it can still be read (and none at all under the guess prompt)
+    let k = 1.8;
+    for (const c of g.cards || []) if (g.t > c.t0 - 0.6 && g.t < c.t0 + (c.dur || 1.9) + 0.3) { if (c.kind === 'guess') return false; k = 1.4; }
+    return k;
+  }
+  advance(dt) {
+    const g = this.g, want = this.lull() || 1, w0 = this.warp || 1;
+    this.warp = w0 + (want - w0) * (1 - Math.exp(-(want > w0 ? 1.8 : 5) * dt));
+    if (want === 1 && this.warp < 1.004) this.warp = 1;
+    g.warpK = this.warp;
+    if (this.warp === 1) return super.advance(dt);
+    const k = this.warp; g.frame = d => Object.getPrototypeOf(g).frame.call(g, d * k);
+    try { return super.advance(dt); } finally { delete g.frame; }
+  }
   direct(dt) {
     const g = this.g;
+    // (retention, 2026-11-16) the finale: the battle has been played through once already (the thumbnail's copy), so the camera
+    // knows when and where the final blow lands and is there for it in slow motion (the engine's finale, as in Army Clash)
+    if (this.fin && g.phase === 'fight') {
+      if (this.shot && this.shot.kind === 'finale') { g.camEv = []; return; }
+      if (g.fightT >= this.fin.t - (this.fin.how === 'kill' ? 1.3 : 1)) { g.camEv = []; this.start('finale', { prio: 200, dur: 99, z: 2.1, bars: 1, vig: 0.5, spd: 4.5, zspd: 2.6, sfx: 'whoosh' }); return; }
+    }
     if (!this.started) {
       // the opening: the whole board while the story card plays
       this.started = true; g.camEv = []; this.lastWave = g.waveNow || 0;
