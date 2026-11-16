@@ -90,7 +90,7 @@ function rays(g, x, y, r, n, col) {
 // and on the banner six troops evenly spaced and faded behind the channel name (same font, size and spacing) -----
 const THEMES = {
   tower: { name: 'TOWER CLASH', file: '', teams: ['GOLD', 'PURPLE'], bg: ['#8B6CF0', '#A58BF5', '#C9B8FB'], shadow: 'rgba(30,10,60,0.35)',
-    hero: ['spiderqueen', 1],   // (2026-11-16: a different titan from Army Clash's, Rellz "use different titans")
+    hero: ['magmacolossus', 1],   // (2026-11-16: a different titan from Army Clash's, Rellz "use different titans")
     row: [['spiderqueen', 0, 0.5, 240], ['magmacolossus', 1, -0.5, 250], ['longbow', 0, -0.7, 230], ['frostwitch', 1, 0.6, 210], ['siegegolem', 0, 0.4, 250], ['ironhorn', 1, -0.6, 250]] },
   army: { name: 'ARMY CLASH', file: 'army-', teams: ['RED', 'BLUE'], bg: ['#6FB2EA', '#86C3F0', '#B4DDF8'], shadow: 'rgba(10,30,60,0.35)',
     hero: ['titan', 1],
