@@ -71,6 +71,13 @@ const TD_MAPS = {
   frozen: { name: 'Frozen End', path: '#B8D4EA', edge: '#5F7E99', base: 'keep', ground: 'ice', fire: false, era: 'fantasy' },
   castle: { name: 'Castle Siege', path: '#7A6A55', edge: '#3E3428', base: 'keep', ground: null, fire: true, era: 'medieval' },
   // (2026-11-15) cherry trees in bloom, stone lanterns, petals drifting over the battle
+  // (Rellz, 2026-11-16: strange new worlds, td-worlds.js)
+  rainbow: { name: 'Rainbow Road', path: '#FFFFFF', edge: '#1E1B4B', base: 'temple', ground: null, fire: false, era: 'fantasy' },
+  sweets: { name: 'Candy Kingdom', path: '#7A4A2E', edge: '#4A2C1A', base: 'keep', ground: null, fire: false, era: 'fantasy' },
+  shroom: { name: 'Mushroom Grove', path: '#8A6A44', edge: '#4A3520', base: 'keep', ground: 'mud', fire: false, era: 'fantasy' },
+  pyramid: { name: "Pharaoh's Sands", path: '#D8B878', edge: '#9C7B45', base: 'temple', ground: 'sand', fire: false, era: 'medieval' },
+  clouds: { name: 'Sky Kingdom', path: '#E9B949', edge: '#A9791F', base: 'temple', ground: null, fire: false, era: 'fantasy' },
+  crystal: { name: 'Crystal Caverns', path: '#3B3552', edge: '#1A1626', base: 'fortress', ground: null, fire: false, era: 'fantasy' },
   blossom: { name: 'Blossom Valley', path: '#D9C4A2', edge: '#8E6F55', base: 'temple', ground: null, fire: false, era: 'fantasy', petals: true },
 };
 const MAP_KEYS = Object.keys(TD_MAPS);
@@ -110,6 +117,13 @@ const TOWERS = {
   laser: { name: 'LASER TURRET', char: 'trooper', cls: 'air', range: 240, dmg: 2.2, cd: 0.42, shot: 'laser', cost: 70, sfx: 'shot', spec: 'RAPID LASERS', airK: 1.4 },
   drone: { name: 'DRONE HIVE', char: 'engineer', cls: 'air', range: 280, dmg: 9, cd: 3.4, shot: 'spawn', spawn: 'drone', cost: 80, sfx: 'jet', spec: 'LAUNCHES DRONES', airK: 1.3 },
   dragon: { name: 'DRAGON ROOST', char: 'dragon', cls: 'air', range: 190, dmg: 4, cd: 1.4, shot: 'breath', cost: 110, sfx: 'flame', spec: 'BREATHES FIRE', airK: 1.8, el: 'fire', rs: 0.5 },
+  // (Rellz, 2026-11-16: "cooler towers with better abilities and weird cool abilities", td-weird.js)
+  prism: { name: 'PRISM SPIRE', char: 'crystalqueen', cls: 'pierce', range: 240, dmg: 4, cd: 1.5, shot: 'prism', cost: 80, sfx: 'zap', spec: 'SPLITS LIGHT THREE WAYS', air: true },
+  blackhole: { name: 'VOID ENGINE', char: 'pulsar', cls: 'splash', range: 230, dmg: 3, cd: 6.5, shot: 'hole', cost: 95, sfx: 'phase', spec: 'OPENS A BLACK HOLE', ground: true },
+  hex: { name: 'HEX HUT', char: 'gravewitch', cls: 'slow', range: 220, dmg: 1, cd: 3, shot: 'hex', cost: 75, sfx: 'phase', spec: 'TURNS TROOPS INTO CHICKENS', ground: true },
+  clock: { name: 'CLOCK TOWER', char: 'timetraveller', cls: 'slow', range: 230, dmg: 2, cd: 3.4, shot: 'rewind', cost: 85, sfx: 'phase', spec: 'WINDS THEM BACK IN TIME', ground: true },
+  bees: { name: 'BEE HIVE', char: 'beekeeper', cls: 'dot', range: 230, dmg: 1.4, cd: 2.8, shot: 'bees', cost: 65, sfx: 'jet', spec: 'UNLEASHES ANGRY BEES', air: true },
+  shrink: { name: 'SHRINK RAY', char: 'alchemist', cls: 'truedmg', range: 260, dmg: 2.5, cd: 3.2, shot: 'shrink', cost: 80, sfx: 'zap', spec: 'SHRINKS GIANTS DOWN', prio: 'strong' },
   barracks: { name: 'BARRACKS', char: 'swordsman', cls: 'summon', range: 160, dmg: 0, cd: 6, shot: 'spawn', spawn: 'swordsman', cost: 70, sfx: 'clang', spec: 'SENDS SWORDSMEN' },
 };
 const TOWER_KEYS = Object.keys(TOWERS);
@@ -130,6 +144,10 @@ const DEF_LINEUPS = [
   { name: 'FIRE AND ACID', towers: ['lava', 'acid', 'archer', 'frost', 'cannon', 'sniper'] },
   { name: 'THE DRAGON KEEP', towers: ['dragon', 'archer', 'cannon', 'frost', 'barracks', 'ballista'] },
   { name: 'SNIPERS AND WALLS', towers: ['sniper', 'barracks', 'archer', 'mortar', 'siren', 'storm'] },
+  { name: 'WEIRD SCIENCE', towers: ['shrink', 'clock', 'archer', 'cannon', 'blackhole', 'frost'] },
+  { name: 'WITCHCRAFT', towers: ['hex', 'bees', 'archer', 'mage', 'frost', 'prism'] },
+  { name: 'COSMIC WONDERS', towers: ['prism', 'blackhole', 'archer', 'clock', 'sniper', 'storm'] },
+  { name: 'THE STRANGE ONES', towers: ['bees', 'hex', 'cannon', 'shrink', 'archer', 'storm'] },
   { name: 'SCI-FI DEFENCE', towers: ['laser', 'drone', 'storm', 'mortar', 'sniper', 'gravity'], eras: ['scifi', 'modern'] },
 ];
 
@@ -190,7 +208,36 @@ const BOOK = {
   chainstorm: { name: 'LIGHTNING STORM', price: 45, col: '#C4B5FD', say: 'lightning strikes eight attackers' },
   breath: { name: "DRAGON'S BREATH", price: 50, col: '#F97316', say: 'a dragon swoops down the path, breathing fire' },
 };
-const BOOK_KEYS = Object.keys(BOOK);
+// (Rellz, 2026-11-16) the mystical crystal: three kinds of crystal magic. They are sold by the merchant (one of each kind on
+// every visit) and a mystical crystal falls on the board every 12 s or so and cracks open to give one free
+const CRYSTAL_CATS = {
+  trap: { name: 'TRAP', col: '#FB923C' },
+  totem: { name: 'TOTEM', col: '#C084FC' },
+  summon: { name: 'SUMMON', col: '#34D399' },
+};
+const CRYSTAL = {
+  // traps: on the path, ahead of the attackers; they go off when stepped on
+  landmine: { cat: 'trap', name: 'LAND MINE', price: 30, say: 'blows up under the first troop to step on it' },
+  spikes: { cat: 'trap', name: 'SPIKE STRIP', price: 30, say: 'spikes across the path: everyone who crosses is cut and slowed' },
+  beartrap: { cat: 'trap', name: 'BEAR TRAP', price: 25, say: 'snaps shut on a troop and holds it' },
+  tarpit: { cat: 'trap', name: 'TAR PIT', price: 30, say: 'a pool of tar that bogs the path down' },
+  firevent: { cat: 'trap', name: 'FLAME VENT', price: 35, say: 'a grate that shoots fire up every second' },
+  frostmine: { cat: 'trap', name: 'FROST MINE', price: 30, say: 'bursts into ice and freezes everyone near it' },
+  // totems: beside the path, helping the towers round them
+  wartotem: { cat: 'totem', name: 'WAR TOTEM', price: 40, say: 'towers near it fire 50% faster' },
+  frosttotem: { cat: 'totem', name: 'FROST TOTEM', price: 35, say: 'attackers near it are slowed' },
+  goldtotem: { cat: 'totem', name: 'GOLD TOTEM', price: 35, say: 'kills near it pay double gold' },
+  healtotem: { cat: 'totem', name: 'HEALING TOTEM', price: 35, say: 'mends the towers round it' },
+  stormtotem: { cat: 'totem', name: 'STORM TOTEM', price: 45, say: 'zaps the nearest attacker again and again' },
+  // summons: crystal creatures that fight for the defenders for a while
+  golem: { cat: 'summon', name: 'CRYSTAL GOLEM', price: 45, say: 'a golem of crystal blocks the path' },
+  wolves: { cat: 'summon', name: 'SPIRIT WOLVES', price: 40, say: 'three wolves hunt down the troops' },
+  treant: { cat: 'summon', name: 'TREANT GUARD', price: 40, say: 'a living tree holds the path and roots troops near it' },
+  phoenix: { cat: 'summon', name: 'PHOENIX', price: 50, say: 'a firebird sweeps down the path, setting it alight' },
+};
+for (const [k, c] of Object.entries(CRYSTAL)) BOOK[k] = Object.assign({ col: CRYSTAL_CATS[c.cat].col }, c);
+const CRYSTAL_KEYS = Object.keys(CRYSTAL);
+const BOOK_KEYS = Object.keys(BOOK).filter(k => !CRYSTAL[k]);
 const SHAMAN = {
   warcry: { name: 'WAR CRY', col: '#F87171', say: 'attackers hit 50% harder for 6 s' },
   haste: { name: 'HASTE', col: '#FDE047', say: 'attackers march 40% faster for 5 s' },
@@ -242,4 +289,4 @@ const CHAMP_TITLES = [['TITAN SLAYER', u => u.titanKills >= 1], ['WALL OF IRON',
 // friendly rivalries only: never countries at war or with a painful wartime history, no leaders or insignia
 const NATION_PAIRS = [['UK', 'USA'], ['BRAZIL', 'ARGENTINA'], ['NORWAY', 'SWEDEN'], ['SPAIN', 'PORTUGAL'], ['AUSTRALIA', 'NEWZEALAND'], ['CANADA', 'USA'], ['NETHERLANDS', 'BELGIUM'], ['DENMARK', 'FINLAND'], ['ITALY', 'FRANCE']];
 
-module.exports = { LAYOUTS, LAYOUT_KEYS, LAYOUT_POWER, TD_MAPS, MAP_KEYS, BASE_NAME, TCLASS, TOWERS, TOWER_KEYS, TOWER_ERA, TIER, ELEM, ELEM_KEYS, DEF_LINEUPS, WAVE_KINDS, BOSSES, BOSS_KEYS, SIEGE, RAIDERS, ATK_LINEUPS, BOOK, BOOK_KEYS, SHAMAN, SHAMAN_KEYS, MODES, MODE_KEYS, SKINS, ORDERS, WARBANDS, TRAITS, CHAMP_TITLES, NATION_PAIRS };
+module.exports = { LAYOUTS, LAYOUT_KEYS, LAYOUT_POWER, TD_MAPS, MAP_KEYS, BASE_NAME, TCLASS, TOWERS, TOWER_KEYS, TOWER_ERA, TIER, ELEM, ELEM_KEYS, DEF_LINEUPS, WAVE_KINDS, BOSSES, BOSS_KEYS, SIEGE, RAIDERS, ATK_LINEUPS, BOOK, BOOK_KEYS, CRYSTAL, CRYSTAL_KEYS, CRYSTAL_CATS, SHAMAN, SHAMAN_KEYS, MODES, MODE_KEYS, SKINS, ORDERS, WARBANDS, TRAITS, CHAMP_TITLES, NATION_PAIRS };

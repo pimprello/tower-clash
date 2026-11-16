@@ -4,7 +4,6 @@
   "sound": { "sfx": 0.7 },
   "thumbnail": { "on": true },
   "intro": { "on": true, "seconds": 2.6 },
-  "tease": { "on": true, "seconds": 1.4, "speed": 0.5 },
   "rare": { "golden": 0.125 },
   "quality": { "candidates": 5, "fine": true },
   "cinematic": true,

@@ -49,6 +49,7 @@ const DRAW = {
     stroke(PATH_W + 12, M.edge);
     stroke(PATH_W, M.path);
     stroke(PATH_W - 22, rgba('#FFFFFF', 0.06));
+    if (this.worldPath) this.worldPath(g, stroke, lx, ly);
     // worn stones along each lane (fixed spots, the same every time on this layout)
     for (let li = 0; li < this.lanes.length; li++) {
       const L = this.lanes[li];
@@ -125,7 +126,9 @@ const DRAW = {
     const shade = (x, y, r, c) => { const rg = g.createRadialGradient(x - r * 0.4, y - r * 0.45, r * 0.1, x, y, r); rg.addColorStop(0, 'rgba(255,255,255,0.35)'); rg.addColorStop(0.6, 'rgba(255,255,255,0)'); rg.addColorStop(1, 'rgba(0,0,0,0.25)'); g.beginPath(); g.arc(x, y, r, 0, TAU); g.fillStyle = rg; g.fill(); void c; };
     const rock = (x, y, r, c = '#8E8A80') => { shadow(x, y, r * 0.8); g.beginPath(); for (let k = 0; k < 7; k++) { const a = k / 7 * TAU, rr = r * (0.7 + 0.3 * hash01(k, Math.round(x))); g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.8); } g.closePath(); g.fillStyle = c; g.fill(); g.lineWidth = 3; g.strokeStyle = INK; g.stroke(); shade(x, y, r * 0.8); };
     const tree = (x, y, r, c1, c2) => { shadow(x, y, r); blob(x, y, r, c1); blob(x - r * 0.25, y - r * 0.25, r * 0.6, c2, 0); shade(x, y, r); };
+    this._wglow = [];
     for (const p of placed) {
+      if (this.worldProp && this.worldProp(g, p, { shadow, blob, shade, rock, tree })) continue;
       const { x, y, r, v } = p;
       if (kind === 'tree' || kind === 'magic' || kind === 'swamp') {
         if (v < 0.62) tree(x, y, r, kind === 'magic' ? (v < 0.3 ? '#7C4DCC' : '#2F8F7A') : kind === 'swamp' ? '#3F5A2A' : '#2F7A3A', kind === 'magic' ? (v < 0.3 ? '#A88BF0' : '#4FC3A1') : kind === 'swamp' ? '#5E7A3A' : '#46A04E');
@@ -183,6 +186,7 @@ const DRAW = {
   // ---------- under the characters: build pads, rubble, walls, the base, the towers, the merchant ----------
   drawLiveDecor(ctx) {
     const t = this.t, T = this.fightT;
+    if (this.worldLive) this.worldLive(ctx);
     // lava glow over the bridge's lava, and the vents flaring
     if (this.lavaBand) { const B = this.lavaBand; ctx.fillStyle = `rgba(255,170,60,${0.1 + 0.08 * Math.sin(t * 2.3)})`; ctx.fillRect(AR.x, B.y, AR.w, B.h); }
     for (const z of this.zones) if (z.kind === 'lava') {
@@ -217,8 +221,17 @@ const DRAW = {
     for (const w of this.walls) this.drawWall(ctx, w);
     // where meteors are about to land: on the ground, under everyone
     for (const m of this.marks) if (m.kind === 'meteor' && T <= m.T1) this.drawMeteorGround(ctx, m, T);
+    // scorch marks where shells landed: dark at first, fading to a faint smudge
+    if (this.scorches) for (const sc of this.scorches) {
+      const a = 0.16 + 0.3 * Math.max(0, 1 - (this.t - sc.t0) / 6), g = ctx.createRadialGradient(sc.x, sc.y, 0, sc.x, sc.y, sc.r);
+      g.addColorStop(0, `rgba(28,22,18,${a})`); g.addColorStop(0.6, `rgba(28,22,18,${a * 0.6})`); g.addColorStop(1, 'rgba(28,22,18,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(sc.x, sc.y, sc.r, sc.r * 0.8, 0, 0, TAU); ctx.fill();
+    }
     // what's left of fallen attackers (under everyone)
     this.drawCorpses(ctx);
+    // the mystical crystal's traps and totem reach (td-crystal.js)
+    if (this.drawTraps) this.drawTraps(ctx);
+    if (this.drawWeirdGround) this.drawWeirdGround(ctx);
     // the base and the towers (the character on top is drawn by the engine with the troops). With the shine on (Rellz
     // 2026-11-15: "match graphic style and shiny texture to army clash"), only their shadows and glows go on the ground here;
     // their bodies go on the troops' shine layer (shineBegin below), so they get the same gloss and rim light as the troops
@@ -298,6 +311,23 @@ const DRAW = {
   },
   // (retention, 2026-11-16) the rare golden boss: the same boss in shining gold, with a warm glow and sparkles round it (looks only)
   drawBody(ctx, u, x, y, tm, swordy) {
+    // (2026-11-16) hexed into a chicken, or shrunk (td-weird.js)
+    if (this.weirdBody && (u.chickT > this.fightT || u.shrunk) && !this._inWeird) { this._inWeird = true; try { let out; if (this.weirdBody(ctx, u, x, y, () => { out = this.drawBody(ctx, u, x, y, tm, swordy); })) return out; } finally { this._inWeird = false; } }
+    // (2026-11-16) a native of one of the new worlds: its body washed in its world's look (td-worlds.js), on its own small canvas
+    // at the screen's scale so it stays sharp; the gummy brutes are a little see-through, like jelly
+    const wash = u.native && this.nativeWash ? this.nativeWash(u) : null;
+    if (wash && tm && !(this.golden && u === this.bossU)) {
+      const m = ctx.getTransform(), sc = Math.max(0.5, Math.hypot(m.a, m.b)), half = (u.r || 14) * 3.4, S = Math.min(1400, Math.ceil(half * 2 * sc));
+      if (!this._gc || this._gc.width < S) this._gc = RVB.makeCanvas(S, S);
+      const oc = this._gc, o = oc.getContext('2d');
+      o.setTransform(1, 0, 0, 1, 0, 0); o.globalCompositeOperation = 'source-over'; o.globalAlpha = 1; o.clearRect(0, 0, oc.width, oc.height);
+      o.setTransform(sc, 0, 0, sc, half * sc - x * sc, half * sc - y * sc);
+      const out = RVB.Army.prototype.drawBody.call(this, o, u, x, y, tm, swordy);
+      o.setTransform(1, 0, 0, 1, 0, 0); o.globalCompositeOperation = 'source-atop'; o.save(); wash(o, S, this.t); o.restore(); o.globalCompositeOperation = 'source-over'; o.globalAlpha = 1;
+      const ka = ctx.globalAlpha; if (u.native === 'gummybrute') ctx.globalAlpha = ka * 0.85;
+      ctx.drawImage(oc, 0, 0, S, S, x - half, y - half, S / sc, S / sc); ctx.globalAlpha = ka;
+      return out;
+    }
     if (this.golden && u === this.bossU && !u.dead && tm) {
       const t = this.t, r = (u.r || 14), R = r * 2.6, pl = 0.85 + 0.15 * Math.sin(t * 4);
       const g = ctx.createRadialGradient(x, y, r * 0.4, x, y, R);
@@ -718,6 +748,9 @@ const DRAW = {
   // ---------- on top of the characters (still in the battlefield's view): tower tiers and health, lightning, marks, coins ----------
   drawMvp(ctx) {
     const t = this.t, T = this.fightT;
+    // the mystical crystal: falling crystals, magic in flight, totems, the phoenix (td-crystal.js)
+    if (this.drawCrystals) this.drawCrystals(ctx);
+    if (this.drawWeird) this.drawWeird(ctx);
     // webbed and frozen towers
     for (const tw of this.towers) {
       if (tw.dead) continue;
@@ -985,7 +1018,7 @@ const DRAW = {
     if (!this.rInfoTD) {
       const towers = this.towerSet.slice(0, 3).map(k => ({ type: TOWERS[k].char, name: TOWERS[k].name, sub: TOWERS[k].spec, col: (TCLASS[TOWERS[k].cls] || {}).col || COL.gold, team: DEF }));
       const seen = new Set(), waves = [];
-      for (const w of this.plan) { if (w.boss || seen.has(w.kind)) continue; seen.add(w.kind); waves.push({ type: w.list[0], name: w.name, sub: `${w.list.length} × ${labelOf(w.list[0]).replace(/^THE /, '')}`, col: COL.gold, team: ATK }); if (waves.length >= 2) break; }
+      for (const w of this.plan) { if (w.boss || seen.has(w.kind)) continue; seen.add(w.kind); const n0 = this.nativeOf ? this.nativeOf(w.list[0]) : null; waves.push({ type: n0 ? n0.base : w.list[0], name: w.name, sub: `${w.list.length} × ${n0 ? n0.name : labelOf(w.list[0]).replace(/^THE /, '')}`, col: COL.gold, team: ATK }); if (waves.length >= 2) break; }
       waves.push({ type: this.bossType, name: 'THE BOSS', sub: (BOSSES[this.bossType] || {}).name || labelOf(this.bossType), col: '#FF5A5A', team: ATK });
       this.rInfoTD = [towers, waves];
     }
@@ -1044,7 +1077,7 @@ const DRAW = {
       }
       const boss = this.bossU && !this.bossU.dead && this.phase === 'fight';
       const y = this.glide(c, 'gy', AR.y + lerp(boss ? 112 : 70, 14 + 92 + 46, rk), 10);
-      const hasIcon = c.tk || c.spell || c.shaman, iconW = hasIcon ? 60 : 0;
+      const hasIcon = c.tk || c.spell || c.shaman || c.crystal, iconW = hasIcon ? 60 : 0;
       ctx.save(); ctx.globalAlpha = a; ctx.translate(VW / 2, y); ctx.scale(0.7 + 0.3 * inK, 0.7 + 0.3 * inK);
       ctx.font = font(c.big ? 46 : 38, 800); spaced(ctx, 2);
       const tw = Math.min(ctx.measureText(c.text).width, 760), w = tw + 70 + iconW, hh = c.sub ? 84 : 64;
@@ -1058,6 +1091,8 @@ const DRAW = {
         ctx.save(); ctx.beginPath(); ctx.arc(ix, 0, 25, 0, TAU); ctx.clip(); ctx.translate(ix, 0); const s = clamp(20 / U.r, 0.3, 1.6); ctx.scale(s, s);
         try { this.drawPortrait(ctx, type, c.kind === 'fall' ? DEF : DEF); } catch (e) { /* no portrait */ }
         ctx.restore();
+      } else if (c.crystal && this.drawGem) {
+        disc(ctx, ix, 0, 26, rgba(c.col || '#A5F3FC', 0.3), 3); this.drawGem(ctx, ix, 2, 15, 0.6, 0);
       } else if (c.spell || c.shaman) {
         disc(ctx, ix, 0, 24, c.col, 3);
         ctx.font = font(26, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = INK; ctx.fillText(c.spell ? '✦' : '☠', ix, 1);

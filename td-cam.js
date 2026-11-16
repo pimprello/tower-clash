@@ -1,6 +1,6 @@
-// Tower Clash's camera (looks only): calmer than Army Clash's. It holds on the front of the attack for long stretches (about 7 s
-// per shot, moving slowly), pulls back to the whole board when a new wave comes in, and only cuts in for the big moments (the
-// boss arriving, a tower or wall falling, the base taking a heavy hit). No quick punch-ins, kill-cams or hit-stops.
+// Tower Clash's camera (looks only): calm and close. After the opening (the whole board under the story card) it stays in on the
+// action in one long, steady shot that only drifts when the action leaves the middle of the picture, and cuts in closer for the
+// big moments (the boss arriving, a tower or wall falling, the base taking a heavy hit). No quick punch-ins, kill-cams or hit-stops.
 'use strict';
 const RVB = require('./engine.js');
 const { AR, clamp } = RVB._;
@@ -8,16 +8,25 @@ const { AR, clamp } = RVB._;
 class TDCam extends RVB.Director {
   // (rules.video.pace) the battle runs slower than the video on purpose; that isn't time owed, so the director doesn't race to catch up
   get debt() { return this.t * (this.g.opts.tdPace || 1) - this.g.t; }
-  // the front of the attack: the attackers closest to the base, and the base itself pulls the framing a little
+  // (Rellz, 2026-11-16: "fix camera work so it moves less but also zooms in more to where the action is and focus more on that
+  // but rarely goes fully zoomed out") where the action is: the densest knot of attackers, weighted towards the ones nearest
+  // the base and towards bosses and big troops; the tighter the knot, the closer the camera goes
   front() {
     const g = this.g, b = g.base;
-    const atk = g.units.filter(u => u.team === 1 && !u.dead && !u.gone && u.x > AR.x - 20 && u.y > AR.y - 20);
-    if (!atk.length) return { x: this.cx, y: this.cy, z: 1 };
-    atk.sort((p, q) => Math.hypot(p.x - b.x, p.y - b.y) - Math.hypot(q.x - b.x, q.y - b.y));
-    const lead = atk.slice(0, 6);
-    let x = lead.reduce((s, u) => s + u.x, 0) / lead.length, y = lead.reduce((s, u) => s + u.y, 0) / lead.length;
-    x = x * 0.8 + b.x * 0.2; y = y * 0.8 + b.y * 0.2;
-    return { x, y, z: 1.35 };
+    const atk = g.units.filter(u => u.team === 1 && !u.dead && !u.gone && u.x > AR.x - 20 && u.y > AR.y - 20 && u.x < AR.x + AR.w + 20 && u.y < AR.y + AR.h + 20);
+    if (!atk.length) return { x: b.x * 0.7 + this.cx * 0.3, y: b.y * 0.7 + this.cy * 0.3, z: 1.5 };
+    let best = null, bs = -1;
+    for (const u of atk) {
+      let s = 0, sx = 0, sy = 0, mx = 0;
+      for (const v of atk) {
+        const d = Math.hypot(v.x - u.x, v.y - u.y); if (d > 165) continue;
+        const w = (v.boss ? 4 : 1) * (v.r > 18 ? 1.8 : 1); s += w; sx += v.x * w; sy += v.y * w; mx = Math.max(mx, d);
+      }
+      const db = Math.hypot(u.x - b.x, u.y - b.y), sc = s * (1 + 300 / (db + 120));
+      if (sc > bs) { bs = sc; best = { x: sx / s, y: sy / s, spread: mx }; }
+    }
+    const x = best.x * 0.85 + b.x * 0.15, y = best.y * 0.85 + b.y * 0.15;
+    return { x, y, z: clamp(1.95 - best.spread / 420, 1.6, 1.9) };
   }
   // (retention, 2026-11-16) the quiet stretches (troops still walking up, nobody killed for a couple of seconds, no boss on the
   // board, the base not being hit, nothing being announced) play faster, up to WARP x, easing in and out so it never jumps;
@@ -53,33 +62,33 @@ class TDCam extends RVB.Director {
       if (g.fightT >= this.fin.t - (this.fin.how === 'kill' ? 1.3 : 1)) { g.camEv = []; this.start('finale', { prio: 200, dur: 99, z: 2.1, bars: 1, vig: 0.5, spd: 4.5, zspd: 2.6, sfx: 'whoosh' }); return; }
     }
     if (!this.started) {
-      // the opening: the whole board while the story card plays
+      // the opening: the whole board while the story card plays (the one time the camera is fully out), then in to the action
       this.started = true; g.camEv = []; this.lastWave = g.waveNow || 0;
-      this.start('open', { prio: 60, dur: 8.6, x: this.cx, y: this.cy, z: 1, spd: 1, zspd: 1 });
+      this.start('open', { prio: 60, dur: 4.6, x: this.cx, y: this.cy, z: 1, spd: 1, zspd: 1 });
       return;
     }
     if (g.phase !== 'fight') return super.direct(dt);
     const ev = g.camEv; g.camEv = [];
     const want = (p, f) => { if (!this.shot || p > this.shot.prio) f(); };
-    // a new wave: pull back to the whole board so it can be seen coming in
-    if ((g.waveNow || 0) !== this.lastWave) {
-      this.lastWave = g.waveNow || 0;
-      if (this.lastWave > 1) want(30, () => this.start('wave', { prio: 30, dur: 3, x: this.cx, y: this.cy, z: 1, spd: 1.3, zspd: 1.2 }));
-    }
-    // the big moments only (the boss, a tower falling, the base under heavy attack)
+    this.lastWave = g.waveNow || 0;
+    // the big moments (the boss, a tower falling, the base under heavy attack): in close, not too often
     for (const e of ev) {
       if (e.type !== 'spot' || (e.prio || 0) < 75) continue;
       if (this.t < (this.spotNext || 0) && (e.prio || 0) < 82) continue;
       want(e.prio, () => {
-        this.spotNext = this.t + 6;
-        this.start('spot', { prio: e.prio, dur: Math.max(3, e.dur || 2.5), x: e.x, y: e.y, follow: e.follow, z: clamp(e.z || 1.6, 1.3, 1.65), spd: 1.8, zspd: 1.4 });
+        this.spotNext = this.t + 7;
+        this.start('spot', { prio: e.prio, dur: Math.max(3, e.dur || 2.5), x: e.x, y: e.y, follow: e.follow, z: clamp((e.z || 1.6) + 0.25, 1.7, 2.05), spd: 1.3, zspd: 1 });
       });
     }
-    // otherwise: hold on the front of the attack, a long, slow shot at a time
-    if (!this.shot) { const f = this.front(); this.start('focus', { prio: 10, dur: 7, x: f.x, y: f.y, z: f.z, spd: 0.6, zspd: 0.5, track: false }); }
-    else if (this.shot.kind === 'focus' && this.t - this.shot.t0 > 3.5) {
-      // drift with the front, slowly, so the action never leaves the picture
-      const f = this.front(); this.shot.x += (f.x - this.shot.x) * Math.min(1, dt * 0.4); this.shot.y += (f.y - this.shot.y) * Math.min(1, dt * 0.4);
+    // otherwise: one long, steady shot on the action. The framing only moves when the action drifts out of the middle of the
+    // picture (a dead zone), and then slowly, so the camera moves less but stays close
+    if (!this.shot || this.shot.kind === 'open') {
+      if (this.shot && this.t - this.shot.t0 < 4.6) return;
+      const f = this.front(); this.start('focus', { prio: 10, dur: 99, x: f.x, y: f.y, z: f.z, spd: 0.55, zspd: 0.35, track: false });
+    } else if (this.shot.kind === 'focus') {
+      const f = this.front(), sh = this.shot, dz = 150 / sh.z, dx = f.x - sh.x, dy = f.y - sh.y, d = Math.hypot(dx, dy);
+      if (d > dz) { const k = Math.min(1, dt * 0.55) * (d - dz) / d; sh.x += dx * k; sh.y += dy * k; }
+      sh.z += (f.z - sh.z) * Math.min(1, dt * 0.25);
     }
   }
 }

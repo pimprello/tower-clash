@@ -37,6 +37,8 @@ const SIM = {
       if (kind !== 'swarm' && kind !== 'titans' && R.chance(0.35)) list.splice(Math.floor(list.length / 2), 0, R.chance(0.5) ? 'healer' : 'shaman');
       this.plan.push({ i, kind, name: W.name, at, list, gap: W.gap * (mode === 'swarm' ? 0.75 : 1), next: 0, k: 0, lane: i % this.lanes.length, done: false, boss: false, air: !!W.air });
     }
+    // (2026-11-16) on the strange new worlds, one or two waves are the world's natives (td-worlds.js)
+    if (this.plantNatives) this.plantNatives(R);
     // the boss wave: the boss, with an escort
     const bpool = (A.boss || ['magmacolossus']).filter(k => UNIT[k]);
     const boss = o.boss && UNIT[o.boss] ? o.boss : bpool[R.int(0, bpool.length - 1)];
@@ -62,7 +64,7 @@ const SIM = {
       if (!w.started) {
         w.started = true; this.waveNow = Math.max(this.waveNow, w.i + 1);
         if (w.boss && !w.mini) this.card({ kind: 'wave', text: `WAVE ${w.i + 1} · ${BOSSES[this.bossType] ? BOSSES[this.bossType].name : 'THE BOSS'}`, col: '#FF5A5A', big: true });
-        else this.card({ kind: 'wave', text: `WAVE ${w.i + 1} · ${w.name}`, col: COL.gold });
+        else this.card({ kind: 'wave', text: `WAVE ${w.i + 1} · ${w.name}`, col: COL.gold, sub: w.native ? 'NATIVES OF THIS LAND · STRONGER ON HOME GROUND' : undefined });
         this.snd(w.boss ? 'roar' : 'alarm', { gain: w.boss ? 1 : 0.6 });
         if (w.boss && !w.mini) { this.chapter('THE BOSS WAVE', '#FF5A5A'); }
         w.next = T;
@@ -77,6 +79,8 @@ const SIM = {
     }
   },
   spawnAttacker(type, lane, w) {
+    const nat = this.nativeOf ? this.nativeOf(type) : null, natKey = nat ? type.slice(2) : null;
+    if (nat) type = nat.base;
     const L = this.lanes[lane], U = UNIT[type], R = this.WVR;
     const p = laneAt(L, 0), lat = R.range(-1, 1) * Math.max(0, PATH_W / 2 - U.r - 4);
     const u = this.addUnit(ATK, type, p.x + p.nx * lat, p.y + p.ny * lat);
@@ -99,9 +103,11 @@ const SIM = {
       this.shake(10);
     }
     if (type === 'livingfortress') { u.escort = true; hp = U.hp * 3.2 * this.hpK; this.escortU = u; this.chapter('THE SIEGE ENGINE ROLLS IN', '#FDBA74'); }
+    // a native of this world: tougher, harder-hitting and a little faster on home ground
+    if (nat) { u.native = natKey; u.nativeName = nat.name; hp *= 1.3; u.dmgK = 1.25; }
     u.max = hp; u.hp = hp;
     // (every layout takes about as long to walk, short or winding: speeds scale with the lane's length)
-    u.vk = walkSpeed(type) * this.spdK * (u.boss ? 0.62 : 1) * (U.flying ? 1 : clamp(L.len / 1900, 0.55, 1.7));
+    u.vk = walkSpeed(type) * this.spdK * (u.boss ? 0.62 : 1) * (U.flying ? 1 : clamp(L.len / 1900, 0.55, 1.7)) * (nat ? 1.08 : 1);
     if (U.flying) { const b = this.base; u.fly = { x0: u.x, y0: AR.y - 30, len: Math.hypot(b.x - u.x, b.y - (AR.y - 30)) }; u.s = 0; }
     return u;
   },
@@ -116,7 +122,7 @@ const SIM = {
     this.buildAt = T + 0.5;
     const live = this.towers.filter(t => !t.dead);
     const soon = this.plan.filter(w => !w.started).slice(0, 2);
-    const airSoon = soon.some(w => w.air || w.list.some(k => UNIT[k].flying)) || this.units.some(u => u.team === ATK && !u.dead && u.flying);
+    const airSoon = soon.some(w => w.air || w.list.some(k => (UNIT[k] || UNIT[(this.nativeOf(k) || {}).base] || {}).flying)) || this.units.some(u => u.team === ATK && !u.dead && u.flying);
     // 1. a fallen tower is rebuilt, never in an instant (Rellz 2026-11-16: "dont rebuild it instantly, make it cost money and
     // slowly rebuild it"): once the dust has settled (3 s) and the defenders can pay for it, builders put up scaffolding on the
     // rubble and raise it again over 7 s; it only fights once it's finished
@@ -194,6 +200,8 @@ const SIM = {
     this.merchantTick();
     this.shamanTick();
     this.eventTick(h);
+    if (this.crystalTick) this.crystalTick(h);
+    if (this.weirdTick) this.weirdTick(h);
     // the final push: in the last 10 s of the fight both sides go all out, so the battle always reaches its ending
     const push = T >= this.pushAt[0];
     if (!this.guessed && this.t >= 8.6) { this.guessed = true; this.card({ kind: 'guess', text: "WHAT'S YOUR GUESS?", dur: 3.8, big: true }); }
@@ -249,6 +257,8 @@ const SIM = {
     const T = this.fightT;
     let v = u.vk || 80;
     if (u.slowT > T) v *= u.slowK;
+    if (u.rewindT > T) v *= 2.6;
+    if (u.chickT > T) v *= 0.65;
     if (this.wNow) v *= this.worldSpd(u);
     if (this.atkBuff('haste')) v *= 1.4;
     if (u.rageT > T) v *= 1.2;
@@ -271,7 +281,8 @@ const SIM = {
     const back = u.charmT > T;
     // something in the way: a blocker (swordsman, skeleton, knight) or a wall on its lane
     let foe = null;
-    if (!u.flying && !back) {
+    const chick = u.chickT > T;
+    if (!u.flying && !back && !chick) {
       if (u.foe && !u.foe.dead && Math.hypot(u.foe.x - u.x, u.foe.y - u.y) < u.r + u.foe.r + 14) foe = u.foe;
       else {
         u.foe = null;
@@ -280,10 +291,10 @@ const SIM = {
       }
     }
     let wall = null;
-    if (!u.flying && !back && !foe) for (const w of this.walls) if (!w.dead && w.lane === u.lane && u.s < w.s && w.s - u.s < u.r + 16) { wall = w; break; }
+    if (!u.flying && !back && !foe && !chick) for (const w of this.walls) if (!w.dead && w.lane === u.lane && u.s < w.s && w.s - u.s < u.r + 16) { wall = w; break; }
     // raiders and sappers go for a tower beside the path
     let tgt = null;
-    if (!u.flying && !back && !foe && !wall) {
+    if (!u.flying && !back && !foe && !wall && !chick) {
       if (u.type === 'bomber') { const t = this.nearTower(u, 150); tgt = t ? t.u : null; }
       else if ((RAIDERS.has(u.type) || u.boss) && (u.raids ?? 3) > 0) { const t = this.nearTower(u, u.r + 34); if (t) tgt = t.u; }
     }
@@ -331,6 +342,25 @@ const SIM = {
       u.s = clamp(ns, 0, L.len);
       const p = laneAt(L, Math.min(L.len, u.s + (back ? 10 : 24)));
       this.steerTo(u, p.x + p.nx * u.lat, p.y + p.ny * u.lat, back ? v : v * clamp(0.9 + lag / 120, 0.9, 1.15), h, back, !back);
+      // (Rellz 2026-11-16: "fix characters overlay over each other") troops keep a little room round them: an overlapping
+      // neighbour eases them apart (the bigger one shoves harder), sideways onto a free bit of the path or back into the queue,
+      // a few pixels a tick, so nobody jumps
+      {
+        let px = 0, py = 0;
+        for (const o of this.near(u.x, u.y, u.r + 30)) {
+          if (o === u || o.team !== ATK || o.gone || o.flying || o.tower || o.atBase) continue;
+          const dx = u.x - o.x, dy = u.y - o.y, d = Math.hypot(dx, dy), min = (u.r + o.r) * 0.92;
+          if (d >= min) continue;
+          const w = (min - d) / min * (2 * o.r / (u.r + o.r));
+          if (d < 0.01) { const a = (u.uid || 1) * 2.39; px += Math.cos(a) * w; py += Math.sin(a) * w; } else { px += dx / d * w; py += dy / d * w; }
+        }
+        if (px || py) {
+          const m = Math.hypot(px, py), k = Math.min(m, 1.6) / m * 55 * h;
+          u.x += px * k; u.y += py * k;
+          const lw = Math.max(0, PATH_W / 2 - u.r * 0.6);
+          u.lat = clamp(u.lat + (px * p.nx + py * p.ny) * k * 0.8, -lw, lw);
+        }
+      }
       if (u.s >= L.len - 4 || Math.hypot(u.x - this.base.x, u.y - this.base.y) <= this.wallR(u)) this.reachBase(u, h);
     } else {
       u.vx *= 0.8; u.vy *= 0.8;
@@ -339,7 +369,7 @@ const SIM = {
       if (u.cd <= 0) {
         u.cd = (U.cd || 1) * this.R.range(0.85, 1.15) * (this.wNow ? this.worldCd() : 1);
         u.lunge = 1;
-        let dmg = (U.dmg || 1) * 1.6 * (u.boss ? 2.2 : 1) * (this.atkBuff('warcry') ? 1.5 : 1) * this.pushK;
+        let dmg = (U.dmg || 1) * 1.6 * (u.dmgK || 1) * (u.boss ? 2.2 : 1) * (this.atkBuff('warcry') ? 1.5 : 1) * this.pushK;
         if (U.sword) { const side = u.swordSide || -1; u.swingFrom = side; u.swordSide = -side; u.swing = 1; u.swingStart = side * 1.05; }
         if (wall) { wall.hp -= dmg * 1.5; wall.hitT = this.t; this.burst(wall.x, wall.y, '#9A7B55', 4, 160, 0.4, 5); this.snd('chop', { pan: this.pan(wall.x), quiet: true }); if (wall.hp <= 0) this.wallFalls(wall, u); }
         else {
@@ -486,6 +516,7 @@ const SIM = {
     const b = this.base, T = this.fightT;
     if (b.hp <= 0) return;
     if (this.overtime) dmg *= this.otK();
+    if (u && u.chickT > this.fightT) dmg *= 0.05;   // (a chicken can't hurt the walls)
     // pacing: before the boss wave has had its say, the gate holds (a leak still hurts, less the lower the base is), so the
     // battle is decided at the end, not in the first half
     const bw = this.plan.find(w => w.boss && !w.mini);
@@ -569,6 +600,7 @@ const SIM = {
       if (o.boss) v += Df.truedmg ? 2000 : 30;
       if (o.escort) v += 3000;
       if (Df.shot === 'charm' && (o.boss || isTitan(o.type) || o.charmT > T)) v -= 5000;
+      if ((Df.shot === 'hex' && (o.boss || isTitan(o.type) || o.chickT > T || o.flying)) || (Df.shot === 'shrink' && o.shrunk) || (Df.shot === 'rewind' && (o.boss || o.rewindT > T))) v -= 5000;
       if (v > best) { best = v; tgt = o; }
     }
     // the character turns smoothly to aim (never snaps), and fires once it's lined up
@@ -592,6 +624,7 @@ const SIM = {
       if (this.t - last >= 0.45) { this.sfxLast[nm] = this.t; this.snd(nm, { pan, quiet: Df.cd < 0.6 || ['freeze', 'zap', 'pop', 'laser'].includes(nm), gain: ['freeze', 'zap'].includes(nm) ? 0.45 : undefined }); } }
     const el = tw.el;
     const fx = { burn: Df.burn || (el === 'fire' ? 1 : 0), slow: Df.slow || (el === 'frost' ? [0.6, 1.5] : null), poison: el === 'acid' ? 1 : 0, zap: el === 'storm', holy: el === 'holy' };
+    if (this.weirdShot && this.weirdShot(u, tgt, tw, dmg, Df)) return;
     switch (Df.shot) {
       case 'arrow': this.fire(u, tgt, { dmg, kind: el === 'fire' ? 'firearrow' : null, speed: 900, fx, air: Df.airK }); break;
       case 'bolt': this.fire(u, tgt, { dmg, bolt: true, speed: 1200, fx, pierce: true, line: Df.line || 0, air: Df.airK }); break;
@@ -756,15 +789,31 @@ const SIM = {
       n++;
     }
     this._elK = null; this._shXk = null; this._shBx = undefined;
-    if (this.shine) this.shineBoom({ kind: c.kind === 'cannonball' ? 'cannonball' : c.kind === 'mortar' ? 'mortar' : c.kind === 'boulder' ? 'boulder' : c.kind === 'meteor' ? 'meteor' : c.kind === 'bomb' ? 'bomb' : c.kind === 'frostbolt' ? 'frostbolt' : 'fireball', x: c.x, y: c.y, splash: c.r });
-    this.booms.push({ x: c.x, y: c.y, r: c.r * 0.7, t: 0, magic: c.kind === 'fireball' && false, zap: c.kind === 'frostbolt' });
+    // (Rellz, 2026-11-16: "fix the overlay of the mortar hit, make it smaller and more realistic") shells, cannonballs and
+    // boulders land with a compact, earthy hit: a quick flash, a short puff of fire and dust, dirt thrown up and a scorch mark,
+    // instead of the engine's big screen-wide explosion (long shrapnel streaks, cracks, colour split and hit-stop)
+    const shell = c.kind === 'mortar' || c.kind === 'cannonball' || c.kind === 'boulder';
+    if (this.shine && shell) this.shellHit(c);
+    else if (this.shine) this.shineBoom({ kind: c.kind === 'meteor' ? 'meteor' : c.kind === 'bomb' ? 'bomb' : c.kind === 'frostbolt' ? 'frostbolt' : 'fireball', x: c.x, y: c.y, splash: c.r });
+    this.booms.push({ x: c.x, y: c.y, r: c.r * (shell ? 0.4 : 0.7), t: 0, magic: false, zap: c.kind === 'frostbolt' });
     if (c.kind === 'frostbolt') this.burst(c.x, c.y, '#DCEFFF', 12, 300, 0.45, 6);
     else if (c.kind === 'fireball') this.burst(c.x, c.y, '#FF8A1F', 12, 300, 0.45, 7);
+    else if (shell) this.burst(c.x, c.y, '#8A7A62', 5, 200, 0.4, 5);
     else this.burst(c.x, c.y, '#9A8F80', 10, 320, 0.5, 8);
     this.snd(c.kind === 'frostbolt' ? 'freeze' : c.kind === 'fireball' ? 'flame' : 'boom', { pan: this.pan(c.x), gain: c.r > 60 ? 0.8 : 0.5 });
     if (this.camEv) this.camEv.push({ type: 'blast', x: c.x, y: c.y, kind: c.kind });
     if (this.fireG && el === 'fire') this.ignite(c.x, c.y, 0.25);
     return n;
+  },
+  shellHit(c) {
+    const x = c.x, y = c.y, R = Math.min(c.r, 70) * (c.kind === 'cannonball' ? 0.75 : 0.85), T = this.t, rock = c.kind === 'boulder';
+    if (this.shRings) this.shRings.push({ x, y, r0: R * 0.15, r1: R * 0.9, t0: T, life: 0.26, col: rock ? '#E8DCC4' : '#FFE2A8', w: 3 });
+    if (!rock) this.shSpray(x, y, 0, Math.PI, 2, R * 0.8, 0.28, R * 0.17, '#FFB347', -20, { smoke: true });
+    this.shSpray(x, y, -Math.PI / 2, 0.8, 3, R * 0.55, 1.2, R * 0.15, rock ? '#9C8A70' : '#5E564D', -30, { smoke: true });
+    this.shSpray(x, y, -Math.PI / 2, 1.3, 5, R * 3, 0.5, 2.4, rock ? '#8A7458' : '#5B4632', 520, { shard: true });
+    if (!rock) this.shSpray(x, y, -Math.PI / 2, 1.1, 3, R * 3.5, 0.3, 1.6, '#FFC04D', 200, { streak: 0.012 });
+    this.shPulse(0.08, 0.08); this.shKick(this.FX.range(0, TAU), 2.5);
+    (this.scorches || (this.scorches = [])).push({ x, y, r: R * 0.42, t0: T }); if (this.scorches.length > 40) this.scorches.shift();
   },
   zoneTick(h) {
     const T = this.fightT;
@@ -847,6 +896,7 @@ const SIM = {
   damage(u, dmg, from) {
     if (!u || u.dead) return;
     if (u.team === ATK && this.atkBuff('ward') && dmg > 0) dmg *= 0.5;
+    if (u.chickT > this.fightT && dmg > 0) dmg *= 1.5;
     if (u.team === ATK && dmg > 0 && this.overtime) dmg *= this.otK();
     if (from && from.team === ATK && this.atkBuff('warcry')) dmg *= 1.0;
     if (u.tower && this.sp3.domes.some(d => d.base && this.fightT < d.end && Math.hypot(u.x - d.x, u.y - d.y) < d.r)) dmg *= 0.3;
@@ -897,6 +947,7 @@ const SIM = {
       this.coins.push({ x: u.x, y: u.y, t0: this.t, g, x1: 0, y1: 0 });
       this.killLog.push(this.t); if (this.killLog.length > 60) { this.killLog.shift(); this.killLogShifted = (this.killLogShifted || 0) + 1; }
       this.gold += g;
+      if (this.totemKill) this.totemKill(u, g);
       // the tower that made the kill
       const tw = from && from.tw ? from.tw : from && from.owner && from.owner.tw ? from.owner.tw : null;
       if (tw) { tw.kills++; if (isTitan(u.type) || u.boss) tw.titanKills++; this.stat.towerKills[tw.kind] = (this.stat.towerKills[tw.kind] || 0) + 1; this.champCheck(tw); }

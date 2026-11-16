@@ -3,5 +3,8 @@
 'use strict';
 require('./td-sim.js');
 require('./td-play.js');
+require('./td-crystal.js');
+require('./td-worlds.js');
+require('./td-weird.js');
 try { require('./td-draw.js'); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
 module.exports = require('./td.js');

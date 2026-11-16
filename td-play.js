@@ -5,7 +5,7 @@ const D = require('./td-data.js');
 const { TD, laneAt, distToLane, PATH_W, DEF, ATK } = require('./td.js');
 const E = RVB._;
 const { AR, COL, TEAMS, UNIT, TAU, clamp, labelOf, isTitan, hash01 } = E;
-const { BOOK, BOOK_KEYS, SHAMAN, SHAMAN_KEYS, TOWERS, LAYOUTS } = D;
+const { BOOK, BOOK_KEYS, CRYSTAL, CRYSTAL_KEYS, SHAMAN, SHAMAN_KEYS, TOWERS, LAYOUTS } = D;
 
 // a repeatable order from the seed (no dice)
 const hashS = (a, b) => { let x = ((a >>> 0) ^ Math.imul(b + 1, 0x9E3779B1)) >>> 0; x ^= x >>> 16; x = Math.imul(x, 0x85EBCA6B) >>> 0; x ^= x >>> 13; x = Math.imul(x, 0xC2B2AE35) >>> 0; x ^= x >>> 16; return x >>> 0; };
@@ -50,10 +50,10 @@ const PLAY = {
         this.merch.sold.push(k);
         (this.spellQ || (this.spellQ = [])).push({ k, at: T + 1.0 + (n - 1) * 1.9, team: DEF });
         this.stat.spells.push(k);
-        this.card({ kind: 'spell', text: `BOUGHT · ${BOOK[k].name}`, sub: `${price} GOLD`, col: BOOK[k].col, spell: k });
+        this.card(CRYSTAL[k] ? { kind: 'spell', text: `BOUGHT · ${BOOK[k].name}`, sub: `CRYSTAL ${D.CRYSTAL_CATS[CRYSTAL[k].cat].name} · ${price} GOLD`, col: BOOK[k].col, crystal: true } : { kind: 'spell', text: `BOUGHT · ${BOOK[k].name}`, sub: `${price} GOLD`, col: BOOK[k].col, spell: k });
         this.say(`THE DEFENDERS BUY ${BOOK[k].name} (${price} GOLD)`, DEF);
         this.snd('coin');
-        if (n >= 2 || this.gold < 30) break;
+        if (n >= 3 || this.gold < 25) break;
       }
       if (!n) { this.say('THE MERCHANT LEAVES: NO GOLD TO SPARE', DEF); }
     }
@@ -62,7 +62,12 @@ const PLAY = {
   offer(n) {
     const keys = BOOK_KEYS.slice(), seen = this.offered || [];
     keys.sort((a, b) => hashS(this.seed, n * 31 + BOOK_KEYS.indexOf(a)) - hashS(this.seed, n * 31 + BOOK_KEYS.indexOf(b)));
-    const out = keys.filter(k => !seen.includes(k)).slice(0, 5);
+    const out = keys.filter(k => !seen.includes(k)).slice(0, 4);
+    // (2026-11-16) and one piece of crystal magic of each kind: a trap, a totem and a summon
+    for (const cat of ['trap', 'totem', 'summon']) {
+      const ks = CRYSTAL_KEYS.filter(k => CRYSTAL[k].cat === cat && !seen.includes(k));
+      if (ks.length) out.push(ks[hashS(this.seed, n * 7 + cat.length) % ks.length]);
+    }
     this.offered = seen.concat(out);
     return out;
   },
@@ -88,6 +93,7 @@ const PLAY = {
       case 'chainstorm': return 0.3 + nAtk * 0.05;
       case 'breath': return 0.35 + packed * 0.1;
     }
+    if (CRYSTAL[k]) return this.crystalWant(k, { packed, near, nAtk, hurt, bossNear });
     return 0.3;
   },
   // ---------- casting a spell (the defenders') ----------
@@ -97,6 +103,7 @@ const PLAY = {
     const pan = x => this.pan(x), col = BOOK[k].col, live = this.towers.filter(t => !t.dead);
     const laneOf = u => (u && u.lane !== undefined ? this.lanes[u.lane] : this.lanes[0]);
     const word = (x, y, text) => this.float(x, y - 30, text, col, 30, 1.1);
+    if (CRYSTAL[k]) return this.crystalGive(k, this.merch ? [this.merch.x, this.merch.y - 50] : [b.x, b.y - 60], false);
     switch (k) {
       case 'heal': {
         const beams = [];
@@ -252,6 +259,7 @@ const PLAY = {
   },
   hazardKind() {
     const m = this.opts.map;
+    const Wd = require('./td-worlds.js').WORLDS[m]; if (Wd) return Wd.hazard;
     return { beach: 'kraken', dunes: 'sandworm', furnace: 'eruption', frozen: 'blizzard', snow: 'blizzard', forest: 'stampede', castle: 'stampede', blossom: 'stampede', neon: 'storm', moon: 'storm', graveyard: 'storm', swamp: 'storm', temple: 'storm', enchanted: 'storm', bombed: 'storm' }[m] || 'storm';
   },
   eventTick(h) {

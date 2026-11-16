@@ -109,6 +109,7 @@ class TD extends RVB.Army {
     this.planWaves();
     this.planSpells();
     this.planEvents();
+    if (this.planCrystals) this.planCrystals();
     if (this.ground) this.paintGround(this.ground, 1);
     this.mapLayer = null; this._hiL = null;
   }
