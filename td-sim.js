@@ -115,11 +115,30 @@ const SIM = {
     const live = this.towers.filter(t => !t.dead);
     const soon = this.plan.filter(w => !w.started).slice(0, 2);
     const airSoon = soon.some(w => w.air || w.list.some(k => UNIT[k].flying)) || this.units.some(u => u.team === ATK && !u.dead && u.flying);
-    // 1. a wreck to rebuild (the same tower)
-    const wreck = this.spots.find(s => s.wreck && s.was);
+    // 1. a fallen tower is rebuilt, never in an instant (Rellz 2026-11-16: "dont rebuild it instantly, make it cost money and
+    // slowly rebuild it"): once the dust has settled (3 s) and the defenders can pay for it, builders put up scaffolding on the
+    // rubble and raise it again over 7 s; it only fights once it's finished
+    for (const sp of this.spots) if (sp.raising && T >= sp.raising.end) {
+      const kind = sp.raising.kind; sp.raising = null; sp.wreck = false;
+      const tw = this.buildTower(kind, sp, true); this.stat.rebuilt++;
+      if (tw) {
+        tw.risenT = this.t; tw.glintT = this.t;
+        this.burst(sp.x, sp.y, '#E2D3A8', 18, 280, 0.6, 9, 40); this.snd('evolve', { pan: this.pan(sp.x), gain: 0.7 });
+        this.shRings && this.shRings.push({ x: sp.x, y: sp.y, r0: 18, r1: 90, t0: this.t, life: 0.5, col: '#FFE58A', w: 5 });
+        this.card({ kind: 'build', text: `${TOWERS[kind].name} REBUILT`, tk: kind, col: TEAMS[DEF].c });
+        this.say(`${TOWERS[kind].name} IS BACK`, DEF);
+      }
+    }
+    const wreck = this.spots.find(s => s.wreck && s.was && !s.raising && T >= (s.fellT || 0) + 3);
     if (wreck && this.mode !== 'laststand') {
-      const c = TOWERS[wreck.was].cost; if (this.gold >= c) { this.gold -= c; wreck.wreck = false; this.stat.rebuilt++; const tw = this.buildTower(wreck.was, wreck); this.say(`${TOWERS[wreck.was].name} REBUILT`, DEF); this.card({ kind: 'build', text: `REBUILT · ${TOWERS[wreck.was].name}`, tk: wreck.was, col: TEAMS[DEF].c }); return tw; }
-      return;
+      const c = TOWERS[wreck.was].cost;
+      if (this.gold >= c) {
+        this.gold -= c; wreck.raising = { kind: wreck.was, t0: T, end: T + 7, cost: c };
+        this.card({ kind: 'build', text: `REBUILDING · ${TOWERS[wreck.was].name}`, sub: `-${c} GOLD`, tk: wreck.was, col: COL.gold });
+        this.snd('thud', { pan: this.pan(wreck.x), gain: 0.6 });
+        if (this.camEv) this.camEv.push({ type: 'spot', x: wreck.x, y: wreck.y, prio: 50, dur: 1.4, z: 1.6 });
+      }
+      return;   // (saving up for it first)
     }
     // 2. a new tower: up to 4 + one every 7 s (never in Last Tower Standing), countering what's coming
     const want = Math.min(this.spots.length, 3 + Math.floor((T + 3) / 7));
@@ -232,10 +251,12 @@ const SIM = {
     if (this.atkBuff('haste')) v *= 1.4;
     if (u.rageT > T) v *= 1.2;
     if (u.affT > T) v *= this.aff ? this.aff.speed : 1;
-    if (u.chargeT > T) v *= 2.6;
-    v *= this.pushK;
-    for (const z of this.zones) if (z.lane && (z.kind === 'ice' || z.kind === 'sand' || z.kind === 'mud') && this.lanes[u.lane] === z.lane && u.s > z.s0 && u.s < z.s1 && !u.flying) v *= z.kind === 'ice' ? 1.3 : 0.7;
-    return v;
+    if (u.chargeT > T) v *= 2.2;
+    // (the late push makes them braver, not sprinters: Rellz 2026-11-16 "sometimes people run too fast")
+    v *= 1 + (this.pushK - 1) * 0.35;
+    for (const z of this.zones) if (z.lane && (z.kind === 'ice' || z.kind === 'sand' || z.kind === 'mud') && this.lanes[u.lane] === z.lane && u.s > z.s0 && u.s < z.s1 && !u.flying) v *= z.kind === 'ice' ? 1.2 : 0.7;
+    // never more than 1.6 times its own pace (2.3 in a charge), however the boosts stack
+    return Math.min(v, (u.vk || 80) * (u.chargeT > T ? 2.3 : 1.6));
   },
   atkBuff(k) { return this.aBuff && this.aBuff[k] > this.fightT; },
   // ---------- attackers: march down the path; fight what blocks them; some go for towers ----------
@@ -299,9 +320,15 @@ const SIM = {
         return;
       }
       const L = this.lanes[u.lane];
-      u.s = clamp(u.s + v * h * (back ? -0.7 : 1), 0, L.len);
-      const p = laneAt(L, u.s + 10);
-      this.steerTo(u, p.x + p.nx * u.lat, p.y + p.ny * u.lat, v, h, back);
+      // (Rellz 2026-11-16: "sometimes they do a weird loop even though the path is straight") the marker a troop follows is
+      // kept at or just ahead of where it really is on the path: never behind it (a troop pushed ahead of its marker turned
+      // round and looped back to it) and never far ahead (it then ran to catch up). It walks at its own speed, catching up
+      // a little when it has fallen behind
+      let ns = u.s + v * h * (back ? -0.7 : 1), lag = 0;
+      if (!back) { const pr = distToLane(L, u.x, u.y).s; if (Math.abs(pr - u.s) < 90) { ns = clamp(ns, pr, pr + 30); lag = ns - pr; } }
+      u.s = clamp(ns, 0, L.len);
+      const p = laneAt(L, Math.min(L.len, u.s + (back ? 10 : 24)));
+      this.steerTo(u, p.x + p.nx * u.lat, p.y + p.ny * u.lat, back ? v : v * clamp(0.9 + lag / 120, 0.9, 1.15), h, back, !back);
       if (u.s >= L.len - 4 || Math.hypot(u.x - this.base.x, u.y - this.base.y) <= this.wallR(u)) this.reachBase(u, h);
     } else {
       u.vx *= 0.8; u.vy *= 0.8;
@@ -398,10 +425,10 @@ const SIM = {
     for (const tw of this.towers) { if (tw.dead) continue; const d = Math.hypot(tw.x - u.x, tw.y - u.y) - tw.u.r; if (d < bd) { bd = d; best = tw; } }
     return best;
   },
-  steerTo(u, tx, ty, v, h, back) {
+  steerTo(u, tx, ty, v, h, back, even) {
     const dx = tx - u.x, dy = ty - u.y, d = Math.hypot(dx, dy) || 1;
-    const sp = Math.min(v * 1.6, d / h * 0.5);
-    const k = Math.min(1, 9 * h);
+    const sp = even ? Math.min(v, d / h * 0.5) : Math.min(v * 1.6, d / h * 0.5);
+    const k = Math.min(1, (even ? 6 : 9) * h);
     u.vx += (dx / d * sp - u.vx) * k; u.vy += (dy / d * sp - u.vy) * k;
     u.x += u.vx * h; u.y += u.vy * h;
     if (Math.hypot(u.vx, u.vy) > 4) this.turn(u, Math.atan2(u.vy, u.vx) + (back ? Math.PI : 0), h);
@@ -456,6 +483,7 @@ const SIM = {
   hitBase(dmg, u) {
     const b = this.base, T = this.fightT;
     if (b.hp <= 0) return;
+    if (this.overtime) dmg *= this.otK();
     // pacing: before the boss wave has had its say, the gate holds (a leak still hurts, less the lower the base is), so the
     // battle is decided at the end, not in the first half
     const bw = this.plan.find(w => w.boss && !w.mini);
@@ -551,7 +579,7 @@ const SIM = {
     const dmg = Df.dmg * TIER.dmg[tw.tier] * (u.bigT > T ? 1.8 : 1) * (tw.growT > T ? 1.5 : 1) * (this.pushK > 1 ? 1 + (this.pushK - 1) * 0.8 : 1);
     u.muzzle = 1; u.lunge = 1; tw.shotT = this.t;
     // (looks only) a puff and a few sparks where the shot leaves, and the tower kicks back a touch
-    { const F = this.FX, fx = u.x + Math.cos(u.face) * (u.r + 6), fy = u.y + Math.sin(u.face) * (u.r + 6), heavy = ['cannonball', 'mortar', 'boulder', 'snipe'].includes(Df.shot);
+    { const F = this.FX, [fx, fy] = this.humans && E.HUMAN && E.HUMAN[u.type] && this.muzzleOf ? this.muzzleOf(u) : [u.x + Math.cos(u.face) * (u.r + 6), u.y + Math.sin(u.face) * (u.r + 6)], heavy = ['cannonball', 'mortar', 'boulder', 'snipe'].includes(Df.shot);
       if (this.parts.length < 900) { for (let k = 0; k < (heavy ? 6 : 3); k++) { const a = u.face + F.range(-0.5, 0.5), sp = F.range(60, heavy ? 260 : 160); this.parts.push({ x: fx, y: fy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: F.range(0.12, 0.26), age: 0, size: F.range(1.2, 2.2), color: heavy ? '#FFD27A' : '#FFF6D8', grav: 0, streak: 0.03, drag: 6 }); }
         if (heavy) this.parts.push({ x: fx, y: fy, vx: Math.cos(u.face) * 40, vy: Math.sin(u.face) * 40, life: 0.5, age: 0, size: 9, color: '#B9B4AA', grav: 0, smoke: true, drag: 3 }); }
       tw.kick = this.t; }
@@ -779,29 +807,24 @@ const SIM = {
     const left = this.units.filter(u => u.team === ATK && !u.dead && !u.gone).length + this.reserve[ATK];
     const allOut = this.plan.every(w => w.done);
     if (allOut && left === 0) return this.finish(DEF);
-    // the time limit: whoever is still standing at the bell decides it. In the last second the towers loose a final volley at
-    // whatever is left if the base can take the rest, otherwise the attackers charge the gate (either way the video ends on a blow)
-    if (T >= this.cap - 1.2 && !this.lastCall) {
-      this.lastCall = true; this.ranOut = true;
-      const atk = this.units.filter(u => u.team === ATK && !u.dead && !u.gone);
-      const threat = atk.reduce((s, u) => s + (SIEGE[u.size || 'small'] || 3) * (u.hp / u.max), 0);
-      this.lastVerdict = b.hp > threat ? DEF : ATK;
-      this.say(this.lastVerdict === DEF ? 'THE TOWERS LOOSE A FINAL VOLLEY' : 'THE ATTACKERS CHARGE THE GATE', this.lastVerdict);
+    // no time limit any more (Rellz 2026-11-16: "dont make it say ... wait until final boss falls or tower is destroyed"): the
+    // battle only ends when the attackers are all down (the boss included) or the base falls. Past the planned length it goes
+    // into overtime, and the pressure rises on both sides alike (towers hit harder, attackers hit the base harder, a little
+    // more each second), so it is settled by the fight itself, never by a clock
+    if (T >= this.cap && !this.overtime) {
+      this.overtime = T;
+      this.card({ text: 'OVERTIME!', sub: 'until the boss falls or the base does', col: '#FF7A45', big: true, dur: 2.2 });
+      this.snd('horn', { gain: 0.8 });
     }
-    if (this.lastCall && T >= this.cap - 0.6) {
-      const atk = this.units.filter(u => u.team === ATK && !u.dead && !u.gone).sort((a, c) => (c.s || 0) - (a.s || 0));
-      if (this.lastVerdict === DEF) {
-        // the volley: each remaining attacker struck down by the nearest tower, the leader last
-        const tws = this.towers.filter(t => !t.dead);
-        for (const u of atk.reverse()) { const tw = tws.sort((a, c) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(c.x - u.x, c.y - u.y))[0]; this.bolts.push({ x0: (tw || b).x, y0: (tw || b).y, x1: u.x, y1: u.y, t0: this.t, col: '#FFE58A' }); this.damage(u, u.hp + 9999, tw ? tw.u : null); }
-        this.reserve[ATK] = 0; for (const w of this.plan) w.done = true;
-        return this.finish(DEF);
-      }
-      const lead = atk[0];
-      if (lead) this.hitBase(b.hp + 1, lead); else b.hp = 0;
-      return this.finish(ATK);
+    // (a last guard that should never be needed: after 40 s of overtime the side with more left standing takes it)
+    if (this.overtime && T >= this.cap + 40) {
+      const atk = this.units.filter(u => u.team === ATK && !u.dead && !u.gone);
+      const threat = atk.reduce((s2, u) => s2 + (SIEGE[u.size || 'small'] || 3) * (u.hp / u.max), 0);
+      return this.finish(b.hp > threat ? DEF : ATK);
     }
   },
+  // overtime pressure: 1 at the planned end, rising 12% a second
+  otK() { return this.overtime ? 1 + 0.12 * Math.max(0, this.fightT - this.cap) : 1; },
   finish(w) {
     const b = this.base, tws = this.towers.filter(t => !t.dead).length;
     this.tdWinner = w;
@@ -822,6 +845,7 @@ const SIM = {
   damage(u, dmg, from) {
     if (!u || u.dead) return;
     if (u.team === ATK && this.atkBuff('ward') && dmg > 0) dmg *= 0.5;
+    if (u.team === ATK && dmg > 0 && this.overtime) dmg *= this.otK();
     if (from && from.team === ATK && this.atkBuff('warcry')) dmg *= 1.0;
     if (u.tower && this.sp3.domes.some(d => d.base && this.fightT < d.end && Math.hypot(u.x - d.x, u.y - d.y) < d.r)) dmg *= 0.3;
     // pacing: the boss is the deciding fight, so it can't be shot down long before the end; it takes less the earlier it is
@@ -878,7 +902,7 @@ const SIM = {
       if (isTitan(u.type) && !u.boss) this.say(`${labelOf(u.type).replace(/^THE /, '')} SLAIN`, DEF);
     } else if (u.tower) {
       const tw = u.tw; tw.dead = true; tw.deadT = this.t;
-      tw.spot.tower = null; tw.spot.wreck = true; tw.spot.was = tw.kind;
+      tw.spot.tower = null; tw.spot.wreck = true; tw.spot.was = tw.kind; tw.spot.fellT = this.fightT;
       this.rubble.push({ x: tw.x, y: tw.y, t0: this.t, tier: tw.tier, kind: tw.kind });
       this.stat.fell.push(tw.kind);
       this.burst(tw.x, tw.y, '#9A8F80', 30, 420, 0.8, 10, 200); this.shake(14); this.snd('crush', { pan: this.pan(tw.x) }); this.snd('boom', { gain: 0.6 });

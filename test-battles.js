@@ -12,7 +12,7 @@ for (let i = 0; i < N; i++) {
     const g = new TD(i * 31337 + 7, { map: M, layout: L, target: 60, fixedLength: 63, outroSecs: 3, ui: 2, tdMode: mode, attack: D.ATK_LINEUPS[(i * 3) % D.ATK_LINEUPS.length], towers: dl.towers,
       defOrder: D.ORDERS[i % D.ORDERS.length], atkBand: D.WARBANDS[i % D.WARBANDS.length], events: [{ type: 'airdrop' }, { type: 'airstrike' }, { type: 'meteors' }, { type: 'hazard' }], power });
     g.fixedTicks = true; g.tickAcc = 0;
-    let k = 0; while (!g.finished && k < 60 * 90) { g.frame(1 / 60); g.sfx.length = 0; k++; }
+    let k = 0; while (!g.finished && k < 60 * 120) { g.frame(1 / 60); g.sfx.length = 0; k++; }
     if (!g.finished) { unfinished++; console.log(`never ended: battle ${i} (${L}, ${M}, ${mode})`); }
     if (g.tdWinner === 0) def++; Ts.push(g.fightT);
   } catch (e) { fails++; if (fails <= 5) console.log(`crash: battle ${i} (${L}, ${M}, ${mode}): ${e.stack.split('\n').slice(0, 3).join(' | ')}`); }

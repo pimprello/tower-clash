@@ -202,11 +202,17 @@ const DRAW = {
       const sp = this.spots.find(s => Math.abs(s.x - r.x) < 1 && Math.abs(s.y - r.y) < 1);
       if (sp && sp.tower) continue;
       const k = clamp((t - r.t0) / 0.3, 0, 1);
+      // (cleared away bit by bit while the tower is rebuilt)
+      const clr = sp && sp.raising ? clamp((T - sp.raising.t0) / 4, 0, 1) : 0; if (clr >= 1) continue;
+      ctx.save(); ctx.globalAlpha = 1 - clr;
       for (let i = 0; i < 9; i++) {
         const a = H01(r.x + i, r.y) * TAU, d = 6 + H01(i, r.x) * 22 * (0.6 + 0.4 * k), rr = 5 + H01(r.y, i) * 6;
         ctx.beginPath(); ctx.arc(r.x + Math.cos(a) * d, r.y + Math.sin(a) * d, rr, 0, TAU); ctx.fillStyle = i % 3 ? STONE_D : STONE; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke();
       }
+      ctx.restore();
     }
+    // towers being rebuilt: scaffolding over the rubble, stone courses rising inside it, builders' hammer sparks, a progress bar
+    for (const s of this.spots) if (s.raising) this.drawRaising(ctx, s);
     // walls across the path
     for (const w of this.walls) this.drawWall(ctx, w);
     // where meteors are about to land: on the ground, under everyone
@@ -259,6 +265,37 @@ const DRAW = {
     [lc.fillStyle, lc.strokeStyle, lc.lineWidth, lc.lineCap, lc.lineJoin, lc.font, lc.textAlign, lc.textBaseline] = keep;
     return lc;
   },
+  // little people's steps follow how far they've really walked (Rellz 2026-11-16: "make ... the walking animation better"):
+  // the engine's walk cycle runs at one fixed cadence, so slow walkers shuffled and fast ones skated. Here the cycle is driven
+  // by distance (one step every ~0.7 body widths), so feet match the ground at any speed. Looks only.
+  drawHuman(ctx, u, x, y, tm, kit, rr) {
+    if (!u || u.tower) return RVB.Army.prototype.drawHuman.call(this, ctx, u, x, y, tm, kit, rr);
+    const r = rr || u.r || 9;
+    if (u._wx === undefined) { u._wx = u.x; u._wy = u.y; u._wp = u.gait || 0; }
+    const d = Math.hypot(u.x - u._wx, u.y - u._wy); u._wx = u.x; u._wy = u.y;
+    if (d < 40) u._wp += d / (r * 0.7);
+    const g0 = u.gait; u.gait = u._wp - this.fightT * 10;
+    try { return RVB.Army.prototype.drawHuman.call(this, ctx, u, x, y, tm, kit, rr); } finally { u.gait = g0; }
+  },
+  // where a little person's gun (or bow) is, in the world: they're drawn upright facing left or right, aiming up or down, so
+  // the muzzle sits out to that side at hand height (drawHuman's geometry: hand at (4.2, -1.5), barrel about 9 long, in units
+  // of r / 9.5). Looks only.
+  muzzleOf(u) {
+    const k = (u.r || 9.5) / 9.5, cs = Math.cos(u.face || 0), sn = Math.sin(u.face || 0), dir = cs >= 0 ? 1 : -1, al = clamp(Math.atan2(sn, Math.abs(cs)), -1.25, 1.25);
+    return [u.x + dir * k * (4.2 + 9 * Math.cos(al)), u.y + k * (-1.5 + 9 * Math.sin(al))];
+  },
+  // (Rellz 2026-11-16: "make sure bullets come from the gun not the waist") shots fired by little people are drawn leaving
+  // from the gun's muzzle and blending into their true flight within the first 140 px; the battle's own shots aren't moved
+  draw(ctx) {
+    const HU = E.HUMAN, moved = [];
+    if (this.humans && HU && this.arrows) for (const a of this.arrows) {
+      const o = a.from || a.owner; if (!o || !HU[o.type] || o.dead) continue;
+      const d = Math.hypot(a.x - o.x, a.y - o.y), f = clamp(1 - d / 140, 0, 1); if (f <= 0) continue;
+      const [mx, my] = this.muzzleOf(o), ox = (mx - o.x) * f, oy = (my - o.y + o.r * 0.32) * f;   // (the engine lifts them r * 0.32 itself)
+      a.x += ox; a.y += oy; moved.push([a, ox, oy]);
+    }
+    try { return RVB.Army.prototype.draw.call(this, ctx); } finally { for (const [a, ox, oy] of moved) { a.x -= ox; a.y -= oy; } }
+  },
   drawMeteorGround(ctx, m, T) {
     const p = clamp((T - m.T0) / (m.T1 - m.T0), 0, 1), R = m.small ? 54 : 96, t = this.t;
     // the light of the rock on the ground, growing as it comes, and its shadow tightening under it
@@ -303,6 +340,42 @@ const DRAW = {
     ctx.beginPath(); ctx.moveTo(-rr * 0.5, -rr * 0.2); ctx.lineTo(-rr * 0.05, rr * 0.05); ctx.lineTo(rr * 0.35, -rr * 0.3); ctx.moveTo(-rr * 0.05, rr * 0.05); ctx.lineTo(rr * 0.1, rr * 0.5); ctx.stroke();
     ctx.rotate(-(t * 5 + m.x));
     ctx.beginPath(); ctx.arc(-dx * rr * 0.35, -dy * rr * 0.35, rr * 0.55, 0, TAU); ctx.fillStyle = 'rgba(255,200,110,0.45)'; ctx.fill();
+    ctx.restore();
+  },
+  drawRaising(ctx, s) {
+    const T = this.fightT, t = this.t, R0 = s.raising, p = clamp((T - R0.t0) / (R0.end - R0.t0), 0, 1), R = 26, WOOD = '#8B5A2B', WOOD_D = '#5C3A1B';
+    ctx.save(); ctx.translate(s.x, s.y);
+    ctx.beginPath(); ctx.ellipse(4, 6, R + 6, R * 0.85, 0, 0, TAU); ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fill();
+    // the stone platform rising: its courses laid one by one (a ring for each, then the top)
+    const courses = 4, done = p * courses;
+    for (let c = 0; c < courses; c++) {
+      const k = clamp(done - c, 0, 1); if (k <= 0) break;
+      const rr = R - c * 2.2, a1 = -Math.PI / 2 + TAU * k;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, -c * 2, rr, -Math.PI / 2, a1); ctx.closePath();
+      ctx.fillStyle = c % 2 ? STONE : STONE_D; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
+    }
+    if (p > 0.85) { const k = (p - 0.85) / 0.15; ctx.globalAlpha = k; ctx.beginPath(); ctx.arc(0, -8, R - 9, 0, TAU); ctx.fillStyle = STONE_L; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke(); ctx.globalAlpha = 1; }
+    // the scaffold: four poles, planks between them, lashed with rope (it comes down at the very end)
+    const sa = p < 0.9 ? 1 : 1 - (p - 0.9) / 0.1, up = easeOutCubic(clamp(p / 0.15, 0, 1));
+    ctx.globalAlpha = sa;
+    const P = [[-R - 4, -R - 4], [R + 4, -R - 4], [R + 4, R + 2], [-R - 4, R + 2]].map(([x, y]) => [x * up, y * up]);
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 4; i++) { const [ax, ay] = P[i], [bx, by] = P[(i + 1) % 4]; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineWidth = 6; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 3.5; ctx.strokeStyle = i % 2 ? WOOD : WOOD_D; ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(P[0][0], P[0][1]); ctx.lineTo(P[2][0], P[2][1]); ctx.lineWidth = 3; ctx.strokeStyle = WOOD_D; ctx.stroke();
+    for (const [x, y] of P) { ctx.beginPath(); ctx.arc(x, y, 5, 0, TAU); ctx.fillStyle = WOOD; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke(); }
+    // a builder's hammer coming down on the newest course, with sparks and dust on every blow (twice a second)
+    const ph = (T * 2) % 1, ang = -Math.PI / 2 + TAU * clamp(done % 1, 0.05, 0.95), hx = Math.cos(ang) * (R - 6), hy = Math.sin(ang) * (R - 6) - Math.min(3, Math.floor(done)) * 2;
+    if (p < 0.92) {
+      const sw = ph < 0.25 ? ph / 0.25 : 1 - (ph - 0.25) / 0.75, lift = 14 * (1 - sw);
+      ctx.save(); ctx.translate(hx, hy - lift); ctx.rotate(-0.6 + 0.9 * sw);
+      ctx.fillStyle = WOOD; ctx.fillRect(-1.5, 0, 3, 12); ctx.fillStyle = '#9CA3AF'; ctx.fillRect(-5, -3, 10, 5); ctx.lineWidth = 1.5; ctx.strokeStyle = INK; ctx.strokeRect(-5, -3, 10, 5); ctx.restore();
+      if (ph < 0.18) for (let i = 0; i < 5; i++) { const a = H01(i, Math.floor(T * 2)) * TAU, d = 4 + ph * 60; ctx.beginPath(); ctx.arc(hx + Math.cos(a) * d, hy + Math.sin(a) * d * 0.6, 1.8, 0, TAU); ctx.fillStyle = i % 2 ? '#FFD23F' : '#FFF4C2'; ctx.fill(); }
+    }
+    ctx.globalAlpha = 1;
+    // the progress bar, with what it cost
+    const bw = 64, by = R + 14;
+    roundRect(ctx, -bw / 2, by, bw, 9, 4.5); ctx.fillStyle = 'rgba(8,11,20,0.85)'; ctx.fill();
+    roundRect(ctx, -bw / 2 + 2, by + 2, (bw - 4) * p, 5, 2.5); ctx.fillStyle = COL.gold; ctx.fill();
     ctx.restore();
   },
   drawCorpses(ctx) {
@@ -496,29 +569,91 @@ const DRAW = {
     ctx.beginPath(); ctx.ellipse(sh, sh + 2, R + 2, R * 0.9, 0, 0, TAU); ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
     }
     if (this._pass === 'ground') { ctx.restore(); return; }
+    // the platform evolves with each tier, the way Clash of Clans towers do (Rellz 2026-11-16: "make the tower upgrades look
+    // visible cooler and different and evolved"): tier 1 a wooden palisade, tier 2 stone, tier 3 a taller keep with iron bands,
+    // torches and a banner, tier 4 the same charged with its element (crystals in the battlements, glowing runes), tier 5
+    // white marble and gold with spires, gems, twin banners and a turning ring of golden runes
+    const hit = u.flash > 0 ? u.flash : 0, up = tw.upT !== undefined ? clamp((t - tw.upT) / 0.5, 0, 1) : 1;
+    const EL = k >= 4 && tw.el ? ELEM[tw.el].col : null;
+    const PAL = [null,
+      { wall: ['#B07A45', '#6B4423'], mer: '#8B5A2B', floor: '#7A5230', trim: null },
+      { wall: [STONE_L, STONE], mer: STONE_L, floor: STONE_D, trim: null },
+      { wall: ['#C3CAD8', '#717B8F'], mer: '#D5DBE6', floor: '#4E5669', trim: '#3F4654' },
+      { wall: ['#C3CAD8', '#646E84'], mer: '#D5DBE6', floor: '#3E4558', trim: '#3F4654' },
+      { wall: ['#FBF6EA', '#CDBF9F'], mer: '#F2C94C', floor: '#B98A2E', trim: '#E3B341' }][k];
+    // (tier 3 and up stand taller: a wider lower course under the top)
+    if (k >= 3) {
+      ctx.beginPath(); ctx.arc(2, 4, R + 3, 0, TAU); ctx.fillStyle = k >= 5 ? '#B5A27A' : '#5C6578'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.stroke();
+      if (k >= 5) { ctx.beginPath(); ctx.arc(2, 4, R + 3, 0.3, Math.PI - 0.3); ctx.lineWidth = 3; ctx.strokeStyle = '#E3B341'; ctx.stroke(); }
+    }
     // the wall
-    const hit = u.flash > 0 ? u.flash : 0;
     ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU);
-    const g = ctx.createRadialGradient(-R * 0.4, -R * 0.4, 2, 0, 0, R); g.addColorStop(0, k >= 5 ? '#F5E2A0' : STONE_L); g.addColorStop(1, k >= 5 ? '#B8902E' : STONE);
+    const g = ctx.createRadialGradient(-R * 0.4, -R * 0.4, 2, 0, 0, R); g.addColorStop(0, PAL.wall[0]); g.addColorStop(1, PAL.wall[1]);
     ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.stroke();
-    // battlements
-    const n = k >= 3 ? 10 : 8;
+    if (k === 1) {
+      // a palisade: logs all round, lashed with rope
+      for (let i = 0; i < 14; i++) { const a = i / 14 * TAU; ctx.beginPath(); ctx.moveTo(Math.cos(a) * (R - 8), Math.sin(a) * (R - 8)); ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(40,20,5,0.55)'; ctx.stroke(); }
+      ctx.beginPath(); ctx.arc(0, 0, R - 4, 0, TAU); ctx.lineWidth = 1.5; ctx.strokeStyle = '#D8B98A'; ctx.setLineDash([3, 5]); ctx.stroke(); ctx.setLineDash([]);
+    } else if (k === 2) {
+      // stone blocks
+      for (let i = 0; i < 12; i++) { const a = i / 12 * TAU + (i % 2) * 0.1; ctx.beginPath(); ctx.moveTo(Math.cos(a) * (R - 9), Math.sin(a) * (R - 9)); ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(20,24,36,0.4)'; ctx.stroke(); }
+    } else {
+      // iron (or gold) bands with rivets
+      ctx.beginPath(); ctx.arc(0, 0, R - 4.5, 0, TAU); ctx.lineWidth = 3.5; ctx.strokeStyle = PAL.trim; ctx.stroke();
+      for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; ctx.beginPath(); ctx.arc(Math.cos(a) * (R - 4.5), Math.sin(a) * (R - 4.5), 1.6, 0, TAU); ctx.fillStyle = k >= 5 ? '#FFF4C2' : '#C9CED8'; ctx.fill(); }
+    }
+    // battlements (log ends on the palisade; stone, iron-capped, crystal-set or gilded above it)
+    const n = k === 1 ? 7 : k >= 3 ? 10 : 8;
     for (let i = 0; i < n; i++) {
       const a = i / n * TAU + 0.2, x = Math.cos(a) * (R - 2), y = Math.sin(a) * (R - 2);
-      ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.beginPath(); ctx.rect(-4, -5.5, 8, 11); ctx.fillStyle = k >= 5 ? '#F5D77A' : STONE_L; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke(); ctx.restore();
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+      if (k === 1) { ctx.beginPath(); ctx.arc(0, 0, 5, 0, TAU); ctx.fillStyle = '#C08A55'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, 2.2, 0, TAU); ctx.strokeStyle = '#7A4E25'; ctx.lineWidth = 1.2; ctx.stroke(); }
+      else {
+        ctx.beginPath(); ctx.rect(-4.5, -6, 9, 12); ctx.fillStyle = PAL.mer; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke();
+        if (k === 3 || k === 4) { ctx.fillStyle = '#4B5563'; ctx.fillRect(2, -6, 2.5, 12); }
+        if (k === 4 && EL && i % 2 === 0) { const p = 0.6 + 0.4 * Math.sin(t * 5 + i); ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(3, 0); ctx.lineTo(0, 5); ctx.lineTo(-3, 0); ctx.closePath(); ctx.fillStyle = EL; ctx.globalAlpha = p; ctx.fill(); ctx.globalAlpha = 1; ctx.lineWidth = 1.2; ctx.strokeStyle = '#FFFFFF'; ctx.stroke(); }
+        if (k >= 5) { ctx.beginPath(); ctx.arc(0, 0, 2, 0, TAU); ctx.fillStyle = i % 2 ? '#EF4444' : '#3B82F6'; ctx.fill(); }
+      }
+      ctx.restore();
     }
     // the floor the character stands on
-    ctx.beginPath(); ctx.arc(0, 0, R - 9, 0, TAU); ctx.fillStyle = k >= 5 ? '#8A6A1E' : STONE_D; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
-    // the class colour as a thin ring on the floor
-    const C = TCLASS[tw.def.cls]; if (C) { ctx.beginPath(); ctx.arc(0, 0, R - 13, 0, TAU); ctx.lineWidth = 2.5; ctx.strokeStyle = rgba(C.col, 0.7); ctx.stroke(); }
-    if (hit) { ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fillStyle = `rgba(255,255,255,${hit * 0.5})`; ctx.fill(); }
-    // a banner in the defenders' colour on the bigger towers
-    if (k >= 3) {
-      const fx = R * 0.72, fy = -R * 0.72;
-      ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - 22); ctx.stroke();
-      const w = Math.sin(t * 6 + tw.x) * 2;
-      ctx.beginPath(); ctx.moveTo(fx, fy - 22); ctx.quadraticCurveTo(fx + 9, fy - 24 + w, fx + 17, fy - 19); ctx.lineTo(fx, fy - 13); ctx.closePath(); ctx.fillStyle = TEAMS[DEF].c; ctx.fill(); ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, R - 9, 0, TAU); ctx.fillStyle = PAL.floor; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
+    if (k === 1) { ctx.save(); ctx.clip(); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(30,15,5,0.5)'; for (let x = -R; x < R; x += 6) { ctx.beginPath(); ctx.moveTo(x, -R); ctx.lineTo(x, R); ctx.stroke(); } ctx.restore(); }
+    if (k === 2) { ctx.save(); ctx.clip(); ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.moveTo(-R, 0); ctx.lineTo(R, 0); ctx.moveTo(0, -R); ctx.lineTo(0, R); ctx.stroke(); ctx.restore(); }
+    // tier 4: the element's runes glowing on the floor; tier 5: a ring of golden runes turning slowly
+    if (k >= 4) {
+      const col = k >= 5 ? '#FFD23F' : EL || '#FFD23F', rr = R - 13, rot = t * (k >= 5 ? 0.6 : 0.3);
+      ctx.save(); ctx.rotate(rot); ctx.lineWidth = 2; ctx.strokeStyle = rgba(col, 0.75 + 0.2 * Math.sin(t * 4));
+      ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.stroke();
+      for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; ctx.save(); ctx.translate(Math.cos(a) * rr, Math.sin(a) * rr); ctx.rotate(a); ctx.beginPath(); ctx.moveTo(-2.5, -2.5); ctx.lineTo(2.5, 0); ctx.lineTo(-2.5, 2.5); ctx.stroke(); ctx.restore(); }
+      ctx.restore();
+    } else {
+      // the class colour as a thin ring on the floor
+      const C = TCLASS[tw.def.cls]; if (C) { ctx.beginPath(); ctx.arc(0, 0, R - 13, 0, TAU); ctx.lineWidth = 2.5; ctx.strokeStyle = rgba(C.col, 0.7); ctx.stroke(); }
     }
+    // tier 3 and 4: two torches on the wall; tier 5: four golden spires topped with gems
+    if (k === 3 || k === 4) for (const a of [Math.PI * 0.75, Math.PI * 1.75]) {
+      const x = Math.cos(a) * (R + 1), y = Math.sin(a) * (R + 1), f = 1 + 0.25 * Math.sin(t * 17 + a * 5);
+      ctx.fillStyle = '#4B3621'; ctx.fillRect(x - 1.5, y - 2, 3, 7);
+      ctx.beginPath(); ctx.moveTo(x - 4, y - 1); ctx.quadraticCurveTo(x - 3, y - 9 * f, x, y - 13 * f); ctx.quadraticCurveTo(x + 3, y - 9 * f, x + 4, y - 1); ctx.closePath(); ctx.fillStyle = EL && k === 4 ? EL : '#FF8A1F'; ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y - 4, 2, 0, TAU); ctx.fillStyle = '#FFF4C2'; ctx.fill();
+    }
+    if (k >= 5) for (let i = 0; i < 4; i++) {
+      const a = Math.PI / 4 + i * Math.PI / 2, x = Math.cos(a) * (R + 2), y = Math.sin(a) * (R + 2);
+      ctx.beginPath(); ctx.moveTo(x - 5, y + 3); ctx.lineTo(x, y - 14); ctx.lineTo(x + 5, y + 3); ctx.closePath(); ctx.fillStyle = '#E3B341'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y - 13, 2.8, 0, TAU); ctx.fillStyle = ['#EF4444', '#3B82F6', '#22C55E', '#A855F7'][i]; ctx.fill(); ctx.lineWidth = 1.2; ctx.stroke();
+    }
+    if (hit) { ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fillStyle = `rgba(255,255,255,${hit * 0.5})`; ctx.fill(); }
+    // a banner in the defenders' colour from tier 3 (two at tier 5)
+    if (k >= 3) for (const sgn of k >= 5 ? [1, -1] : [1]) {
+      const fx = R * 0.72 * sgn, fy = -R * 0.72;
+      ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - 22); ctx.stroke();
+      const w = Math.sin(t * 6 + tw.x + sgn) * 2;
+      ctx.beginPath(); ctx.moveTo(fx, fy - 22); ctx.quadraticCurveTo(fx + 9 * sgn, fy - 24 + w, fx + 17 * sgn, fy - 19); ctx.lineTo(fx, fy - 13); ctx.closePath(); ctx.fillStyle = TEAMS[DEF].c; ctx.fill(); ctx.lineWidth = 2; ctx.stroke();
+      if (k >= 5) { ctx.beginPath(); ctx.arc(fx, fy - 23, 2.2, 0, TAU); ctx.fillStyle = '#FFD23F'; ctx.fill(); }
+    }
+    // the moment of an upgrade: a bright flash that fades as the new look settles
+    if (up < 1) { ctx.beginPath(); ctx.arc(0, 0, R + 4, 0, TAU); ctx.fillStyle = `rgba(255,248,220,${0.7 * (1 - up)})`; ctx.fill(); }
     ctx.restore();
   },
   drawMerchant(ctx) {
@@ -534,14 +669,16 @@ const DRAW = {
     for (let i = 0; i < 6; i++) { ctx.fillStyle = i % 2 ? '#F4F1E6' : '#E0263C'; ctx.fillRect(-40 + i * 14, -40, 14, 30); }
     ctx.restore(); roundRect(ctx, -40, -40, 80, 30, 14); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke();
     disc(ctx, 0, -2, 11, COL.gold, 3); ctx.font = font(16, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = INK; ctx.fillText('$', 0, -1);
-    // what was bought pops up above the cart
-    m.sold.forEach((k, i) => {
-      const at = m.t0 + 1.0 + i * 1.9, p = clamp((T - at + 0.9) / 0.4, 0, 1);
-      if (p <= 0) return;
-      const y = -64 - 22 * easeOutCubic(p), x = (i - (m.sold.length - 1) / 2) * 56;
-      disc(ctx, x, y, 18, BOOK[k].col, 3);
-      ctx.font = font(15, 800); ctx.fillStyle = INK; ctx.fillText(BOOK[k].name.split(' ')[0].slice(0, 5), x, y + 1);
-    });
+    // the merchant himself behind his cart: standing upright, in a turban and a long coat, waving his wares
+    ctx.save(); ctx.translate(m.left ? 30 : -30, -48);
+    const wave = Math.sin(t * 5) * 0.35;
+    ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(-11, 22); ctx.lineTo(11, 22); ctx.lineTo(9, 0); ctx.closePath(); ctx.fillStyle = '#7C3AED'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
+    ctx.fillStyle = '#FDE68A'; ctx.fillRect(-10, 8, 20, 3);
+    ctx.save(); ctx.translate(9, 4); ctx.rotate(-0.9 + wave); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -16); ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#7C3AED'; ctx.stroke(); disc(ctx, 0, -18, 3.5, '#E0B48A', 1.5); ctx.restore();
+    disc(ctx, 0, -8, 8, '#E0B48A', 2.5);
+    ctx.beginPath(); ctx.ellipse(0, -14, 9, 5.5, 0, Math.PI, TAU); ctx.fillStyle = '#F4F1E6'; ctx.fill(); ctx.lineWidth = 2; ctx.stroke(); disc(ctx, 0, -17, 2.2, '#E0263C', 1);
+    ctx.fillStyle = INK; ctx.fillRect(-3.5, -9, 2, 2.2); ctx.fillRect(1.5, -9, 2, 2.2);
+    ctx.restore();
     void t;
     ctx.restore(); ctx.textBaseline = 'alphabetic';
   },
@@ -678,6 +815,36 @@ const DRAW = {
     }
     // the mirror shift flash
     if (this.mirrorFx !== undefined && t - this.mirrorFx < 0.5) { ctx.fillStyle = `rgba(255,255,255,${0.5 * (1 - (t - this.mirrorFx) / 0.5)})`; ctx.fillRect(AR.x, AR.y, AR.w, AR.h); }
+    // what the merchant sold: each spell as a badge (its colour, its name) rising off the cart in turn, over the battle,
+    // then fading (Rellz 2026-11-16: "improve layering logic and visual for spells ... especially when the marketplace comes")
+    if (this.merch) {
+      const m = this.merch;
+      m.sold.forEach((k, i) => {
+        const at = m.t0 + 0.25 + i * 1.9, q = (T - at) / 1.6; if (q < 0 || q > 1) return;   // (rising just before it is cast)
+        const a = clamp(Math.min(q / 0.12, (1 - q) / 0.25), 0, 1), pop = easeOutBack(clamp(q / 0.15, 0, 1)), y = m.y - 92 - 70 * easeOutCubic(q), x = m.x;
+        const B = BOOK[k]; ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.scale(pop, pop);
+        ctx.font = font(24, 800); const w = Math.min(300, ctx.measureText(B.name).width + 62);
+        roundRect(ctx, -w / 2, -22, w, 44, 22); ctx.fillStyle = 'rgba(8,11,20,0.92)'; ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = B.col; ctx.stroke();
+        disc(ctx, -w / 2 + 22, 0, 14, B.col, 2.5); ctx.font = font(18, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = INK; ctx.fillText('$', -w / 2 + 22, 1);
+        ctx.font = font(24, 800); ctx.textAlign = 'left'; strokeText(ctx, B.name, -w / 2 + 44, 2, COL.white, COL.ink, 5);
+        ctx.restore();
+      });
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    }
+    // the shield dome over the base: the engine draws its bubble on the ground, which the base itself covers, so here it gets
+    // a glass skin over everything: a faint tint, a highlight that sweeps round, its rim and a soft hexagon shimmer
+    if (this.sp3) for (const dm of this.sp3.domes) if (dm.base) {
+      const a0 = t - dm.t0, inK = easeOutBack(clamp(a0 / 0.35, 0, 1)), out = clamp((dm.end - T) / 0.4, 0, 1), R = dm.r * inK;
+      if (R <= 2 || out <= 0) continue;
+      ctx.save(); ctx.globalAlpha = out;
+      const g = ctx.createRadialGradient(dm.x - R * 0.3, dm.y - R * 0.35, R * 0.1, dm.x, dm.y, R);
+      g.addColorStop(0, 'rgba(255,255,255,0.10)'); g.addColorStop(0.75, rgba(TEAMS[dm.team].c, 0.08)); g.addColorStop(1, rgba(TEAMS[dm.team].l, 0.3));
+      ctx.beginPath(); ctx.arc(dm.x, dm.y, R, 0, TAU); ctx.fillStyle = g; ctx.fill();
+      const sw = t * 1.6;
+      ctx.beginPath(); ctx.arc(dm.x, dm.y, R - 6, sw, sw + 0.7); ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.stroke();
+      ctx.beginPath(); ctx.arc(dm.x, dm.y, R - 10, Math.PI * 1.1, Math.PI * 1.45); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.stroke();
+      ctx.restore();
+    }
     // Blossom Valley: petals drifting across the battle on the breeze (looks only)
     if (this.tdMap && this.tdMap.petals) {
       for (let i = 0; i < 46; i++) {
@@ -735,9 +902,9 @@ const DRAW = {
       spaced(ctx, 2); ctx.font = font(22, 700, false); ctx.fillStyle = COL.muted; ctx.fillText(rows[i][2], x, 358, 300); spaced(ctx, 0);
     }
     // the wave and the clock
-    const px = VW / 2, py = 282, pw = 196, ph = 90, urgent = this.phase === 'fight' && this.cap - this.fightT < 10;
+    const px = VW / 2, py = 282, pw = 196, ph = 90, urgent = this.phase === 'fight' && !!this.overtime;
     ctx.font = font(26, 800); spaced(ctx, 3); ctx.textAlign = 'center'; ctx.fillStyle = COL.gold;
-    ctx.fillText(this.waveNow ? `WAVE ${Math.min(this.waveNow, this.waveN)}/${this.waveN}` : 'GET READY', px, 224); spaced(ctx, 0);
+    ctx.fillText(this.overtime ? 'OVERTIME' : this.waveNow ? `WAVE ${Math.min(this.waveNow, this.waveN)}/${this.waveN}` : 'GET READY', px, 224); spaced(ctx, 0);
     roundRect(ctx, px - pw / 2, py - ph / 2, pw, ph, ph / 2); ctx.fillStyle = '#121A2D'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = urgent ? COL.gold : COL.frame; ctx.stroke();
     const pulse = urgent ? 1 + 0.06 * Math.max(0, Math.cos((t % 1) * Math.PI)) : 1;
     ctx.save(); ctx.translate(px, py + 22); ctx.scale(pulse, pulse);
@@ -971,8 +1138,9 @@ const DRAW = {
       }
     }
     // 3) the final countdown: the last 10 seconds, big and see-through over the battle
-    const left = this.cap - T;
-    if (fight && left <= 10 && left > 0.2) {
+    // (no countdown any more: there is no time limit, the battle ends when the boss or the base falls)
+    const left = 99;
+    if (false) {
       const n = Math.ceil(left), f = n - left, k = 1 - f;
       ctx.globalAlpha = 0.18 + 0.32 * clamp(k * 1.4 - 0.3, 0, 1);
       ctx.save(); ctx.translate(VW / 2, AR.y + AR.h / 2); const sc = 1.25 - 0.25 * easeOutCubic(clamp(f / 0.25, 0, 1)); ctx.scale(sc, sc);
