@@ -85,21 +85,18 @@ function rays(g, x, y, r, n, col) {
   g.restore();
 }
 
-// ----- channel art (node brand.js): profile (1024x1024) and banner (2560x1440) for both channels, built by the same rules:
-// a ray-burst background in the channel's colour, one shiny troop in the middle of the profile picture (same size and angle),
-// and on the banner six troops evenly spaced and faded behind the channel name (same font, size and spacing) -----
+// ----- channel art (node brand.js): profile (1024x1024) and banner (2560x1440) for all three Clash channels, built by the
+// same rules (Rellz 2026-11-16: "make the banners and pfps mimic youtube.com/armyclashshorts and towerclashshorts ... remake
+// all 3 channels"): the pastel ray burst of the live channels in each channel's own colour; on the profile picture one
+// shiny champion, a little person standing upright (never turned), big in the middle on a soft glow; on the banner the two
+// sides facing each other across the channel name (same font, size and shadow on all three), upright, on a band of ground -----
 const THEMES = {
-  tower: { name: 'TOWER CLASH', file: '', teams: ['GOLD', 'PURPLE'], bg: ['#8B6CF0', '#A58BF5', '#C9B8FB'], shadow: 'rgba(30,10,60,0.35)',
-    hero: ['siegegolem', 1],
-    row: [['spiderqueen', 0, 0.5, 240], ['magmacolossus', 1, -0.5, 250], ['longbow', 0, -0.7, 230], ['frostwitch', 1, 0.6, 210], ['siegegolem', 0, 0.4, 250], ['ironhorn', 1, -0.6, 250]] },
-  army: { name: 'ARMY CLASH', file: 'army-', teams: ['RED', 'BLUE'], bg: ['#6FB2EA', '#86C3F0', '#B4DDF8'], shadow: 'rgba(10,30,60,0.35)',
-    hero: ['titan', 1],
-    row: [['livingfortress', 0, 0.4, 250], ['acidwyrm', 1, -0.5, 230], ['hydra', 0, -0.5, 250], ['stormcolossus', 1, 0.6, 230], ['titan', 0, 0.5, 250], ['ironhorn', 1, -0.6, 250]] },
-  // (2026-11-16) the third channel, by the same rules as the other two (Rellz: "mimic youtube.com/armyclashshorts and
-  // towerclashshorts"): its own colour, mint green, with its own hero and row of troops
-  territory: { name: 'TERRITORY CLASH', file: 'territory-', teams: ['ORANGE', 'GREEN'], bg: ['#4FC08D', '#6FD3A4', '#A8EBC9'], shadow: 'rgba(5,45,25,0.35)',
-    hero: ['dragon', 0],
-    row: [['mammoth', 0, 0.4, 250], ['griffin', 1, -0.5, 230], ['cyclops', 0, -0.5, 240], ['treant', 1, 0.6, 240], ['dragon', 0, 0.5, 250], ['minotaur', 1, -0.6, 240]] },
+  army: { name: 'ARMY CLASH', file: 'army-', teams: ['RED', 'BLUE'], bg: ['#5FA8E8', '#7FBDF0', '#B4DDF8'], shadow: 'rgba(10,30,60,0.4)',
+    hero: ['knight', 0], titans: ['titan', 'hydra'], left: ['knight', 'swordsman', 'archer', 'spearman'], right: ['samurai', 'rifleman', 'berserker', 'shieldbearer'] },
+  tower: { name: 'TOWER CLASH', file: '', teams: ['GOLD', 'PURPLE'], bg: ['#8763EE', '#A58BF5', '#C9B8FB'], shadow: 'rgba(30,10,60,0.4)',
+    hero: ['longbow', 0], titans: ['siegegolem', 'spiderqueen'], left: ['longbow', 'crossbowman', 'wizard', 'gunner'], right: ['orc', 'skeleton', 'goblin', 'warlock'] },
+  territory: { name: 'TERRITORY CLASH', file: 'territory-', teams: ['ORANGE', 'GREEN'], bg: ['#3FB883', '#64CF9E', '#A8EBC9'], shadow: 'rgba(5,45,25,0.4)',
+    hero: ['bannerman', 0], titans: ['dragon', 'mammoth'], left: ['bannerman', 'pikeman', 'musketeer', 'drummer'], right: ['general', 'royalguard', 'dwarf', 'elf'] },
 };
 async function channelArt(outDir, which) {
   const { createCanvas, registerFont } = require('canvas');
@@ -112,24 +109,28 @@ async function channelArt(outDir, which) {
   for (const key of which) {
     const T = THEMES[key];
     RVB.setTeams(T.teams[0], T.teams[1]);
-    const game = new RVB.Army(7, { map: 'open', target: 30, shine: { on: true, gloss: 1, rim: 1 }, anim: true, art: 2 });
+    const game = new RVB.Army(7, { map: 'open', target: 30, shine: { on: true, gloss: 1, rim: 1 }, anim: true, art: 2, ui: { humans: true } });
+    game.humans = true;
     const burst = (g, W, H, cx, cy) => {
       const lg = g.createLinearGradient(0, 0, W * 0.3, H); lg.addColorStop(0, T.bg[0]); lg.addColorStop(0.55, T.bg[1]); lg.addColorStop(1, T.bg[2]);
       g.fillStyle = lg; g.fillRect(0, 0, W, H);
       rays(g, cx, cy, Math.hypot(W, H), 36, 'rgba(255,255,255,0.13)');
-      const rg = g.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.7); rg.addColorStop(0, 'rgba(255,255,255,0.14)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+      const rg = g.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.7); rg.addColorStop(0, 'rgba(255,255,255,0.18)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
       g.fillStyle = rg; g.fillRect(0, 0, W, H);
     };
-    // a troop drawn so its body is about `size` px across, whatever its real size
-    const portrait = (g, type, team, x, y, size, rot) => { const s = size / 2 / RVB.UNIT[type].r; g.save(); g.translate(x, y); g.scale(s, s); g.rotate(rot || 0); game.drawPortrait(g, type, team); g.restore(); };
+    // a little person standing upright, `h` px tall, feet at (x, y), facing right (or left, mirrored: still upright)
+    const person = (g, type, team, x, y, h, left) => {
+      const U = RVB.UNIT[type], s = h / (U.r * 2.4);
+      g.save(); g.translate(x, y - h * 0.42); g.scale(left ? -s : s, s); game.drawPortrait(g, type, team); g.restore();
+    };
     {
       const S = 1024, c = createCanvas(S, S), g = c.getContext('2d');
       burst(g, S, S, S / 2, S / 2);
-      // drawn once off-screen first to find the middle of the troop's weight (the average of all its drawn pixels), which is
-      // put at the middle of the picture: that centres a troop whose hands, head or weapon stick out to one side as well as one
-      // that is round (a box round the drawing would be pulled off by whatever sticks out furthest)
+      const gl = g.createRadialGradient(S / 2, S / 2, 40, S / 2, S / 2, 420); gl.addColorStop(0, 'rgba(255,255,255,0.55)'); gl.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gl; g.beginPath(); g.arc(S / 2, S / 2, 420, 0, Math.PI * 2); g.fill();
+      // centred on the drawing's own weight (the average of its drawn pixels), so a weapon sticking out doesn't pull it off
       const off = createCanvas(S, S), og = off.getContext('2d');
-      portrait(og, T.hero[0], T.hero[1], S / 2, S / 2, 540, 0.45);
+      person(og, T.hero[0], T.hero[1], S / 2, S / 2 + 280, 640, false);
       const px = og.getImageData(0, 0, S, S).data;
       let sx = 0, sy = 0, n = 0;
       for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) if (px[(y * S + x) * 4 + 3] > 40) { sx += x; sy += y; n++; }
@@ -139,8 +140,17 @@ async function channelArt(outDir, which) {
     {
       const W = 2560, H = 1440, c = createCanvas(W, H), g = c.getContext('2d');
       burst(g, W, H, W / 2, H / 2);
-      const gap = W / T.row.length;
-      T.row.forEach(([k, tm, r, size], i) => { g.save(); g.globalAlpha = 0.55; portrait(g, k, tm, gap * (i + 0.5), H / 2 - 10, size, r); g.restore(); });
+      // the two sides face each other across the name, the nearest biggest
+      const feet = H / 2 + 150;
+      const side = (list, team, left) => list.forEach((k, i) => {
+        const d = list.length - 1 - i, x = left ? W / 2 - 640 - d * 130 : W / 2 + 640 + d * 130, h = 300 - d * 30;   // (the nearest inside the 1546 px safe area)
+        g.save(); g.globalAlpha = 1 - d * 0.12;
+        g.beginPath(); g.ellipse(x, feet + 4, h * 0.22, h * 0.05, 0, 0, Math.PI * 2); g.fillStyle = 'rgba(0,0,0,0.18)'; g.fill();
+        person(g, k, team, x, feet, h, !left); g.restore();
+      });
+      // each side's own titan behind its troops (every channel has different ones: Rellz 2026-11-16 "don't use same titans for both")
+      T.titans.forEach((k, n) => { const U = RVB.UNIT[k], sz = 380, sc = sz / 2 / U.r; g.save(); g.globalAlpha = 0.6; g.translate(n ? W / 2 + 1150 : W / 2 - 1150, H / 2 - 70); g.scale(sc, sc); g.rotate(n ? Math.PI : 0); game.drawPortrait(g, k, n); g.restore(); });
+      side(T.left.slice().reverse(), 0, true); side(T.right.slice().reverse(), 1, false);
       g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = font(190, 800); if ('letterSpacing' in g) g.letterSpacing = '4px';
       g.shadowColor = T.shadow; g.shadowBlur = 30; g.shadowOffsetY = 10;
       outlineText(g, T.name, W / 2, H / 2, WHITE, INK, 26);
