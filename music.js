@@ -292,18 +292,35 @@ function render(p, { sr, dur, cues }) {
 function pulse(p, t, amt = 0.014) { const ph = (t % p.beat) / p.beat; return amt * Math.exp(-ph * 9); }
 
 // music under the effects: the effects (already limited, -1..1) duck the music, then both go through a soft limiter
-function mix(sfxL, sfxR, mus, { volume = 0.8, duck = 0.45, sr } = {}) {
+// loudness of a stereo signal the way ears judge it: RMS over 0.4 s blocks, ignoring the near-silent ones (dB)
+function loud(Lc, Rc, sr, scale = 1) {
+  const B = Math.round(0.4 * sr), blocks = [];
+  for (let s = 0; s + B <= Lc.length; s += B) { let e = 0; for (let i = s; i < s + B; i++) { const l = (Lc[i] || 0) * scale, r = (Rc[i] || 0) * scale; e += l * l + r * r; } blocks.push(e / (2 * B)); }
+  const on = blocks.filter(e => e > 1e-6); if (!on.length) return -120;
+  return 10 * Math.log10(on.reduce((a, b) => a + b, 0) / on.length);
+}
+function mix(sfxL, sfxR, mus, { volume = 0.8, duck = 0.45, sr, levels = null } = {}) {
   const n = sfxL.length, L = new Float32Array(n), R = new Float32Array(n);
+  // (levels, Rellz 2026-11-16: "make the sfx and music all same levels in all 3 ... the music should be a bit louder but not
+  // louder than sfx") every game, every video: the effects are brought to levels.effects and the music to levels.music
+  // (both dB, measured as above), so a busy battle and a quiet one, in any of the games, sound the same; the music stays under
+  let fxG = 1;
+  if (levels) {
+    const fx = loud(sfxL, sfxR, sr), mu = loud(mus.L, mus.R, sr);
+    fxG = Math.min(4, Math.max(0.25, Math.pow(10, (levels.effects - fx) / 20)));
+    volume = Math.min(8, Math.max(0.05, Math.pow(10, (levels.music - mu) / 20)));
+  }
+  if (process.env.AUDIO_STATS) console.log(`Levels: effects ${loud(sfxL, sfxR, sr, fxG).toFixed(1)} dB, music ${loud(mus.L, mus.R, sr, volume).toFixed(1)} dB`);
   const att = 1 - Math.exp(-1 / (0.004 * sr)), rel = 1 - Math.exp(-1 / (0.18 * sr));
   let env = 0;
   for (let i = 0; i < n; i++) {
-    const a = Math.max(Math.abs(sfxL[i]), Math.abs(sfxR[i]));
+    const a = Math.max(Math.abs(sfxL[i]), Math.abs(sfxR[i])) * fxG;
     env += (a - env) * (a > env ? att : rel);
     const g = volume * (1 - duck * Math.min(1, env * 2));
-    L[i] = Math.tanh(sfxL[i] + (mus.L[i] || 0) * g) * 0.98;
-    R[i] = Math.tanh(sfxR[i] + (mus.R[i] || 0) * g) * 0.98;
+    L[i] = Math.tanh(sfxL[i] * fxG + (mus.L[i] || 0) * g) * 0.98;
+    R[i] = Math.tanh(sfxR[i] * fxG + (mus.R[i] || 0) * g) * 0.98;
   }
   return { L, R };
 }
 
-module.exports = { plan, tracker, render, pulse, mix, STYLES };
+module.exports = { plan, tracker, render, pulse, mix, loud, STYLES };

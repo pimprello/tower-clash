@@ -299,7 +299,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     let mixed = { L, R };
     if (muOn) {
       const mus = Music.render(mp, { sr: SR, dur: DUR, cues: mtr.cues() });
-      mixed = Music.mix(L, R, mus, { sr: SR, volume: MU.volume ?? 0.45, duck: MU.duck ?? 0.45 });
+      mixed = Music.mix(L, R, mus, { sr: SR, volume: MU.volume ?? 0.45, duck: MU.duck ?? 0.45, levels: MU.levels || null });
       console.log(`Music: ${mp.style}, ${mp.bpm} bpm, the drop at ${mus.drop.toFixed(1)} s, the final hit at ${mus.fin.toFixed(1)} s`);
     }
     const wav = path.join(OUT, 'sound.wav');

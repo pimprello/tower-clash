@@ -27,3 +27,7 @@ Every video has its own original soundtrack, written by code from the seed (`mus
 ## `intro`
 
 `on` (true), `seconds` (2.6): every video opens with the electric face-off (`faceoff.js`, the same file as Army Clash's): the best tower against the boss, each in a ring on a band of its side's colour, a lightning seam between them, VS, then a flash into the fight. Everything after it (sound, music) is shifted by its length.
+
+## music.levels
+
+How loud the effects and the music are, in dB (Rellz, 2026-11-16: the same levels in all three games, the music a bit louder but never over the effects): `effects` -14, `music` -19. Each video is measured and brought to these, so every video and every game sounds the same. Keep the music below the effects. When set, `music.volume` is not used.

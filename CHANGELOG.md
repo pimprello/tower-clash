@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-16 (Rellz's request, all three games): the same sound levels everywhere
+
+Rellz: "make the sfx and music all same levels in all 3 tower army and territory clash the music should be a bit louder but not louder than sfx, tower clash did it quite nice".
+
+- **`rules.music.levels`** (`{ "effects": -14, "music": -19 }`, the same in every game): the mixer in `music.js` (identical in all the games) measures each video's effects and music the way ears judge loudness (`loud()`: 0.4 s blocks, near-silence ignored) and brings them to these levels before ducking and limiting. The music sits 5 dB under the effects, a little louder than Tower Clash's balance was, never over them.
+- Before, on the same test: Army Clash's effects were at -9.8 dB with its music 17 dB under them (hardly heard), Tower Clash's at -17 dB with its music 7.6 dB under. After: both -14 / -19, and the finished videos measure -13.1 (Army) and -13.5 LUFS (Tower), next to YouTube's own -14.
+- `AUDIO_STATS=1` prints the levels while rendering. Battles unchanged. Already-posted videos don't change; the next scheduled post has it.
+
 ## 2026-11-16 (afternoon, Rellz's request from the Tower Clash chat): viewer retention
 
 Rellz: "Add all the updates you believe is the best for viewer retention don't ask me for anything just build and push". Tower Clash only.
