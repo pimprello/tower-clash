@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-16 (later): room for the defenders to win
+- With no clock ending, the defenders need the attackers a little weaker to win some battles: the close-finish search now starts from 0.4 times the attackers' strength (was 0.6), since the first test post's candidates often hit that floor.
+
 ## 2026-11-16: evolving towers, slow paid rebuilds, no clock ending, better walking, cleaner spells, shots from the gun
 Rellz: "make the tower upgrades look visible cooler and different and evolved the same way clash of clans upgrades towers ... when a tower gets destroyed dont rebuild it instantly, make it cost money and slowly rebuild it, make the pathfinding better and the walking animation better, sometimes they do a weird loop ... improve layering logic and visual for spells and shields especially when the marketplace comes, you make the short end too quick so the boss ends up dying even though its on full health, dont make it say tie ... wait until final boss falls or tower is destroyed, sometimes people run too fast, also make sure bullets come from the gun not the waist".
 - **Towers evolve tier by tier, Clash of Clans style**: tier 1 a wooden palisade (logs, rope, plank floor), tier 2 stone blocks, tier 3 a taller keep with a lower course, iron bands and rivets, two torches and a banner, tier 4 the same charged with its element (crystals in the battlements, element-coloured torch flames, runes glowing on the floor), tier 5 white marble and gold with four gem-topped spires, gems in the battlements, twin banners and a turning ring of golden runes. Each upgrade flashes as the new look settles.

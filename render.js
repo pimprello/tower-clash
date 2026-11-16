@@ -73,7 +73,7 @@ function quick(power, s) {
 function closeFinish() {
   const want = pick.next() < ((rules.balance || {}).target ?? 0.5) ? 'def' : 'atk';
   const t0 = Date.now(); let best = null;
-  for (let p = 0.6; p <= 5.2; p *= ((rules.quality || {}).fine ? 1.07 : 1.12)) {
+  for (let p = 0.4; p <= 5.2; p *= ((rules.quality || {}).fine ? 1.07 : 1.12)) {
     const r = quick(p, seed), side = r.def ? 'def' : 'atk';
     // close: a defenders' win with the base scraped down (about 10-35%), or an attackers' win in the last seconds
     const close = r.def ? 60 - Math.abs(r.hp - 20) * 1.2 + Math.min(r.T, 58) * 0.4 : Math.min(r.T, 59.4) * 1.1;
