@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-16 14:30 | The Bone Tide Attack The Temple... Who Wins? ⚔️ | Survived! | https://youtube.com/shorts/jaZ0yPTQmpA |
 | 2026-11-16 13:18 | Tier 5 Towers vs The Magma Colossus 🔥 | Fallen! | https://youtube.com/shorts/RtphqH3UAAI |
 | 2026-11-16 12:58 | Can 11 Towers Stop The Glacier Behemoth? 🏰 | Survived! | https://youtube.com/shorts/1GSscgYCsYQ |
 | 2026-11-16 10:39 | Can 11 Towers Stop The Bone Colossus? 🏰 | Survived! | https://youtube.com/shorts/ocjYQBvun6o |
