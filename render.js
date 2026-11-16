@@ -44,7 +44,9 @@ const slot = posted;
 // ----- the battle's set-up -----
 const weighted = obj => { const e = Object.entries(obj).filter(([, w]) => w > 0), tot = e.reduce((s, [, w]) => s + w, 0); let r = pick.next() * tot; for (const [k, w] of e) if ((r -= w) <= 0) return k; return e[e.length - 1][0]; };
 const layout = process.env.LAYOUT || D.LAYOUT_KEYS[slot % D.LAYOUT_KEYS.length];
-const map = process.env.MAP || D.MAP_KEYS[(slot * 5 + 3) % D.MAP_KEYS.length];
+// holiday specials (holiday.js, the same file as Army Clash's; Rellz 2026-11-16): on a holiday the map that suits it is used
+const Holiday = require('./holiday.js'), HOL = Holiday.of();
+const map = process.env.MAP || Holiday.map(HOL, D.MAP_KEYS) || D.MAP_KEYS[(slot * 5 + 3) % D.MAP_KEYS.length];
 const era = D.TD_MAPS[map].era;
 const defOk = D.DEF_LINEUPS.filter(l => !l.eras || l.eras.includes(era));
 const defense = defOk[(slot * 3 + 1) % defOk.length];
@@ -290,7 +292,8 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     bossName.replace(/^The /, '').toLowerCase(), ...towerNames.map(n => n.toLowerCase()), D.TD_MAPS[map].name.toLowerCase(), mode !== 'classic' ? M.name.toLowerCase() : 'boss battle', 'shorts'])];
 
   const meta = {
-    seed, slot, seconds: +DUR.toFixed(2), title, titleKind, description, tags,
+    seed, slot, seconds: +DUR.toFixed(2), title: Holiday.title(HOL, title), titleKind, holiday: HOL ? HOL.key : undefined,
+    description: HOL ? `${HOL.emoji} ${HOL.line}\n\n${description}`.slice(0, 4900) : description, tags: HOL ? [...new Set([...tags, ...HOL.tags])] : tags,
     layout, map, mode, teams: pair, defense: defense.name, attack: attack.name, order: defOrder[0], warband: atkBand[0], boss: game.bossType,
     power: +power.toFixed(3), winner: game.headline, winTeam: game.tdWinner, detail: game.detail, fight: +game.fightT.toFixed(1),
     built: game.stat.built, upgrades: game.stat.upgrades, fell, lowBase: low, spells: game.stat.spells, related: related ? related.id : undefined,

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-16 (Rellz's request, both games): no test uploads, holiday specials
+
+Rellz: "for army clash and tower clash don't do test uploads save usage on update and upload on schedule try to make matches balanced but even if one is overpowered it will make for an interesting short (try to make your own cool updates whenever you can to maintain the video evolution process for both channels and also remember to do specific videos for holidays like Christmas Easter etc etc".
+
+- **No more test uploads** after updates: changes go out with the next scheduled post (CLAUDE.md, AUTOPILOT.md).
+- **Balance** stays a goal, not a gate; lopsided battles are fine (AUTOPILOT.md).
+- **Own updates:** the autopilot keeps adding its own cool updates to keep the videos evolving (AUTOPILOT.md).
+- **Holiday specials (`holiday.js`, the same file in both games):** on New Year's Eve and Day, Valentine's, St Patrick's, April Fools, Easter (Good Friday to Easter Monday, worked out each year), Eid (expected UK dates to 2030), midsummer, Halloween, Bonfire Night and Christmas (24 to 26 December), the post's title becomes "🎄 Christmas Special: ...", the description opens with a holiday line, holiday tags are added and a map that suits it is used (snow at Christmas, the graveyard at Halloween...). `HOLIDAY=christmas` forces one for a test. The autopilot builds proper themed content the week before each one (Christmas first).
+
 ## 2026-11-16 (later): room for the defenders to win
 - With no clock ending, the defenders need the attackers a little weaker to win some battles: the close-finish search now starts from 0.4 times the attackers' strength (was 0.6), since the first test post's candidates often hit that floor.
 

@@ -8,6 +8,11 @@ You are the daily autopilot for Rellz's YouTube Shorts channel, Tower Clash (@To
 
 Every change is judged by one question: would a stranger stop scrolling, watch to the end, and want the next one? Four posts a day, each as good as possible. Never raise the count.
 
+- **Rellz, 2026-11-16 ("for army clash and tower clash don't do test uploads save usage on update and upload on schedule ... try to make your own cool updates whenever you can to maintain the video evolution process for both channels and also remember to do specific videos for holidays like Christmas Easter etc"):**
+  - **No test uploads.** After any change (his or yours), push it and let the next scheduled post show it. Never start a run by hand just to post a test; this replaces the older "upload a video after every update" rule.
+  - **Balance is a goal, not a gate.** Keep tuning match-ups towards 50/50, but a lopsided battle is fine and can make an interesting Short: don't spend extra time or test battles chasing perfect balance.
+  - **Keep the channel evolving.** Add your own cool updates whenever you can (new troops, effects, modes, overlays, sounds), a few every day, so no two weeks of videos look alike.
+  - **Holidays.** `holiday.js` (the same file in both games) puts the holiday in the title, description and tags and picks a fitting map on New Year, Valentine's, St Patrick's, April Fools, Easter (Good Friday to Easter Monday), Eid, midsummer, Halloween, Bonfire Night and Christmas (24 to 26 December). In the week before each one, build real themed content for it (Christmas: snow falling, Santa hats and festive skins, a gift-drop event, a festive soundtrack; Easter: egg drops, pastel skins; Halloween: pumpkins, ghosts), switched on only on its days, and log it. Add new holidays to its list as they come up.
 - **The opening reads at phone size:** the board, the two sides, the question "will the base survive?". Check stills at 0.5 s and 2 s only on a day you touch the opening.
 - **Clean fights beat busy fights.** If a still shows troops hidden under effects, text on text, or the camera on the wrong thing, fixing that beats adding something new.
 - **Smooth, readable, heavy.** Nothing teleports; colours, towers, the base's health and the result are obvious at a glance; hits and falls have weight.
@@ -75,7 +80,7 @@ If uploads are healthy this step is one `gh` call and a glance at `uploads.md`. 
 - **Music stays on and original** (`rules.music`, written by `music.js`); four songs in turn; effects sit under the music (`rules.sound.sfx`). Never add licensed or downloaded audio.
 - **Thumbnails**: everything inside y 200–1720 (the Shorts shelf crops the rest), the defenders' colour drives the background, never show the result.
 - **Titles**: no spoilers, no real people, groups, flags or insignia; orders and warbands are made up.
-- **Test uploads**: after a change Rellz asked for, dispatch a run and give him the link. The daily autopilot does not add extra posts.
+- **Test uploads**: none, ever (Rellz, 2026-11-16). Push and let the next scheduled post show it.
 - **No preview videos to Rellz**; check with stills.
 
 ## 5. Test before pushing (scoped to what you changed)
