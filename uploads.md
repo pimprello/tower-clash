@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-16 22:36 | 4 Towers Fell... Did The Base Survive? 😱 (Ep. 28) | Survived! | https://youtube.com/shorts/wbdsREFyeXg |
 | 2026-11-16 18:35 | The Base Was Down To 17%... 😳 (Ep. 27) | Survived! | https://youtube.com/shorts/fzNugkgVaTI |
 | 2026-11-16 14:30 | The Bone Tide Attack The Temple... Who Wins? ⚔️ | Survived! | https://youtube.com/shorts/jaZ0yPTQmpA |
 | 2026-11-16 13:18 | Tier 5 Towers vs The Magma Colossus 🔥 | Fallen! | https://youtube.com/shorts/RtphqH3UAAI |
