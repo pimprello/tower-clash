@@ -45,3 +45,6 @@ Sister channel: Tower Clash.
 ## Art
 
 Both channels use the banner and profile picture made by `node brand.js` (files in `out/`): the same ray burst, the same troop placement and the same name font and size. The Tower Clash theme is violet; Army Clash keeps sky blue.
+
+## Channel art for the whole family (2026-11-16)
+Rellz asked for one consistent profile picture and banner for Army Clash, Tower Clash and Territory Clash: each its own colour, the same style and theme, no text on the profile picture, only the channel name on the banner. `node channel-art.js` writes them to `out/art/` (`<channel>-pfp.png` 800x800, `<channel>-banner.png` 2560x1440 with the crest and name inside YouTube's 1546x423 safe area). The design: a glossy heraldic shield with a gold rim on a burst of light rays, a faint hex pattern and sparks, with the channel's icon on the shield (Army Clash: crossed swords, red; Tower Clash: a stone tower, blue; Territory Clash: a flag planted on a hex of land, green). The name is in the videos' font, the same size on all three, white over the channel colour, with a gold bar under it. It replaces the `brand.js` art.
