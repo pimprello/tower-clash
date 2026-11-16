@@ -95,6 +95,11 @@ const THEMES = {
   army: { name: 'ARMY CLASH', file: 'army-', teams: ['RED', 'BLUE'], bg: ['#6FB2EA', '#86C3F0', '#B4DDF8'], shadow: 'rgba(10,30,60,0.35)',
     hero: ['titan', 1],
     row: [['livingfortress', 0, 0.4, 250], ['acidwyrm', 1, -0.5, 230], ['hydra', 0, -0.5, 250], ['stormcolossus', 1, 0.6, 230], ['titan', 0, 0.5, 250], ['ironhorn', 1, -0.6, 250]] },
+  // (2026-11-16) the third channel, by the same rules as the other two (Rellz: "mimic youtube.com/armyclashshorts and
+  // towerclashshorts"): its own colour, mint green, with its own hero and row of troops
+  territory: { name: 'TERRITORY CLASH', file: 'territory-', teams: ['ORANGE', 'GREEN'], bg: ['#4FC08D', '#6FD3A4', '#A8EBC9'], shadow: 'rgba(5,45,25,0.35)',
+    hero: ['dragon', 0],
+    row: [['mammoth', 0, 0.4, 250], ['griffin', 1, -0.5, 230], ['cyclops', 0, -0.5, 240], ['treant', 1, 0.6, 240], ['dragon', 0, 0.5, 250], ['minotaur', 1, -0.6, 240]] },
 };
 async function channelArt(outDir, which) {
   const { createCanvas, registerFont } = require('canvas');
@@ -146,5 +151,5 @@ async function channelArt(outDir, which) {
   }
 }
 
-if (require.main === module) channelArt(path.join(__dirname, 'out'), process.argv[2] ? [process.argv[2]] : ['tower', 'army']).then(() => console.log('Channel art written to out/'));
+if (require.main === module) channelArt(path.join(__dirname, 'out'), process.argv[2] ? [process.argv[2]] : ['tower', 'army', 'territory']).then(() => console.log('Channel art written to out/'));
 module.exports = { drawTowerIcon, drawLogo, rays, RED, RED_D, RED_L, GOLD, INK, WHITE };
