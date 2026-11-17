@@ -1,5 +1,50 @@
 # Changelog
 
+## 2026-11-17 (Rellz's request, all three games): Rellz's 26 picks (`rules.picks`)
+
+Rellz picked 26 of my 30 ideas (1 to 23 and 25 to 27) and asked for them in Army Clash, Tower Clash and Territory Clash, with only game-specific details different. Everything sits behind `rules.picks` (one dial per idea, the same names in every game); with it off, old seeds play exactly as before (checked in all three). Battle logic runs on the battle clock with no dice or with its own dice; the looks have their own. Already-posted videos don't change: the 10:00 post on 17 November is the first with them, in every channel.
+
+**Shared by all three** (identical files): `music.js` (map music themes), `commentary.js` and `sfx/call-*.wav`, `sfx/crowd-bed.wav`, `sfx/make_commentary.py` (the commentator and the crowd), `holiday.js`. Army's and Tower's `engine.js` are back in step (Tower's and Territory's are Army's plus the `api._` line, now also exporting `lumOf`, `PK_SET`, `PK_SPELLS`).
+
+- **25 Commentator:** 21 short lines ("What a hit!", "Titan down!", "Traitor!", "The gate is down!", "What a finish!"...) in a Piper voice that is not the war cry's (en_GB-northern_english_male-medium), made punchy with a little stadium room. The battle raises cues (first kill, a streak, a titan down, a big hit, the last stand, a split, a traitor, a gate, a spell, the finish); `commentary.js` says at most 8 a video, at least 6 s apart, never during the face-off or the charge, picks the line with looks dice, and mixes it into the effects, so the music ducks under the voice. (Fixed while building: the first batch of lines came out 18 s long each; the script's piper call is fixed and they're 0.6 to 1.2 s.)
+- **26 Crowd swell:** a murmuring crowd bed under the fight that swells +3 dB on a kill and +6 dB on a titan, a gate, a capital (attack 0.2 s, release 1.5 s). It's part of the effects, measured before the levels are matched, so the mix still lands on effects -14 dB, music -19 dB.
+- **27 Map music themes:** the map picks the instruments (desert: hand drums and a plucked oud-like lead; snow: sleigh bells and glassy bells; forest: breathy flute and plucked strings; neon and city: synth lead and arpeggio; furnace and bombed: war drums), on top of the era's style. Tower's Pharaoh's Sands, Mushroom Grove and Blossom and Territory's six island themes have themes too. At Christmas the snow theme goes festive (more bells, a counter-melody). Loudness is unchanged (the levels set it).
+- Test renders: Army -12.7 LUFS, Tower -13.9 LUFS, Territory in its log below; all within about 1 LU of YouTube's -14.
+
+**Four more ideas of my own for each pick** (rule 7; built ones marked ✓, the rest are in IDEAS.md for later):
+1 Stone Golem: ✓ the halves keep half the health each and walk on; ✓ a heavy single hit also splits it; little golems that merge back if they meet; a golem that splits three ways when titan-sized.
+2 Bard: ✓ every 9 s the song becomes a war cry (bigger, faster); ✓ notes drifting off; a bard duel when two meet; a lullaby that slows enemies.
+3 Plague Doctor: ✓ the cloud is acid, so acid troops are fed by it; ✓ in Tower it chokes towers (fire a third slower); a cure that cleans a cloud; a plague that spreads hold to hold.
+4 Mimic Chest: ✓ the lid snaps with teeth when it bites; ✓ in Tower and Army it fights on after the bite; a golden mimic that drops gold; a mimic that eats a spell.
+5 Ghost Knight: ✓ translucent while it walks through; ✓ once a battle only; a ghost army event at midnight; ghosts that can't be hit by arrows while phasing.
+6 Battering Ram: ✓ gathers speed on a long run (Army); ✓ breaks walls and gates and pounds the base harder; a ram crew that repairs it; a flaming ram for fire tribes.
+7 Traitor: ✓ the colour fades from the old army's to the new one's; ✓ Territory: three defectors march off to the attacker; a double agent who switches back; a traitor who steals the enemy's gold.
+8 Bomb Rats: ✓ a pack of eight from one nest; ✓ rats never take land (Territory); a rat king that leads them; cheese bait that pulls rats off course.
+9 Lightning Chain: ✓ storm troops are fed by it; ✓ ties broken by troop number, no dice; chains that jump further in rain; a chain that jumps to a tower and back.
+10 Frost Nova: ✓ never hurts ice troops; ✓ titans freeze for half as long; frozen troops shatter on a big hit; a frost trail behind the nova.
+11 Healing Rain: ✓ it falls over the most hurt towers (Tower) and the weakest hold's area (Territory); ✓ rain drawn under the troops; a rainbow when it ends; rain that also douses fires.
+12 Smoke Bomb: ✓ a shot counter decides the misses (no dice); ✓ Territory: enemies can't even see the holds inside it; smoke that hides a flank attack; fire turning smoke black.
+13 Shield Wall: ✓ shields across the path in Tower stop shots at the towers; ✓ Territory: the hold blocks every other arriving troop; shields that crack and glow as they're hit; a shield wall that walks forward.
+14 Vampire Bite: ✓ drain particles from the victim to the killer; ✓ Tower: the base drinks what the towers deal; a vampire bat swarm; a blood moon making it stronger.
+15 King of the Hill: ✓ match point when the score is reached early (the battle still runs its length); ✓ a ring that fills as they hold it; a hill that moves halfway through; a crown for the holder.
+16 Tug of War: ✓ the losing side pulls harder (Territory grows 15% faster); ✓ a knot riding the rope; a rope snap at the end; both armies' chants.
+17 Siege: ✓ a gate in the middle of the wall; ✓ the gate falling is a big moment (banner, shake, commentator); ladders over the wall; boiling oil from the walls.
+18 Boss Rush: ✓ the boss is picked by era (no dice); ✓ Territory: three kingdoms ally against a Titan Empire for 30 s; a boss rage phase at half health; a second boss in overtime.
+19 Last Stand: ✓ the last troop heals a third and runs 20% faster; ✓ Tower: the base below a fifth enrages every tower; a last stand speech card; allies' ghosts fighting beside it.
+20 Weather: ✓ snow always on snowy maps and at Christmas; ✓ no weather during a blackout; puddles after rain; lightning flashes in storms.
+21 Dusk to night: ✓ torches, banners and fire troops glow as it gets dark; ✓ Territory's holds light lamps; stars coming out; a full moon rising.
+22 Slow-motion replay: ✓ half speed with a slow push in, film bars and a pulsing REPLAY tag; ✓ no extra length (it plays over the start of the outro); replay from another angle; a freeze frame on the killing blow.
+23 MVP card: ✓ Army: the troop itself in a ring of its colour; ✓ Tower: the best tower and its title; Territory: the hold that launched the most captures; an MVP streak across videos; the MVP's line in the description.
+25 Commentator: ✓ never twice the same line in a video; ✓ reacts 0.15 s after the moment, like a person; a second commentator for banter; lines in Rellz's own voice later.
+26 Crowd: ✓ a seamless loop; ✓ bigger swells for titans, gates and capitals; boos when a traitor turns; a hush in the last seconds.
+27 Map music: ✓ festive at Christmas; ✓ Territory's island themes too; a theme per holiday; the map's theme in the outro fanfare.
+
+**In Tower Clash** (new `td-picks.js`, hooked in after `td-draw.js`; `render.js`; `test-battles.js` has `PICKS=1`):
+- Troops join the attackers' waves (their own dice `seed ^ 0x91C4A5`): Stone Golems split into two halves that walk on down the path (a defenders' crystal golem splits too and both halves hold its spot), Bards speed the march, Plague Doctors throw flasks at towers (the cloud slows defenders and makes towers fire a third slower), Ghost Knights walk through a blocker once, Traitors turn at half health and fight for the base, Bomb Rats run at the nearest tower and blow up on it, the Battering Ram ignores blockers and hits walls, gates and the base 2.5 times as hard. Two Mimic Chests sit beside the path as crates and bite the first attacker that comes close.
+- Spells: the merchant offers one of the six new ones on each visit (Lightning Chain, Frost Nova, Healing Rain over the most hurt towers, Smoke Bomb, Shield Wall across the path that stops shots at the towers, Vampire Bite: the base mends a share of what the towers deal).
+- Modes: King of the Hill (a hill on the path; attackers holding it score; held 25 s, the base falls in the last seconds), Tug of War (a knot on the path pushed by attackers, pushed back by kills), Siege (a gate and walls across every lane); Boss Rush was already here. Last Stand: the base below 20% enrages every tower for 6 s; an attack down to its last troop goes berserk.
+- Looks: weather and dusk come from the shared engine; the replay as in Army; the MVP card is the tower with the most kills (its title and tier). Checked: picks off = the pushed version on 10 battles (identical results); with picks on, 30 battles: no crashes, defenders won 63% at power 1 (the on-the-spot tuning sets the power for each video). Test video 73.8 s, -13.9 LUFS.
+
 ## 2026-11-16 (night, Rellz's request from the Tower Clash chat): crystal magic, strange new worlds, weird towers
 
 Rellz: "remove this Cold open ... fix the over lay of the mortar hit, try to make it smaller and more realistic, fix camera work so it moves less but also zooms in more to where the action is ... add the mystical crystal it has 3 categories ... fix characters overlay over eachother, make cool strange different unique maps and characters like a rainbow ... make some characters specific to those maps who will be a bit stronger, also make a variety of cooler towers with better abilities and weird cool abilities". Tower Clash only.

@@ -31,3 +31,13 @@ Every video has its own original soundtrack, written by code from the seed (`mus
 ## music.levels
 
 How loud the effects and the music are, in dB (Rellz, 2026-11-16: the same levels in all three games, the music a bit louder but never over the effects): `effects` -14, `music` -19. Each video is measured and brought to these, so every video and every game sounds the same. Keep the music below the effects. When set, `music.volume` is not used.
+
+## `picks` (Rellz's 26 picks, 2026-11-17, the same dial names in all three games)
+
+`on` turns them all on or off (off: every old seed plays exactly as before; `PICKS=0` turns them off for one render). One dial per idea, each `true`/`false` unless a number:
+- Troops: `golem` (`golemSplit`: health share that splits it, 0.4), `bard`, `plague` (`cloudR`, `cloudSecs` 5, `cloudDps`), `mimic` (`mimicBite` 3), `traitor` (`traitorAt` 0.5), `rats` (8 to a nest), `ram`, `troops` (Army: new troops in invented match-ups).
+- Spells: `spells` (the six new ones), `chainJumps` 4, `chainDmg`, `novaR`, `novaSecs` 3, `rainR`, `rainSecs` 6, `rainHeal`, `smokeR`, `smokeSecs` 6, `smokeMiss` 2 (every 2nd shot), `wallLen`, `wallSecs` 6, `vampShare` 0.25, `vampSecs` 8.
+- Modes: `modes` (weights added to the mode rotation: tug, siege, boss, hill), `hillScore`, `hillTarget` 25 s, `winFrom` 9 (a mode's win only comes in the last 9 s, so battles keep their length), `wallHp`, `bossHp`, `bossDmg`, `bossArmy`, `lastStand`.
+- Looks: `weather`, `weatherChance` 0.4, `dusk`, `duskChance` 0.3, `replay`, `replaySecs` 0.8, `mvp`.
+- Sound: `commentator`, `maxCalls` 8, `callGap` 6 s, `voice` 0.62, `crowd`, `crowdBed` 0.075, `mapMusic`.
+New looks dice: Army and Tower weather `seed ^ 0x5EA7E2` (dusk with it), particles `^ 0x5EA7E3`, `^ 0x5EA7E4`; commentator lines `^ 0xC0AA7E`; Tower troops in waves `^ 0x91C4A5`; Territory picks `^ 0x91C4A6` (Territory's weather and dusk use hashes of the seed).

@@ -28,16 +28,31 @@ const STYLES = {
   modern: { kick: 1.1, snare: 1, taiko: 0.4, hat: 0.7, pad: 'saw', padLp: 1800, arp: 'sq', arpLp: 2600, bass: 'sq', bassLp: 600 },
   scifi: { kick: 1, snare: 0.9, taiko: 0.3, hat: 0.6, pad: 'sq', padLp: 2200, arp: 'saw', arpLp: 3800, bass: 'saw', bassLp: 700 },
 };
+// map themes (rules.picks.mapMusic, Rellz 2026-11-16, idea 27): a map's own sound on top of the era's style. The map key picks it
+// (no dice) and the notes still come from the seed; only the instruments change, never the loudness (music.levels sets that).
+// desert: hand drums and a plucked oud-like lead; snow: sleigh bells and glassy bells over soft pads (festive at Christmas: more bells
+// and a bright counter-melody); forest: a breathy flute and plucked strings; synth: a neon lead and arpeggio; war: heavy war drums.
+const THEMES = {
+  desert: { S: { taiko: 1.1, hat: 0.45, arp: 'pluck', arpLp: 4200, padLp: 1100 }, lead: { wave: 'tri', voices: 2, det: 0.003, lp: 3600, att: 0.008, vib: 0.016, rev: 0.35, dly: 0.2, amp: 0.07 }, ost: false, darbuka: true },
+  snow: { S: { kick: 0.7, snare: 0.55, taiko: 0.4, hat: 0.3, padLp: 1700, arp: 'tri', arpLp: 5200 }, lead: { wave: 'tri', voices: 1, lp: 6000, att: 0.004, vib: 0.003, rev: 0.6, dly: 0.3, amp: 0.06 }, bells: true, ost: true },
+  forest: { S: { taiko: 0.6, hat: 0.35, arp: 'pluck', arpLp: 3600, padLp: 1200 }, lead: { wave: 'tri', voices: 1, lp: 3000, att: 0.06, vib: 0.013, rev: 0.55, dly: 0.22, amp: 0.075 }, ost: false, breath: true },
+  synth: { S: { kick: 1.1, snare: 0.9, taiko: 0.2, hat: 0.7, pad: 'sq', padLp: 2400, arp: 'saw', arpLp: 4200, bass: 'saw', bassLp: 800 }, lead: { wave: 'saw', voices: 3, det: 0.01, lp: 2800, fenv: 1.5, fdec: 0.2, att: 0.01, vib: 0.005, rev: 0.3, dly: 0.35, amp: 0.045 }, ost: false, four: true, pump: 0.6 },
+  war: { S: { kick: 1.1, snare: 1, taiko: 1.4, hat: 0.4, padLp: 1100, bassLp: 420 }, ost: true, warDrums: true },
+};
+// (Army Clash's maps, Tower Clash's (pyramid, shroom, blossom) and Territory Clash's island themes (frostwild, thornvale...))
+const MAP_THEME = { dunes: 'desert', snow: 'snow', frozen: 'snow', forest: 'forest', overgrown: 'forest', enchanted: 'forest', swamp: 'forest', neon: 'synth', city: 'synth', furnace: 'war', bombed: 'war',
+  pyramid: 'desert', shroom: 'forest', blossom: 'forest', frostwild: 'snow', thornvale: 'forest', duskfen: 'forest', goldmarch: 'desert', saltreach: 'desert', ashen: 'war' };
 const PROGS = [[0, 5, 2, 6], [0, 3, 5, 4], [0, 6, 5, 6], [0, 5, 3, 4], [0, 2, 5, 6], [0, 3, 6, 4]];
 const MINOR = [0, 2, 3, 5, 7, 8, 10];
 
 // the tempo, key and chords of a video (no rendering): render.js uses it before the video to time the camera's beat punches
-function plan(seed, style) {
+function plan(seed, style, opts = {}) {
   const r = rng(seed >>> 0);
   const bpm = 120 + Math.floor(r() * 5) * 5;              // 120..140
   const root = 45 + Math.floor(r() * 8);                    // A2..E3
   const prog = PROGS[Math.floor(r() * PROGS.length)];
-  return { seed: seed >>> 0, style: STYLES[style] ? style : 'epic', bpm, beat: 60 / bpm, root, prog, r };
+  const theme = opts.theme || (opts.map && MAP_THEME[opts.map]) || null;
+  return { seed: seed >>> 0, style: STYLES[style] ? style : 'epic', bpm, beat: 60 / bpm, root, prog, r, theme: THEMES[theme] ? theme : null, festive: !!opts.festive };
 }
 // the chord of a degree in the key (harmonic minor for the fifth, so it pulls home)
 function chord(root, deg) {
@@ -188,7 +203,12 @@ const scaleNote = (root, i) => { const o = Math.floor(i / 7), d = ((i % 7) + 7) 
 
 // the whole soundtrack, as long as the video: { L, R } at the given sample rate
 function render(p, { sr, dur, cues }) {
-  const len = Math.ceil(sr * (dur + 0.05)), B = new Bus(sr, len), S = STYLES[p.style], VX = VOICE[p.style] || VOICE.epic, r = p.r, beat = p.beat, bar = beat * 4;
+  const len = Math.ceil(sr * (dur + 0.05)), B = new Bus(sr, len), r = p.r, beat = p.beat, bar = beat * 4, TM = p.theme ? THEMES[p.theme] : null;
+  let S = STYLES[p.style], VX = VOICE[p.style] || VOICE.epic;
+  if (TM) {
+    S = Object.assign({}, S, TM.S || {});
+    VX = Object.assign({}, VX, TM.lead ? { lead: Object.assign({}, VX.lead, TM.lead) } : {}, 'ost' in TM ? { ost: TM.ost } : {}, 'four' in TM ? { four: TM.four } : {}, 'pump' in TM ? { pump: TM.pump } : {}, { double: false });
+  }
   const { start, end } = cues, busy = cues.busy;
   const drop = Math.max(start, Math.ceil((cues.first - 0.05) / bar) * bar);               // first downbeat after the first kill
   const fin = Math.max(drop + bar, end);                                                    // the final blow
@@ -244,6 +264,18 @@ function render(p, { sr, dur, cues }) {
       if (on && (beatN === 1 || beatN === 3)) { B.snare(t, 0.22 * S.snare, r); if (VX.four) B.clap(t, 0.12, r); }
       if (q % 2 === 0 || I > 0.55) B.hat(t, (q % 4 === 2 ? 0.07 : 0.04) * S.hat * (0.6 + 0.6 * I), r, q % 2 ? -0.3 : 0.3, VX.four && q % 4 === 2);
       if (S.taiko > 0.5 && (q === 6 || q === 14) && I > 0.3) B.taiko(t, 0.18 * S.taiko, r, q === 6 ? 82 : 70);
+      if (TM) {
+        // desert hand drums: a doum on the beat, teks in between; snow sleigh bells on the eighths (all sixteenths when it's busy or
+        // festive) and a glassy bell on each bar; forest: a breath of wind on the bar; war: a second, deeper drum line
+        if (TM.darbuka) { if (q === 0 || q === 6 || q === 10) B.taiko(t, 0.09, r, 120); else if (q % 2 === 1 && I > 0.35) B.hat(t, 0.035, r, q % 4 === 1 ? 0.4 : -0.4); }
+        if (TM.bells) {
+          if (q % 2 === 0 || I > 0.6 || p.festive) for (let j = 0; j < 3; j++) B.tone(t + j * 0.006, 0.05, 5200 + j * 730 + (q % 4) * 90, 0.006 * (0.7 + 0.5 * I), { wave: 'sq', lp: 9000, dec: 0.05, rel: 0.02, pan: q % 4 < 2 ? 0.45 : -0.45, rev: 0.25 });
+          if (q === 0) { const ch3 = chordAt(t); B.tone(t, bar * 0.9, mtof(ch3[0] + 36), 0.018, { wave: 'tri', lp: 8000, dec: 0.9, rel: 0.4, rev: 0.6, dly: 0.3 }); }
+          if (p.festive && (q === 4 || q === 12)) { const ch3 = chordAt(t); B.tone(t, beat * 0.9, mtof(ch3[q === 4 ? 1 : 2] + 24), 0.016, { wave: 'tri', lp: 7000, dec: 0.5, rel: 0.2, rev: 0.5, pan: 0.2 }); }
+        }
+        if (TM.breath && q === 0 && (b % 2 === 0)) B.noise(t, bar * 0.8, 0.012, { lp: 1800, sweep: 3, rise: 1.5, hp: true, rev: 0.6 }, r);
+        if (TM.warDrums && (q === 3 || q === 11 || (I > 0.5 && q === 7))) B.taiko(t, 0.14, r, 48);
+      }
       // bass: the root on the eighths, with a filter pluck, breathing with the kick
       if (q % 2 === 0) { const ch2 = chordAt(t), oct = VX.four && q % 4 === 2 ? 12 : 0; B.tone(t, beat / 2 * 0.85, mtof(ch2[0] - 12 + oct), 0.1, { wave: S.bass, voices: 2, det: 0.003, lp: S.bassLp, fenv: 2.5, fdec: 0.06, dec: 0.4, rel: 0.03, pump: VX.pump * 0.7 }); }
       // strings on the sixteenths (epic, ancient) or the arpeggio (modern, sci-fi), louder when the screen is busy
@@ -323,4 +355,4 @@ function mix(sfxL, sfxR, mus, { volume = 0.8, duck = 0.45, sr, levels = null } =
   return { L, R };
 }
 
-module.exports = { plan, tracker, render, pulse, mix, loud, STYLES };
+module.exports = { plan, tracker, render, pulse, mix, loud, STYLES, THEMES, MAP_THEME };

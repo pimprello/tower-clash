@@ -7,4 +7,5 @@ require('./td-crystal.js');
 require('./td-worlds.js');
 require('./td-weird.js');
 try { require('./td-draw.js'); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
+require('./td-picks.js');   // (rules.picks, 2026-11-16: after the drawing, which it hooks into)
 module.exports = require('./td.js');

@@ -16,6 +16,7 @@ registerFont(path.join(__dirname, 'fonts/BarlowCondensed-Bold.ttf'), { family: '
 
 const RVB = require('./engine.js');
 const Music = require('./music.js');
+const Commentary = require('./commentary.js');
 RVB.makeCanvas = (w, h) => createCanvas(w, h);
 const D = require('./td-data.js');
 const rules = JSON.parse(fs.readFileSync(path.join(__dirname, 'rules.json'), 'utf8'));
@@ -53,7 +54,9 @@ const era = D.TD_MAPS[map].era;
 const defOk = D.DEF_LINEUPS.filter(l => !l.eras || l.eras.includes(era));
 const defense = defOk[(slot * 3 + 1) % defOk.length];
 const attack = D.ATK_LINEUPS[(slot * 3) % D.ATK_LINEUPS.length];
-const mode = process.env.MODE || weighted(rules.modes || { classic: 1 });
+// Rellz's picks (rules.picks, 2026-11-16, for all three games; td-picks.js): PICKS=0 turns them off for a test
+const PK = rules.picks && rules.picks.on && process.env.PICKS !== '0' ? rules.picks : null;
+const mode = process.env.MODE || weighted(Object.assign({}, rules.modes || { classic: 1 }, PK && PK.modes ? PK.modes : {}));
 const defOrder = D.ORDERS[Math.floor(pick.next() * D.ORDERS.length)];
 const atkBand = D.WARBANDS[Math.floor(pick.next() * D.WARBANDS.length)];
 const pairs = rules.teamPairs || [['GOLD', 'PURPLE']];
@@ -62,7 +65,7 @@ RVB.setTeams(pair[0], pair[1]);
 const events = (rules.events || []).map(type => ({ type }));
 
 const optsFor = (power, s) => ({ map, layout, target: FIGHT, fixedLength: FIGHT + OUTRO, outroSecs: OUTRO, ui: 2, art: 2, anim: true, humans: (rules.ui || {}).humans !== false, ...((rules.ui || {}).blood && rules.ui.blood.on ? { blood: rules.ui.blood } : {}), shine: { on: true, gloss: 1, rim: 1, damage: true, screen: 1, density: 1.6 }, remains: true, clean: true, smooth: true, tdPace: PACE,
-  tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s });
+  tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s, ...(PK ? { picks: Object.assign({}, PK, { on: true, holiday: HOL ? HOL.key : null }) } : {}) });
 
 // ----- balance on the spot: quick headless battles with this set-up and other dice, aiming at an even chance -----
 function quick(power, s) {
@@ -186,7 +189,7 @@ async function main() {
   // ----- music (rules.music, music.js, shared with Army Clash): an original soundtrack written from the seed, following the
   // battle; the camera punches in on the beat in the last seconds, and the outro fades into the cover frame so the replay loops -----
   const MU = rules.music || {}, muOn = MU.on !== false;
-  const mp = muOn ? Music.plan(seed, ['epic', 'ancient', 'modern', 'scifi'][slot % 4])  /* (four songs in turn, one per video: Rellz 2026-11-15) */ : null, mtr = muOn ? Music.tracker() : null;
+  const mp = muOn ? Music.plan(seed, ['epic', 'ancient', 'modern', 'scifi'][slot % 4], PK && PK.mapMusic !== false ? { map, festive: !!(HOL && HOL.key === 'christmas') } : {})  /* (four songs in turn, one per video: Rellz 2026-11-15) */ : null, mtr = muOn ? Music.tracker() : null;
 const clamp01 = x => Math.max(0, Math.min(1, x));
   let firstCv = null;
   // ----- the intro card (rules.intro, Rellz 2026-11-15): the thumbnail's layout (who vs who) for a couple of seconds before the
@@ -196,6 +199,11 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
   let ffSecs = 0, ffShot = false;
   const TOFF = TEASE / FPS;
   const INTRO = (rules.intro || {}).on !== false && thumbCv && introInfo ? Math.round(FPS * ((rules.intro || {}).seconds || 2.6)) : 0, IOFF = TOFF + INTRO / FPS;
+  const pkCalls = [], pkCrowd = [];
+  let pkEndAt = null;
+  // the slow-motion replay of the final blow (rules.picks.replay): the last moments of the fight, kept at half size, play again at
+  // half speed over the start of the outro, then fade back (the video is no longer for it)
+  const RP = PK && PK.replay !== false && !stills ? { n: Math.round((PK.replaySecs ?? 0.8) * FPS), ring: [], at: -1 } : null;
   for (let i = 0; i < MAXFRAMES; i++) {
     ctx.setTransform(RS, 0, 0, RS, 0, 0);
     const z0 = game.cam && game.cam.z, punch = muOn && MU.pulse !== false && game.cam && game.phase === 'fight' && game.fightT > FIGHT - 6 ? Music.pulse(mp, i / FPS + IOFF) : 0;
@@ -234,6 +242,27 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     // (testing: STILL_AFTER=<battle second> also saves a still every 0.75 s of video from then on, through the finale and the end)
     if (stills && process.env.STILL_AFTER && (game.phase !== 'fight' || game.fightT >= Number(process.env.STILL_AFTER)) && i % 45 === 0) fs.writeFileSync(path.join(OUT, `still-after-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png'));
     if (game.warpK > 1.2) { ffSecs += 1 / FPS; if (stills && game.warpK > 1.6 && !ffShot) { ffShot = true; fs.writeFileSync(path.join(OUT, `still-ff-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png')); } }
+    if (RP) {
+      if (game.phase === 'fight' && game.fightT > FIGHT * 0.5) {
+        const c = RP.ring.length >= RP.n ? RP.ring.shift() : createCanvas(W * RS / 2, H * RS / 2);
+        c.getContext('2d').drawImage(canvas, 0, 0, W * RS / 2, H * RS / 2); RP.ring.push(c);
+      } else if (game.phase === 'outro' && !game.holdOutro && RP.ring.length >= 4) {
+        if (RP.at < 0) RP.at = i;
+        const k = i - RP.at, len = RP.ring.length * 2, fade = 8;
+        if (k < len + fade) {
+          const f = RP.ring[Math.min(RP.ring.length - 1, k >> 1)], a = k < len ? 1 : 1 - (k - len) / fade, z = 1 + 0.06 * Math.min(1, k / len);
+          ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a;
+          ctx.drawImage(f, (W * RS - W * RS * z) / 2, (H * RS - H * RS * z) / 2, W * RS * z, H * RS * z);
+          ctx.fillStyle = 'rgba(40,20,10,0.14)'; ctx.fillRect(0, 0, W * RS, H * RS);
+          const bar = 120 * RS; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W * RS, bar); ctx.fillRect(0, H * RS - bar, W * RS, bar);
+          ctx.setTransform(RS, 0, 0, RS, 0, 0); ctx.font = `800 54px ${E.FONT || 'sans-serif'}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+          const tx = 70, ty = 66; ctx.fillStyle = '#E11D48'; ctx.beginPath(); ctx.arc(tx, ty, 13 * (0.75 + 0.25 * Math.cos(k * 0.35)), 0, Math.PI * 2); ctx.fill();
+          ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(8,11,20,0.9)'; ctx.strokeText('REPLAY', tx + 30, ty); ctx.fillStyle = '#FFFFFF'; ctx.fillText('REPLAY', tx + 30, ty);
+          ctx.globalAlpha = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+          if (k === 0) synth.play({ type: 'whoosh' }, (i + 0.5) / FPS + IOFF);
+        } else if (RP.ring.length) RP.ring.length = 0;
+      }
+    }
     if (stills) { if (stillAt.some(s => Math.abs(i / FPS - s) < 0.5 / FPS)) fs.writeFileSync(path.join(OUT, `still-${String(Math.round(i / FPS)).padStart(2, '0')}.png`), canvas.toBuffer('image/png')); }
     else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
     nFrames++;
@@ -241,7 +270,13 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     if (game.finished || nFrames >= FPS * SECS / PACE + FPS * 55) break;
     if (process.env.SECS && nFrames >= FPS * SECS) break;
     if (director) director.advance(1 / FPS); else game.frame(1 / FPS);
-    for (const ev of game.sfx) synth.play(ev, (i + 1) / FPS + IOFF);
+    for (const ev of game.sfx) {
+      // the commentator's cues and the crowd's swells go to commentary.js after the battle
+      if (ev.type === 'pk_call') { pkCalls.push({ t: (i + 1) / FPS + IOFF, kind: ev.kind }); continue; }
+      if (ev.type === 'pk_crowd') { pkCrowd.push({ t: (i + 1) / FPS + IOFF, k: ev.k || 1 }); continue; }
+      synth.play(ev, (i + 1) / FPS + IOFF);
+    }
+    if (PK && game.phase !== 'fight' && pkEndAt == null && game.fightT > 1) { pkEndAt = (i + 1) / FPS + IOFF; pkCalls.push({ t: pkEndAt, kind: 'end' }); }
     // (the music's drop comes on the first kill: tower kills don't make a knock-out sound, so they're passed on as one)
     if (mtr) { const kills = game.killLog.length + (game.killLogShifted || 0), ko = kills > (mtr.kills || 0); mtr.kills = kills;
       mtr.frame((i + 1) / FPS + IOFF, ko ? { phase: game.phase, sfx: game.sfx.concat({ type: 'ko' }), holdOutro: game.holdOutro, outroLen: game.outroLen, outroT: game.outroT } : game); }
@@ -255,6 +290,12 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     enc.p.stdin.end(); await enc.done;
     // (the battle's sounds a little under the music: Rellz 2026-11-15 "the sfx is louder than the music a bit too much")
     const frames = Math.round(SR * DUR), gain = (game.audioGain || 1) * ((rules.sound || {}).sfx ?? 0.7);
+    // the commentator and the crowd (rules.picks), into the effects before they're limited (the levels match them afterwards)
+    if (PK && (PK.commentator !== false || PK.crowd !== false)) {
+      const said = Commentary.mix(synth.L, synth.R, { sr: SR, cues: PK.commentator !== false ? pkCalls : [], crowd: pkCrowd, seed, startAt: IOFF + 1, endAt: Math.min(DUR, (pkEndAt ?? DUR) + 2.5),
+        bed: PK.crowd !== false ? (PK.crowdBed ?? 0.075) / gain : 0, voice: (PK.voice ?? 0.62) / gain, max: PK.maxCalls ?? 8, gap: PK.callGap ?? 6 });
+      console.log(`Commentator: ${said.length ? said.join(', ') : 'quiet'}; crowd ${PK.crowd !== false ? `on, ${pkCrowd.length} swells` : 'off'}`);
+    }
     const L = new Float32Array(frames), R = new Float32Array(frames);
     for (let i = 0; i < frames; i++) { L[i] = Math.tanh(synth.L[i] * gain); R[i] = Math.tanh(synth.R[i] * gain); }
     let mixed = { L, R };

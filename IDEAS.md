@@ -4,6 +4,34 @@ Moved out of `AUTOPILOT.md` so the daily read stays light. Open this only when p
 
 ## Not built yet (take one, build it well, cross it off here)
 
+### Extras for Rellz's picks (2026-11-17, not built yet)
+- Golems that merge back when their halves meet; a titan-sized golem that splits three ways.
+- A bard duel when two bards meet; a lullaby that slows enemies.
+- A cure that cleans a plague cloud; a plague that spreads from hold to hold.
+- A golden mimic that drops gold; a mimic that eats a spell.
+- A ghost army event at midnight; phasing ghosts that arrows pass through.
+- A ram crew that repairs the ram; a flaming ram for fire tribes.
+- A double agent who switches back; a traitor who steals the enemy's gold.
+- A rat king leading the pack; cheese bait that pulls rats off course.
+- Chains that jump further in rain; a chain that jumps to a tower and back.
+- Frozen troops that shatter on a big hit; a frost trail behind the nova.
+- A rainbow when healing rain ends; rain that douses fires.
+- Smoke that hides a flank attack; fire turning smoke black.
+- Shields that crack and glow as they're hit; a shield wall that walks forward.
+- A vampire bat swarm; a blood moon making vampire bite stronger.
+- A hill that moves halfway through; a crown for the holder.
+- A rope snap at the end of a tug of war; both armies' chants.
+- Ladders over the siege wall; boiling oil from the walls.
+- A boss rage phase at half health; a second boss in overtime.
+- A last stand speech card; allies' ghosts fighting beside the last troop.
+- Puddles after rain; lightning flashes in storms.
+- Stars coming out at night; a full moon rising.
+- A replay from another angle; a freeze frame on the killing blow.
+- An MVP streak across videos; the MVP's line in the description.
+- A second commentator for banter; lines in Rellz's own voice.
+- Boos when a traitor turns; a hush in the last seconds.
+- A music theme per holiday; the map's theme in the outro fanfare.
+
 - night mode's darkness with light circles round the towers (the `night` mode exists but has no darkness yet, so its weight in `rules.modes` is 0);
 - a drawbridge that rises when the boss nears the base on the bridge layout;
 - tower synergies shown on screen (a frost tower slowing what a cannon then hits, with a combo label);
