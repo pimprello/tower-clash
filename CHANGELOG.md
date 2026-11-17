@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-17 (Rellz's request from the Tower Clash chat): a fortune-teller witch for the commentator
+
+Rellz: "make the voice clearer and more appropriate, it should be like League of Legends, it should be like a witch girl fortune teller". Tower Clash only (the other games keep the shared sfx/call-*.wav, and commentary.js is unchanged).
+
+- `sfx/make_oracle.py` makes Tower Clash's own lines in `sfx/oracle/` with Piper's en_GB-jenny_dioco-medium (a clear young British woman), for the same cues: "The first soul is claimed.", "The cards foretold this!", "Even giants bow to fate.", "Ooh, I saw that coming!", "Such delicious magic!", "Their fate is sealed.", "Just as the cards foretold!" and 14 more. Clear rather than shouted: no drive, gentle compression, a lift in the air band, a soft shimmer (a quiet copy a few cents up, 12 ms late) and a short airy room, like a game champion's lines.
+- render.js uses `sfx/oracle/` when it's there (with the crowd bed copied in), and plays her a little louder than the old commentator (`rules.picks.oracleVoice`, 0.75; was 0.62), so she's clear over the music.
+
 ## 2026-11-17 (afternoon, Rellz's request from the Tower Clash chat): nothing cut off, troops down the middle, no replay, no sprinters
 
 Rellz (with a screenshot of the cold open: a tower and two troops cut off by straight edges): "fix what happens here they get cut off and it looks ugly, centre characters like how titan is centred when he walks the path, remove the 2 second at the end where it replays it looks ugly, slow down the fast people it doesn't look nice when they're fast". Tower Clash only.
