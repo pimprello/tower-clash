@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-17 23:06 | The War Mammoth vs 8 Towers 🔥 (Ep. 32) | Fallen! | https://youtube.com/shorts/G6zmQlNo-o8 |
 | 2026-11-17 19:01 | A Rare Golden Dread Knight Appeared... 😱 (Ep. 31) | Survived! | https://youtube.com/shorts/kQU2B0YxydI |
 | 2026-11-17 14:59 | 9 Waves. 1 Base. Will It Hold? 🛡️ (Ep. 30) | Survived! | https://youtube.com/shorts/U4-V1oxssXI |
 | 2026-11-17 11:03 | The Lava Is Rising... Can The Base Survive? 🌋 (Ep. 29) | Survived! | https://youtube.com/shorts/CpSb6LWGOEg |
