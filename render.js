@@ -243,7 +243,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
         g3.cam.x += (fc.x - g3.cam.x) * 0.07; g3.cam.y += (fc.y - g3.cam.y) * 0.07;
         g3.cam.z = 1.35 + 0.4 * E.easeOutCubic(Math.min(1, f / 0.55)) + 0.15 * Math.max(0, (f - 0.86) / 0.14);
         g3.cards.length = 0; g3.floats.length = 0; if (g3.banners) g3.banners.length = 0;
-        bx.setTransform(RS * KS, 0, 0, RS * KS, 0, 0); g3.draw(bx);
+        bx.setTransform(RS * KS, 0, 0, RS * KS, 0, 0); { const keepRS = RVB.RS; RVB.RS = RS * KS; try { g3.draw(bx); } finally { RVB.RS = keepRS; } }
         // full screen: the battle only (the scoreboard and panels are outside the arena and are cropped away)
         ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#05070D'; ctx.fillRect(0, 0, Wp, Hp);
         const z = cover * (1 + 0.05 * peak + 0.35 * Math.max(0, (f - 0.9) / 0.1) ** 2 + 0.04 * Math.exp(-f * 14)), dw = sw * z, dh = sh * z;

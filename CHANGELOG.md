@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-17 (afternoon, Rellz's request from the Tower Clash chat): nothing cut off, troops down the middle, no replay, no sprinters
+
+Rellz (with a screenshot of the cold open: a tower and two troops cut off by straight edges): "fix what happens here they get cut off and it looks ugly, centre characters like how titan is centred when he walks the path, remove the 2 second at the end where it replays it looks ugly, slow down the fast people it doesn't look nice when they're fast". Tower Clash only.
+
+- **Cut off in the cold open**: the cold open draws the battle at 1.5x on its own canvas, but the shine layers were still sized for the normal screen, so towers and troops were sliced by their edges. The engine's scale (`RVB.RS`) is now set to the cold open's while it draws.
+- **Down the middle of the path**: troops start within a quarter of the path's half-width of its centre (was anywhere across it), and when they bump into each other they now queue along the path instead of spreading sideways (sideways push cut to 30%, never more than a third of the way out).
+- **No replay at the end**: `rules.picks.replay` is off in Tower Clash (the outro plays straight).
+- **No sprinters**: the gap between quick and slow troops is narrower (`walkSpeed` = (0.32 x speed + 60) x 1.55; the middle is unchanged, wolf riders and goblins about 11% slower, the slowest a little quicker); charges are 1.6x (was 2.2x); boosts never take a troop past 1.3x its own pace (1.6x in a charge; was 1.6x and 2.3x); a clock-tower rewind walks back at 1.6x (was 2.6x); fast forward through quiet stretches tops out at 1.5x (1.25x under a notice; was 1.8x and 1.4x).
+- Checked: 40 headless battles, no crashes, defenders won 55%; stills of the cold open and of troops walking.
+
 ## 2026-11-17 (Rellz's request, all three games): Rellz's 26 picks (`rules.picks`)
 
 Rellz picked 26 of my 30 ideas (1 to 23 and 25 to 27) and asked for them in Army Clash, Tower Clash and Territory Clash, with only game-specific details different. Everything sits behind `rules.picks` (one dial per idea, the same names in every game); with it off, old seeds play exactly as before (checked in all three). Battle logic runs on the battle clock with no dice or with its own dice; the looks have their own. Already-posted videos don't change: the 10:00 post on 17 November is the first with them, in every channel.

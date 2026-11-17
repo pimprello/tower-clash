@@ -43,7 +43,9 @@ function distToLane(L, x, y) {
 }
 
 // a troop's marching speed on the path (big troops are slow, but not so slow they never arrive)
-const walkSpeed = type => (0.5 * (UNIT[type].speed || 60) + 46) * SPEEDK;
+// (Rellz 2026-11-17: "slow down the fast people it doesn't look nice when they're fast") the gap between quick and slow troops is
+// narrower than it was ((0.5 x speed + 46) before): the middle stays the same, wolf riders and goblins no longer dash
+const walkSpeed = type => (0.32 * (UNIT[type].speed || 60) + 60) * SPEEDK;
 const sizeOf = type => {
   const U = UNIT[type];
   if (BOSSES[type] && U.rank === 0) return 'titan';

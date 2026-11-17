@@ -40,8 +40,8 @@ class TDCam extends RVB.Director {
     if (g.t - lk < 2.2) return false;
     if (g.base && g.base.hitT !== undefined && g.t - g.base.hitT < 2.5) return false;
     // a notice on screen: only a little faster, so it can still be read (and none at all under the guess prompt)
-    let k = 1.8;
-    for (const c of g.cards || []) if (g.t > c.t0 - 0.6 && g.t < c.t0 + (c.dur || 1.9) + 0.3) { if (c.kind === 'guess') return false; k = 1.4; }
+    let k = 1.5;
+    for (const c of g.cards || []) if (g.t > c.t0 - 0.6 && g.t < c.t0 + (c.dur || 1.9) + 0.3) { if (c.kind === 'guess') return false; k = 1.25; }
     return k;
   }
   advance(dt) {

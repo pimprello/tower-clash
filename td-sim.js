@@ -82,7 +82,8 @@ const SIM = {
     const nat = this.nativeOf ? this.nativeOf(type) : null, natKey = nat ? type.slice(2) : null;
     if (nat) type = nat.base;
     const L = this.lanes[lane], U = UNIT[type], R = this.WVR;
-    const p = laneAt(L, 0), lat = R.range(-1, 1) * Math.max(0, PATH_W / 2 - U.r - 4);
+    // (Rellz 2026-11-17: "centre characters like how the titan is centred when he walks the path") troops walk near the middle
+    const p = laneAt(L, 0), lat = R.range(-1, 1) * Math.max(0, PATH_W / 2 - U.r - 4) * 0.25;
     const u = this.addUnit(ATK, type, p.x + p.nx * lat, p.y + p.ny * lat);
     this.reserve[ATK]--;
     u.lane = lane; u.s = 0; u.lat = lat; u.face = Math.atan2(p.dy, p.dx);
@@ -257,18 +258,18 @@ const SIM = {
     const T = this.fightT;
     let v = u.vk || 80;
     if (u.slowT > T) v *= u.slowK;
-    if (u.rewindT > T) v *= 2.6;
+    if (u.rewindT > T) v *= 1.6;
     if (u.chickT > T) v *= 0.65;
     if (this.wNow) v *= this.worldSpd(u);
     if (this.atkBuff('haste')) v *= 1.4;
     if (u.rageT > T) v *= 1.2;
     if (u.affT > T) v *= this.aff ? this.aff.speed : 1;
-    if (u.chargeT > T) v *= 2.2;
+    if (u.chargeT > T) v *= 1.6;
     // (the late push makes them braver, not sprinters: Rellz 2026-11-16 "sometimes people run too fast")
     v *= 1 + (this.pushK - 1) * 0.35;
     for (const z of this.zones) if (z.lane && (z.kind === 'ice' || z.kind === 'sand' || z.kind === 'mud') && this.lanes[u.lane] === z.lane && u.s > z.s0 && u.s < z.s1 && !u.flying) v *= z.kind === 'ice' ? 1.2 : 0.7;
-    // never more than 1.6 times its own pace (2.3 in a charge), however the boosts stack
-    return Math.min(v, (u.vk || 80) * (u.chargeT > T ? 2.3 : 1.6));
+    // never more than 1.3 times its own pace (1.6 in a charge), however the boosts stack (Rellz 2026-11-17: no sprinters)
+    return Math.min(v, (u.vk || 80) * (u.chargeT > T ? 1.6 : 1.3));
   },
   atkBuff(k) { return this.aBuff && this.aBuff[k] > this.fightT; },
   // ---------- attackers: march down the path; fight what blocks them; some go for towers ----------
@@ -355,10 +356,12 @@ const SIM = {
           if (d < 0.01) { const a = (u.uid || 1) * 2.39; px += Math.cos(a) * w; py += Math.sin(a) * w; } else { px += dx / d * w; py += dy / d * w; }
         }
         if (px || py) {
-          const m = Math.hypot(px, py), k = Math.min(m, 1.6) / m * 55 * h;
+          // mostly along the path (they queue up in the middle of it), only a little sideways
+          const al = px * p.dx + py * p.dy, sd = px * p.nx + py * p.ny; px = p.dx * al + p.nx * sd * 0.3; py = p.dy * al + p.ny * sd * 0.3;
+          const m = Math.hypot(px, py) || 1, k = Math.min(m, 1.6) / m * 55 * h;
           u.x += px * k; u.y += py * k;
-          const lw = Math.max(0, PATH_W / 2 - u.r * 0.6);
-          u.lat = clamp(u.lat + (px * p.nx + py * p.ny) * k * 0.8, -lw, lw);
+          const lw = Math.max(0, PATH_W / 2 - u.r) * 0.35;
+          u.lat = clamp(u.lat + (px * p.nx + py * p.ny) * k * 0.3, -lw, lw);
         }
       }
       if (u.s >= L.len - 4 || Math.hypot(u.x - this.base.x, u.y - this.base.y) <= this.wallR(u)) this.reachBase(u, h);
