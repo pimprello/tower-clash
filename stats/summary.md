@@ -1,8 +1,8 @@
 # View stats
 
-Updated 2026-11-16 18:39 UTC. 11 videos, 4 at least a day old (used below). Groups need 3+ videos.
+Updated 2026-11-17 15:03 UTC. 14 videos, 10 at least a day old (used below). Groups need 3+ videos.
 
-Total views: 1706. Median views per video: 366.
+Total views: 2060. Median views per video: 164.
 
 ### By upload hour (UK time)
 
@@ -13,19 +13,22 @@ Total views: 1706. Median views per video: 366.
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
-| Sun | 4 | 366 | 223 |
+| Sun | 6 | 400 | 300 |
+| Mon | 4 | 43 | 46 |
 
 ### By video length
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
-| over 75 s | 3 | 366 | 250 |
+| over 75 s | 6 | 400 | 284 |
+| 61-75 s | 4 | 43 | 70 |
 
 ### Posts per day
 
 | Day | Videos | Median views | Total views |
 | --- | --- | --- | --- |
-| 2026-11-15 | 4 | 366 | 892 |
+| 2026-11-15 | 6 | 400 | 1800 |
+| 2026-11-16 | 4 | 43 | 184 |
 
 ### By layout
 
@@ -36,18 +39,21 @@ Total views: 1706. Median views per video: 366.
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
+| castle | 3 | 400 | 294 |
+| temple | 4 | 164 | 153 |
+| beach | 3 | 67 | 164 |
 
 ### By mode
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
-| classic | 3 | 143 | 175 |
+| classic | 6 | 43 | 111 |
 
 ### Result
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
-| SURVIVED! | 3 | 366 | 250 |
+| SURVIVED! | 8 | 368 | 219 |
 
 ### By boss
 
@@ -73,18 +79,19 @@ Total views: 1706. Median views per video: 366.
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
+| boss | 3 | 43 | 150 |
 
 ### Top 10 videos
 
 | Views | Likes | Title |
 | --- | --- | --- |
-| 439 | 2 | 7 Waves. 1 Base. Will It Hold? 🛡️ |
-| 367 | 3 | Tier 5 Towers vs The Hydra 🔥 |
-| 366 | 4 | Can 17 Towers Stop The Siege Golem? 🏰 |
-| 286 | 3 | Frostfang Raiders vs The Lantern Guard: Will The Base Survive? |
-| 143 | 0 | The Glacier Behemoth vs 11 Towers 🔥 |
-| 40 | 0 | Can 11 Towers Stop The Bone Colossus? 🏰 |
-| 23 | 0 | Can 11 Towers Stop The Glacier Behemoth? 🏰 |
-| 17 | 0 | Tier 5 Towers vs The Magma Colossus 🔥 |
-| 16 | 0 | The Black Boar Band vs The Brass Bastion: Will The Base Survive? |
-| 9 | 0 | The Bone Tide Attack The Temple... Who Wins? ⚔️ |
+| 444 | 2 | 7 Waves. 1 Base. Will It Hold? 🛡️ |
+| 406 | 2 | Frostfang Raiders vs The Lantern Guard: Will The Base Survive? |
+| 400 | 3 | Tier 5 Towers vs The Hydra 🔥 |
+| 368 | 4 | Can 17 Towers Stop The Siege Golem? 🏰 |
+| 164 | 0 | The Glacier Behemoth vs 11 Towers 🔥 |
+| 67 | 0 | Tier 5 Towers vs The Magma Colossus 🔥 |
+| 43 | 0 | Can 11 Towers Stop The Bone Colossus? 🏰 |
+| 39 | 0 | Can 11 Towers Stop The Glacier Behemoth? 🏰 |
+| 37 | 0 | The Base Was Down To 17%... 😳 (Ep. 27) |
+| 35 | 1 | The Bone Tide Attack The Temple... Who Wins? ⚔️ |
