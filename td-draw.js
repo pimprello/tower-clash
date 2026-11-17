@@ -863,7 +863,7 @@ const DRAW = {
     // gold from kills: the coins fly to the treasury (drawn with the panel)
     if (this.coins.length) this.coins = this.coins.filter(c => t - c.t0 < 0.8);
     // the base's damage, as red numbers rising off it
-    if (this.base.hits) for (const h of this.base.hits) {
+    if (this.base.hits && !this.noUi) for (const h of this.base.hits) {
       const age = t - h.t0; if (age > 1) continue;
       const k = age / 1, y = this.base.y - 70 - 46 * easeOutCubic(k), a = Math.min(1, (1 - k) * 2.5) * Math.min(1, age / 0.08);
       ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = font(h.d >= 4 ? 40 : 30, 800);
@@ -882,7 +882,7 @@ const DRAW = {
     if (this.mirrorFx !== undefined && t - this.mirrorFx < 0.5) { ctx.fillStyle = `rgba(255,255,255,${0.5 * (1 - (t - this.mirrorFx) / 0.5)})`; ctx.fillRect(AR.x, AR.y, AR.w, AR.h); }
     // what the merchant sold: each spell as a badge (its colour, its name) rising off the cart in turn, over the battle,
     // then fading (Rellz 2026-11-16: "improve layering logic and visual for spells ... especially when the marketplace comes")
-    if (this.merch) {
+    if (this.merch && !this.noUi) {
       const m = this.merch;
       m.sold.forEach((k, i) => {
         const at = m.t0 + 0.25 + i * 1.9, q = (T - at) / 1.6; if (q < 0 || q > 1) return;   // (rising just before it is cast)
@@ -951,6 +951,7 @@ const DRAW = {
   // ---------- the screens ----------
   // the scoreboard: the logo, the hook, the base's health (left) and the attackers left (right), the wave and the clock
   drawHUD2(ctx) {
+    if (this.noUi) return;
     const t = this.t, b = this.base, left = this.units.filter(u => u.team === ATK && !u.dead && !u.gone).length + Math.max(0, this.reserve[ATK]);
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
     ctx.font = font(64, 800); spaced(ctx, 2); ctx.fillStyle = COL.white; ctx.fillText(this.title, VW / 2, 126);
@@ -1177,6 +1178,7 @@ const DRAW = {
     ctx.textBaseline = 'alphabetic';
   },
   drawTally(ctx) {
+    if (this.noUi) return;   // (the cold open: the battle and nothing else)
     // the cards and the boss bar are in arena coordinates; the panel is in screen coordinates
     this.drawBossBar(ctx);
     this.drawCardsTD(ctx);

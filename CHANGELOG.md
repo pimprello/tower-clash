@@ -45,6 +45,16 @@ Rellz picked 26 of my 30 ideas (1 to 23 and 25 to 27) and asked for them in Army
 - Modes: King of the Hill (a hill on the path; attackers holding it score; held 25 s, the base falls in the last seconds), Tug of War (a knot on the path pushed by attackers, pushed back by kills), Siege (a gate and walls across every lane); Boss Rush was already here. Last Stand: the base below 20% enrages every tower for 6 s; an attack down to its last troop goes berserk.
 - Looks: weather and dusk come from the shared engine; the replay as in Army; the MVP card is the tower with the most kills (its title and tier). Checked: picks off = the pushed version on 10 battles (identical results); with picks on, 30 battles: no crashes, defenders won 63% at power 1 (the on-the-spot tuning sets the power for each video). Test video 73.8 s, -13.9 LUFS.
 
+## 2026-11-17 (Rellz's request from the Tower Clash chat): a real cold open
+
+Rellz: "fix the 3 sec intro thing, it should be the best 3 second of the vid played at the start and there should be no ui just cool effect to increase view retention then it goes to face off with electricity, improve other stuff too". Tower Clash only.
+
+- **Cold open** (`rules.coldOpen`, render.js): every video now opens on 3 s of the busiest moment of its own battle. The thumbnail's copy scores every frame (kills, hits on the base, towers falling, explosions, a crowd at the walls, the boss close in) and the best 2 s stretch is picked; never the last 4 s, so the result stays a secret. It is played on a third copy, full screen with no scoreboard, panel, cards, numbers or words (`noUi`), drawn at 1.5x and cropped so it stays sharp. The camera is already on the action (a fourth copy finds where the peak happens) and pushes in; it plays at real speed, slows to 0.3x at the peak with a zoom blur and white impact lines round the edges, then speeds up again; a warm/cool film grade and a vignette over it; then a zoom, lightning bolts and a white flash into the electric face-off, with a whoosh, a boom at the peak, a zap and thunder. The video's loop now ends on the cold open's first frame.
+- The face-off is a little shorter (2.4 s), so the battle starts sooner after the cold open.
+- When a mystical crystal lands, the camera goes in on it for a moment, so it isn't missed.
+- `TDCam.front()` can leave out its pull towards the base (the cold open uses it so the action sits in the middle of the picture).
+- Test hook: `COLD_ONLY=1` stops after the cold open (with `STILLS=1` it saves its stills).
+
 ## 2026-11-16 (night, Rellz's request from the Tower Clash chat): crystal magic, strange new worlds, weird towers
 
 Rellz: "remove this Cold open ... fix the over lay of the mortar hit, try to make it smaller and more realistic, fix camera work so it moves less but also zooms in more to where the action is ... add the mystical crystal it has 3 categories ... fix characters overlay over eachother, make cool strange different unique maps and characters like a rainbow ... make some characters specific to those maps who will be a bit stronger, also make a variety of cooler towers with better abilities and weird cool abilities". Tower Clash only.

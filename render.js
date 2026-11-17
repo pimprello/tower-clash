@@ -155,13 +155,24 @@ async function main() {
   ]);
   // ----- the thumbnail, made before the video from a headless copy of the same battle (it plays out identically): the
   // busiest moment of the middle of the battle (many attackers on the board, the base still up) as its background. -----
-  let thumbCv = null, nFrames = 0, introInfo = null, finale = null;
+  let thumbCv = null, nFrames = 0, introInfo = null, finale = null, coldT = 0;
   const timeline = [];
   if ((rules.thumbnail || {}).on !== false) {
     const tt0 = Date.now(), g2 = new TD(seed, optsFor(power, seed)), cv2 = createCanvas(W * RS, H * RS), c2 = cv2.getContext('2d');
     g2.fixedTicks = true; g2.tickAcc = 0;
     let thumbBg = null, thumbScore = -1, thumbT = 0, k = 0;
+    // (Rellz 2026-11-17) how much is happening, frame by frame, for the cold open: kills, the base being hit, a crowd at the walls,
+    // the boss close in
+    const heat = []; let hk = g2.killLog.length + (g2.killLogShifted || 0), hb = g2.base.hp, hf = 0;
     while (!g2.finished && k < FPS * ((FIGHT + OUTRO) / PACE + 60)) {
+      if (g2.phase === 'fight') {
+        const kc = g2.killLog.length + (g2.killLogShifted || 0), b = g2.base;
+        let near = 0; for (const u of g2.units) if (u.team === 1 && !u.dead && !u.gone && Math.hypot(u.x - b.x, u.y - b.y) < 320) near++;
+        const boss = g2.bossU && !g2.bossU.dead && Math.hypot(g2.bossU.x - b.x, g2.bossU.y - b.y) < 420;
+        const fell = g2.towers.filter(t => t.dead).length, booms = (g2.booms || []).filter(o => o.t === 0).length;
+        heat.push([g2.fightT, Math.max(0, kc - hk) * 2 + Math.max(0, hb - b.hp) / (b.max || 100) * 300 + near * 0.03 + (boss ? 0.4 : 0) + Math.max(0, fell - hf) * 10 + booms * 1.5]);
+        hk = kc; hb = b.hp; hf = fell;
+      }
       if (g2.phase === 'fight' && k % 30 === 0 && g2.fightT > FIGHT * 0.35 && g2.fightT < FIGHT * 0.85) {
         const atk = g2.units.filter(u => u.team === 1 && !u.dead && !u.gone).length, sc = atk * (1 + (g2.bossU && !g2.bossU.dead ? 1 : 0)) * (g2.base.hp > 0 ? 1 : 0);
         if (sc > thumbScore) { thumbScore = sc; thumbT = g2.fightT; c2.setTransform(RS, 0, 0, RS, 0, 0); const cards = g2.cards; g2.cards = []; g2.draw(c2); g2.cards = cards; thumbBg = thumbBg || createCanvas(W, H); const bc = thumbBg.getContext('2d'); bc.clearRect(0, 0, W, H); bc.drawImage(cv2, 0, 0, W, H); }
@@ -173,6 +184,11 @@ async function main() {
     { const endT = g2.lastFightT ?? g2.fightT, ld = g2.lastDeath;
       if (VID.finale !== false && g2.phase !== 'fight') finale = { t: endT, how: ld && ld.t >= endT - 0.05 ? 'kill' : 'time', uid: ld ? ld.uid : 0, by: ld ? ld.by : 0, x: ld ? ld.x : g2.base.x, y: ld ? ld.y : g2.base.y };
     }
+    // the cold open's moment: the busiest 2 s of the battle (not the last 4 s, so the result isn't given away)
+    { const endT = g2.lastFightT ?? g2.fightT, ok = heat.filter(([t]) => t > 8 && t < endT - 4);
+      let best = -1;
+      for (let a = 0, b = 0, sum = 0; b < ok.length; b++) { sum += ok[b][1]; while (ok[b][0] - ok[a][0] > 2) sum -= ok[a++][1]; if (sum > best) { best = sum; let pk = a, pv = -1; for (let q = a; q <= b; q++) { let v = 0; for (let r = Math.max(a, q - 15); r <= Math.min(b, q + 15); r++) v += ok[r][1]; if (v > pv) { pv = v; pk = q; } } coldT = ok[pk][0]; } }
+      if (best <= 0) coldT = thumbT; }
     if (!thumbBg) { c2.setTransform(RS, 0, 0, RS, 0, 0); g2.draw(c2); thumbBg = createCanvas(W, H); thumbBg.getContext('2d').drawImage(cv2, 0, 0, W, H); }
     const tcv = createCanvas(W, H), tctx = tcv.getContext('2d');
     const keepRS = RVB.RS; RVB.RS = 1;
@@ -194,8 +210,78 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
   let firstCv = null;
   // ----- the intro card (rules.intro, Rellz 2026-11-15): the thumbnail's layout (who vs who) for a couple of seconds before the
   // battle, drifting in slowly, then dissolving into the first frame of the fight. Sound and music start under it. -----
-  // (the cold open, 2026-11-16, was removed the same day at Rellz's request)
-  const TEASE = 0;
+  // ----- the cold open (rules.coldOpen; Rellz 2026-11-17: "it should be the best 3 second of the vid played at the start and
+  // there should be no ui just cool effect to increase view retention then it goes to face off with electricity"): 3 s of the
+  // busiest moment of this very battle (picked from the thumbnail's copy, never the last 4 s, so the result stays a secret),
+  // full screen with no scoreboard, cards or words: the camera close on the action and pushing in, real speed into slow motion at
+  // the peak (zoom blur and impact lines), a film grade and vignette, then a zoom and an electric white flash into the face-off.
+  // Played on a third copy of the battle (looks only). -----
+  let TEASE = 0;
+  const CO = rules.coldOpen || {}, AR = E.AR, TAU = Math.PI * 2;
+  if (CO.on !== false && coldT > 0 && !process.env.SECS) {
+    const ct0 = Date.now(), g3 = new TD(seed, optsFor(power, seed)); g3.golden = golden; g3.fixedTicks = true; g3.tickAcc = 0;
+    const n = Math.round(FPS * (CO.seconds || 3)), sp = f => f < 0.25 ? 1 : f < 0.48 ? 1 - 0.7 * E.easeOutCubic((f - 0.25) / 0.23) : f < 0.64 ? 0.3 : f < 0.86 ? 0.3 + 0.7 * ((f - 0.64) / 0.22) ** 2 : 1;
+    let gpk = 0; for (let j = 0; j < n * 0.5; j++) gpk += sp(j / n) / FPS * PACE;
+    const t0 = Math.max(4, coldT - gpk);
+    // where the action is at the peak (a fourth copy run up to it), so the camera is already heading there
+    let pk = null;
+    { const g4 = new TD(seed, optsFor(power, seed)); g4.fixedTicks = true; g4.tickAcc = 0; let q = 0;
+      while (g4.phase === 'fight' && g4.fightT < coldT && q < FPS * 400) { g4.frame(1 / FPS); g4.sfx.length = 0; q++; }
+      if (g4.phase === 'fight') pk = TDCam.prototype.front.call({ g: g4, cx: E.AR.x + E.AR.w / 2, cy: E.AR.y + E.AR.h / 2 }, 0); }
+    let k = 0; while (g3.phase === 'fight' && g3.fightT < t0 && k < FPS * 400) { g3.frame(1 / FPS); g3.sfx.length = 0; k++; }
+    if (g3.phase === 'fight') {
+      const KS = CO.sharp || 1.5, big = createCanvas(Math.round(W * RS * KS), Math.round(H * RS * KS)), bx = big.getContext('2d');
+      const front = () => TDCam.prototype.front.call({ g: g3, cx: AR.x + AR.w / 2, cy: AR.y + AR.h / 2 }, 0);
+      const aim = f => { const a = front(); if (!pk) return a; const w = clamp01(1 - Math.abs(f - 0.5) / 0.5) * 0.6 + 0.4; return { x: a.x + (pk.x - a.x) * w, y: a.y + (pk.y - a.y) * w }; };
+      const f0 = aim(0); g3.cam = { x: f0.x, y: f0.y, z: 1.35 }; g3.cine = null; g3.noUi = true;
+      const Wp = W * RS, Hp = H * RS, ins = 8, sx = (AR.x + ins) * RS * KS, sy = (AR.y + (E.UI_DY || 0) + ins) * RS * KS, sw = (AR.w - ins * 2) * RS * KS, sh = (AR.h - ins * 2) * RS * KS;
+      const cover = Math.max(Wp / sw, Hp / sh);
+      const FXr = E.rng(seed ^ 0xC01D);
+      const lines = Array.from({ length: 34 }, () => [FXr.range(0, TAU), FXr.range(0.55, 0.8), FXr.range(0.006, 0.02)]);
+      for (let j = 0; j < n; j++) {
+        const f = j / n, fc = aim(f), peak = Math.exp(-(((f - 0.5) / 0.09) ** 2));
+        g3.cam.x += (fc.x - g3.cam.x) * 0.07; g3.cam.y += (fc.y - g3.cam.y) * 0.07;
+        g3.cam.z = 1.35 + 0.4 * E.easeOutCubic(Math.min(1, f / 0.55)) + 0.15 * Math.max(0, (f - 0.86) / 0.14);
+        g3.cards.length = 0; g3.floats.length = 0; if (g3.banners) g3.banners.length = 0;
+        bx.setTransform(RS * KS, 0, 0, RS * KS, 0, 0); g3.draw(bx);
+        // full screen: the battle only (the scoreboard and panels are outside the arena and are cropped away)
+        ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#05070D'; ctx.fillRect(0, 0, Wp, Hp);
+        const z = cover * (1 + 0.05 * peak + 0.35 * Math.max(0, (f - 0.9) / 0.1) ** 2 + 0.04 * Math.exp(-f * 14)), dw = sw * z, dh = sh * z;
+        ctx.drawImage(big, sx, sy, sw, sh, (Wp - dw) / 2, (Hp - dh) / 2, dw, dh);
+        // zoom blur: at the start (a punch in) and at the peak
+        const blur = Math.max(peak * 0.9, Math.exp(-f * 12) * 0.8, Math.max(0, (f - 0.9) / 0.1));
+        if (blur > 0.05) for (let q = 1; q <= 3; q++) { const zz = z * (1 + 0.018 * q * blur); ctx.globalAlpha = 0.16 * blur; ctx.drawImage(big, sx, sy, sw, sh, (Wp - sw * zz) / 2, (Hp - sh * zz) / 2, sw * zz, sh * zz); }
+        ctx.globalAlpha = 1;
+        // the grade: warm highlights, cool shadows, a touch more contrast
+        ctx.globalCompositeOperation = 'soft-light'; const gr = ctx.createLinearGradient(0, 0, 0, Hp); gr.addColorStop(0, 'rgba(255,170,90,0.55)'); gr.addColorStop(1, 'rgba(40,120,170,0.55)'); ctx.fillStyle = gr; ctx.fillRect(0, 0, Wp, Hp);
+        ctx.globalCompositeOperation = 'source-over';
+        // impact lines round the edges at the peak
+        if (peak > 0.08) { ctx.save(); ctx.translate(Wp / 2, Hp / 2); ctx.fillStyle = `rgba(255,255,255,${0.55 * peak})`; const R = Math.hypot(Wp, Hp) / 2;
+          for (const [a, r0, w] of lines) { const a1 = a + w + Math.sin(j * 0.9 + a * 5) * 0.003; ctx.beginPath(); ctx.moveTo(Math.cos(a) * R * r0, Math.sin(a) * R * r0); ctx.lineTo(Math.cos(a) * R * 1.2, Math.sin(a) * R * 1.2); ctx.lineTo(Math.cos(a1) * R * 1.2, Math.sin(a1) * R * 1.2); ctx.closePath(); ctx.fill(); } ctx.restore(); }
+        // vignette
+        const vg = ctx.createRadialGradient(Wp / 2, Hp / 2, Hp * 0.28, Wp / 2, Hp / 2, Hp * 0.62); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${0.55 + 0.15 * peak})`); ctx.fillStyle = vg; ctx.fillRect(0, 0, Wp, Hp);
+        // the way out: electric crackle and a white flash into the face-off
+        const out = Math.max(0, (f - 0.86) / 0.14);
+        if (out > 0) {
+          ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          for (let b = 0; b < 4; b++) { let x = Wp * FXr.range(0.1, 0.9), y = 0; ctx.beginPath(); ctx.moveTo(x, y); while (y < Hp) { x += FXr.range(-60, 60) * RS; y += FXr.range(40, 110) * RS; ctx.lineTo(x, y); }
+            ctx.lineWidth = 14 * RS; ctx.strokeStyle = `rgba(150,200,255,${0.35 * out})`; ctx.stroke(); ctx.lineWidth = 4 * RS; ctx.strokeStyle = `rgba(255,255,255,${0.9 * out})`; ctx.stroke(); }
+          ctx.restore();
+          ctx.fillStyle = `rgba(255,255,255,${Math.min(1, out * out * 1.1)})`; ctx.fillRect(0, 0, Wp, Hp);
+        }
+        if (j === 0) { firstCv = createCanvas(W * RS, H * RS); firstCv.getContext('2d').drawImage(canvas, 0, 0); }
+        if (stills) { if ([3, Math.round(n * 0.3), Math.round(n * 0.5), Math.round(n * 0.75), n - 3].includes(j)) fs.writeFileSync(path.join(OUT, `still-cold-${String(j).padStart(3, '0')}.png`), canvas.toBuffer('image/png')); }
+        else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
+        g3.frame(sp(f) / FPS);
+        for (const ev of g3.sfx) synth.play(ev, (j + 1) / FPS);
+        g3.sfx.length = 0;
+      }
+      synth.play({ type: 'whoosh' }, 0.02); synth.play({ type: 'boom' }, n / FPS * 0.47); synth.play({ type: 'whoosh' }, n / FPS * 0.84); synth.play({ type: 'zap' }, n / FPS * 0.9); synth.play({ type: 'thunder' }, n / FPS * 0.93);
+      TEASE = n;
+      console.log(`cold open: ${(n / FPS).toFixed(1)} s from ${coldT.toFixed(1)} s into the battle, made in ${((Date.now() - ct0) / 1000).toFixed(0)} s`);
+      if (process.env.COLD_ONLY) process.exit(0);   // (testing: stop after the cold open's stills)
+    }
+  }
   let ffSecs = 0, ffShot = false;
   const TOFF = TEASE / FPS;
   const INTRO = (rules.intro || {}).on !== false && thumbCv && introInfo ? Math.round(FPS * ((rules.intro || {}).seconds || 2.6)) : 0, IOFF = TOFF + INTRO / FPS;
