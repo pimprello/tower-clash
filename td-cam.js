@@ -11,7 +11,7 @@ class TDCam extends RVB.Director {
   // (Rellz, 2026-11-16: "fix camera work so it moves less but also zooms in more to where the action is and focus more on that
   // but rarely goes fully zoomed out") where the action is: the densest knot of attackers, weighted towards the ones nearest
   // the base and towards bosses and big troops; the tighter the knot, the closer the camera goes
-  front() {
+  front(bk = 0.15) {
     const g = this.g, b = g.base;
     const atk = g.units.filter(u => u.team === 1 && !u.dead && !u.gone && u.x > AR.x - 20 && u.y > AR.y - 20 && u.x < AR.x + AR.w + 20 && u.y < AR.y + AR.h + 20);
     if (!atk.length) return { x: b.x * 0.7 + this.cx * 0.3, y: b.y * 0.7 + this.cy * 0.3, z: 1.5 };
@@ -25,7 +25,7 @@ class TDCam extends RVB.Director {
       const db = Math.hypot(u.x - b.x, u.y - b.y), sc = s * (1 + 300 / (db + 120));
       if (sc > bs) { bs = sc; best = { x: sx / s, y: sy / s, spread: mx }; }
     }
-    const x = best.x * 0.85 + b.x * 0.15, y = best.y * 0.85 + b.y * 0.15;
+    const x = best.x * (1 - bk) + b.x * bk, y = best.y * (1 - bk) + b.y * bk;
     return { x, y, z: clamp(1.95 - best.spread / 420, 1.6, 1.9) };
   }
   // (retention, 2026-11-16) the quiet stretches (troops still walking up, nobody killed for a couple of seconds, no boss on the

@@ -147,6 +147,7 @@ const CRY = {
       }
       if (c.fall && !c.landed && T >= c.at) {
         c.landed = true; c.tl = this.t;
+        if (this.camEv) this.camEv.push({ type: 'spot', prio: 76, x: c.x, y: c.y - 20, z: 1.75, dur: 2.4 });
         this.shake(5); this.snd('thud', { pan: this.pan(c.x) }); this.snd('bell', { gain: 0.35 });
         this.burst(c.x, c.y, '#A5F3FC', 14, 260, 0.5, 5, -20); this.burst(c.x, c.y, '#8A7A62', 6, 180, 0.4, 5);
         if (this.shRings) this.shRings.push({ x: c.x, y: c.y, r0: 8, r1: 70, t0: this.t, life: 0.4, col: '#A5F3FC', w: 4 });
