@@ -378,8 +378,10 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     const frames = Math.round(SR * DUR), gain = (game.audioGain || 1) * ((rules.sound || {}).sfx ?? 0.7);
     // the commentator and the crowd (rules.picks), into the effects before they're limited (the levels match them afterwards)
     if (PK && (PK.commentator !== false || PK.crowd !== false)) {
-      const said = Commentary.mix(synth.L, synth.R, { sr: SR, cues: PK.commentator !== false ? pkCalls : [], crowd: pkCrowd, seed, startAt: IOFF + 1, endAt: Math.min(DUR, (pkEndAt ?? DUR) + 2.5),
-        bed: PK.crowd !== false ? (PK.crowdBed ?? 0.075) / gain : 0, voice: (PK.voice ?? 0.62) / gain, max: PK.maxCalls ?? 8, gap: PK.callGap ?? 6 });
+      // (Rellz 2026-11-17) Tower Clash's own commentator, a fortune-teller witch (sfx/make_oracle.py writes sfx/oracle/), once it's made
+      const ORACLE = path.join(__dirname, 'sfx', 'oracle'), oracle = fs.existsSync(path.join(ORACLE, 'call-first-blood.wav'));
+      const said = Commentary.mix(synth.L, synth.R, { sr: SR, cues: PK.commentator !== false ? pkCalls : [], crowd: pkCrowd, seed, startAt: IOFF + 1, endAt: Math.min(DUR, (pkEndAt ?? DUR) + 2.5), ...(oracle ? { dir: ORACLE } : {}),
+        bed: PK.crowd !== false ? (PK.crowdBed ?? 0.075) / gain : 0, voice: (oracle ? (PK.oracleVoice ?? 0.75) : (PK.voice ?? 0.62)) / gain, max: PK.maxCalls ?? 8, gap: PK.callGap ?? 6 });
       console.log(`Commentator: ${said.length ? said.join(', ') : 'quiet'}; crowd ${PK.crowd !== false ? `on, ${pkCrowd.length} swells` : 'off'}`);
     }
     const L = new Float32Array(frames), R = new Float32Array(frames);
