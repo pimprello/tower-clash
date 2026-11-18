@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-18 15:10 | 6 Waves. 1 Base. Will It Hold? 🛡️ (Ep. 34) | Survived! | https://youtube.com/shorts/WKCz7xCIgIs |
 | 2026-11-18 11:11 | A Rare Golden Ironhorn Appeared... 😱 (Ep. 33) | Survived! | https://youtube.com/shorts/AKim-vahcOU |
 | 2026-11-17 23:06 | The War Mammoth vs 8 Towers 🔥 (Ep. 32) | Fallen! | https://youtube.com/shorts/G6zmQlNo-o8 |
 | 2026-11-17 19:01 | A Rare Golden Dread Knight Appeared... 😱 (Ep. 31) | Survived! | https://youtube.com/shorts/kQU2B0YxydI |
