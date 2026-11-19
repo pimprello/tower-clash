@@ -1,77 +1,84 @@
 # View stats
 
-Updated 2026-11-18 11:14 UTC. 17 videos, 13 at least a day old (used below). Groups need 3+ videos.
+Updated 2026-11-19 10:58 UTC. 21 videos, 16 at least a day old (used below). Groups need 3+ videos.
 
-Total views: 2162. Median views per video: 45.
+Total views: 2367. Median views per video: 50.
 
 ### By upload hour (UK time)
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
-| 11:00 | 3 | 165 | 202 |
+| 11:00 | 3 | 166 | 204 |
 
 ### By weekday (UK time)
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
-| Sun | 6 | 401 | 302 |
-| Mon | 6 | 43 | 45 |
+| Sun | 6 | 403 | 304 |
+| Mon | 6 | 50 | 50 |
+| Tue | 4 | 32 | 26 |
 
 ### By video length
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
-| over 75 s | 9 | 72 | 203 |
-| 61-75 s | 4 | 45 | 74 |
+| 61-75 s | 4 | 51 | 78 |
+| over 75 s | 12 | 50 | 160 |
 
 ### Posts per day
 
 | Day | Videos | Median views | Total views |
 | --- | --- | --- | --- |
-| 2026-11-15 | 6 | 401 | 1811 |
-| 2026-11-16 | 6 | 43 | 268 |
-| 2026-11-17 | 1 | 41 | 41 |
+| 2026-11-15 | 6 | 403 | 1826 |
+| 2026-11-16 | 6 | 50 | 299 |
+| 2026-11-17 | 4 | 32 | 103 |
 
 ### By layout
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
+| spiral | 3 | 77 | 166 |
+| twin | 3 | 48 | 75 |
 
 ### By map
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
-| castle | 4 | 401 | 234 |
-| temple | 4 | 165 | 156 |
-| beach | 4 | 72 | 130 |
+| castle | 4 | 403 | 239 |
+| temple | 4 | 166 | 159 |
+| beach | 4 | 77 | 134 |
 
 ### By mode
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
-| classic | 7 | 43 | 101 |
+| classic | 8 | 48 | 96 |
 
 ### Result
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
-| SURVIVED! | 11 | 43 | 171 |
+| FALLEN! | 3 | 77 | 87 |
+| SURVIVED! | 13 | 48 | 151 |
 
 ### By boss
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
-| siegegolem | 3 | 43 | 146 |
+| siegegolem | 3 | 50 | 149 |
 
 ### By attackers
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
+| THE TITAN MARCH | 3 | 51 | 78 |
 
 ### By defenders
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
+| DARK ARTS | 3 | 77 | 171 |
+| SNIPERS AND WALLS | 3 | 22 | 29 |
 
 ### By colour pair
 
@@ -82,19 +89,19 @@ Total views: 2162. Median views per video: 45.
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
-| boss | 3 | 45 | 153 |
+| boss | 3 | 51 | 157 |
 
 ### Top 10 videos
 
 | Views | Likes | Title |
 | --- | --- | --- |
-| 447 | 2 | 7 Waves. 1 Base. Will It Hold? 🛡️ |
-| 407 | 2 | Frostfang Raiders vs The Lantern Guard: Will The Base Survive? |
-| 401 | 3 | Tier 5 Towers vs The Hydra 🔥 |
+| 451 | 2 | 7 Waves. 1 Base. Will It Hold? 🛡️ |
+| 412 | 2 | Frostfang Raiders vs The Lantern Guard: Will The Base Survive? |
+| 403 | 3 | Tier 5 Towers vs The Hydra 🔥 |
 | 372 | 4 | Can 17 Towers Stop The Siege Golem? 🏰 |
-| 165 | 0 | The Glacier Behemoth vs 11 Towers 🔥 |
-| 72 | 0 | Tier 5 Towers vs The Magma Colossus 🔥 |
-| 45 | 0 | Can 11 Towers Stop The Bone Colossus? 🏰 |
-| 43 | 0 | The Base Was Down To 17%... 😳 (Ep. 27) |
-| 43 | 2 | The Bone Tide Attack The Temple... Who Wins? ⚔️ |
-| 43 | 0 | Can 11 Towers Stop The Glacier Behemoth? 🏰 |
+| 166 | 0 | The Glacier Behemoth vs 11 Towers 🔥 |
+| 77 | 0 | A Rare Golden Ironhorn Appeared... 😱 (Ep. 33) |
+| 77 | 0 | Tier 5 Towers vs The Magma Colossus 🔥 |
+| 51 | 0 | Can 11 Towers Stop The Glacier Behemoth? 🏰 |
+| 50 | 0 | The Base Was Down To 17%... 😳 (Ep. 27) |
+| 48 | 2 | The Bone Tide Attack The Temple... Who Wins? ⚔️ |
