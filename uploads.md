@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-19 14:22 | Can 12 Towers Stop The Acid Leviathan? 🏰 (Ep. 38) | Survived! | https://youtube.com/shorts/eYFhaSahaa0 |
 | 2026-11-19 10:55 | The Rusted Hammer vs Wardens of the Grey Pass: Will The Base Survive? (Ep. 37) | Survived! | https://youtube.com/shorts/pqoBZX4nfWc |
 | 2026-11-18 23:12 | 8 Waves. 1 Base. Will It Hold? 🛡️ (Ep. 36) | Survived! | https://youtube.com/shorts/jjfrOcRHmAE |
 | 2026-11-18 19:10 | Tier 5 Towers vs The Spider Queen 🔥 (Ep. 35) | Fallen! | https://youtube.com/shorts/8VD5rsPLnZA |
