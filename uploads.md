@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-20 14:42 | The Base Was Down To 11%... 😳 (Ep. 42) | Survived! | https://youtube.com/shorts/lWR-jbQR_vk |
 | 2026-11-20 11:17 | Graverot Legion Attack The Temple... Who Wins? ⚔️ (Ep. 41) | Survived! | https://youtube.com/shorts/VYziXaZI2xM |
 | 2026-11-19 22:53 | The War Mammoth vs 10 Towers 🔥 (Ep. 40) | Survived! | https://youtube.com/shorts/XfkWW9NBXw8 |
 | 2026-11-19 19:13 | The Dread Knight vs 3 Towers 🔥 (Ep. 39) | Fallen! | https://youtube.com/shorts/sE2Mj99_L7o |
