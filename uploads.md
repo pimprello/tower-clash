@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-20 22:39 | Boss Rush: Can 12 Towers Survive Every Boss? 🔥 (Ep. 44) | Survived! | https://youtube.com/shorts/zxrX9AHaq9U |
 | 2026-11-20 18:36 | 7 Towers Fell... Did The Base Survive? 😱 (Ep. 43) | Fallen! | https://youtube.com/shorts/C5vOnZF9Kjw |
 | 2026-11-20 14:42 | The Base Was Down To 11%... 😳 (Ep. 42) | Survived! | https://youtube.com/shorts/lWR-jbQR_vk |
 | 2026-11-20 11:17 | Graverot Legion Attack The Temple... Who Wins? ⚔️ (Ep. 41) | Survived! | https://youtube.com/shorts/VYziXaZI2xM |
