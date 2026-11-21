@@ -292,7 +292,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
         { col: E.TEAMS[ATK], name: golden ? (/^THE /.test(IS.bossName) ? IS.bossName.replace(/^THE /, 'THE GOLDEN ') : 'GOLDEN ' + IS.bossName) : IS.bossName, sub: game.atkBand[0], count: `${IS.waves} WAVES`, portrait: pic(IS.g, IS.bossType, ATK) },
       ];
       RVB.RS = keepRS;
-      const fo = { W, H, RS, seed, dur: INTRO / FPS, title: 'TOWER CLASH', tag: `EPISODE ${episode}`, question: game.hook, sides, bg: bg1, battle0: b0 };
+      const fo = { W, H, RS, seed, dur: INTRO / FPS, title: null /* (the logo sat in the phone's notch area: Rellz 2026-11-21) */, tag: `EPISODE ${episode}`, question: game.hook, sides, bg: bg1, battle0: b0 };
       FO.faceoffSounds(synth, INTRO / FPS, TOFF);
       for (let j = 0; j < INTRO; j++) {
         FO.drawFaceoff(ctx, j / FPS, fo);

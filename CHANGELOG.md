@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-21 (Rellz, Tower Clash chat): nothing under the phone's notch
+
+Rellz: "nothing in the UI should be in the top 190 px of the 1080x1920 frame, where the iPhone notch/camera island and YouTube's top bar cover it."
+
+- The scoreboard's logo ("TOWER CLASH") and hook line ("WILL THE BASE SURVIVE?") at the very top are gone; the scoreboard (DEFENDERS / WAVE / ATTACKERS) now starts just under 190 px.
+- The face-off no longer draws the TOWER CLASH logo (it sat at 176-268 px); the EPISODE tag sits at 286 px. `faceoff.js` gained `o.titleY` (default unchanged, so Army Clash's face-off looks the same).
+- The cold open (full screen, no UI) and the cliffhanger card (WHO WINS?! at 36% of the height) were already clear of it.
+
 ## 2026-11-21 (Rellz, for all three games): the cliffhanger ending
 
 Rellz: "instead of fully ending and saying game over just end at the cliff hanger and say subscribe instead of game over or the end or whatever it says currently" (for all three channels; long-form videos come later, once their format is worked out).

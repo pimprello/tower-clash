@@ -990,8 +990,8 @@ const DRAW = {
     if (this.noUi) return;
     const t = this.t, b = this.base, left = this.units.filter(u => u.team === ATK && !u.dead && !u.gone).length + Math.max(0, this.reserve[ATK]);
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
-    ctx.font = font(64, 800); spaced(ctx, 2); ctx.fillStyle = COL.white; ctx.fillText(this.title, VW / 2, 126);
-    ctx.font = font(28, 700, false); spaced(ctx, 6); ctx.fillStyle = COL.gold; ctx.fillText(this.hook, VW / 2, 170, 760);
+    // (Rellz 2026-11-21: "nothing in the UI should be in the top 190 px of the 1080x1920 frame, where the iPhone notch/camera
+    // island and YouTube's top bar cover it") the logo and the hook line that sat up there are gone; the scoreboard starts below
     this.hudN = this.hudN || [b.hp, left];
     this.hudN = [b.hp, left].map((v, i) => (Math.abs(v - this.hudN[i]) < 0.5 ? v : this.hudN[i] + (v - this.hudN[i]) * 0.3));
     const rows = [['DEFENDERS', `${Math.max(0, Math.round(this.hudN[0]))}%`, `${D.BASE_NAME[b.style] || 'THE BASE'} · ${this.towers.filter(x => !x.dead).length} TOWERS`],
