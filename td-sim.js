@@ -203,6 +203,7 @@ const SIM = {
     this.eventTick(h);
     if (this.crystalTick) this.crystalTick(h);
     if (this.weirdTick) this.weirdTick(h);
+    if (this.MORE) this.moreTick(h);   // (rules.more, td-more.js)
     // the final push: in the last 10 s of the fight both sides go all out, so the battle always reaches its ending
     const push = T >= this.pushAt[0];
     if (!this.guessed && this.t >= 8.6) { this.guessed = true; this.card({ kind: 'guess', text: "WHAT'S YOUR GUESS?", dur: 3.8, big: true }); }
@@ -282,7 +283,7 @@ const SIM = {
     const back = u.charmT > T;
     // something in the way: a blocker (swordsman, skeleton, knight) or a wall on its lane
     let foe = null;
-    const chick = u.chickT > T;
+    const chick = u.chickT > T || !!u.under;   // (a tunneller under the path (td-more.js) can't be blocked either)
     if (!u.flying && !back && !chick) {
       if (u.foe && !u.foe.dead && Math.hypot(u.foe.x - u.x, u.foe.y - u.y) < u.r + u.foe.r + 14) foe = u.foe;
       else {
@@ -595,7 +596,7 @@ const SIM = {
     // pick a target: the one closest to the base (the classic tower-defence choice), or the strongest, or a flier for anti-air
     let tgt = null, best = -Infinity;
     if (Df.shot !== 'spawn' || Df.spawn === 'drone') for (const o of this.near(u.x, u.y, range + 20)) {
-      if (o.team !== ATK || o.dead || o.gone) continue;
+      if (o.team !== ATK || o.dead || o.gone || o.under) continue;
       if (o.flying && !o.grounded && Df.ground) continue;
       const d = Math.hypot(o.x - u.x, o.y - u.y); if (d > range) continue;
       let v = Df.prio === 'strong' ? o.hp : (o.fly ? o.s / o.fly.len : o.s / this.lanes[o.lane].len) * 100;
@@ -780,7 +781,7 @@ const SIM = {
     let n = 0;
     if (c.tower && !c.tower.dead) { this._kind = 'blast'; this.damage(c.tower.u || c.tower, c.dmg, c.from && !c.from.dead ? c.from : null); this._kind = undefined; }
     else for (const o of this.near(c.x, c.y, c.r + 40)) {
-      if (o.team === c.team || o.dead || o.gone) continue;
+      if (o.team === c.team || o.dead || o.gone || o.under) continue;
       if (o.flying && !o.grounded && !c.air) continue;
       if (o.tower && c.team === DEF) continue;
       const d = Math.hypot(o.x - c.x, o.y - c.y), reach = c.r + o.r; if (d > reach) continue;

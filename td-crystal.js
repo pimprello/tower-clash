@@ -170,7 +170,7 @@ const CRY = {
       if (tr.done) continue;
       if (T > tr.end) { tr.done = true; tr.tEnd = this.t; continue; }
       if (T < tr.armed || tr.used) continue;
-      const foes = this.near(tr.x, tr.y, 70).filter(o => o.team === ATK && !o.dead && !o.gone && !o.flying);
+      const foes = this.near(tr.x, tr.y, 70).filter(o => o.team === ATK && !o.dead && !o.gone && !o.flying && !o.under);
       switch (tr.k) {
         case 'landmine': case 'frostmine': {
           const o = foes.find(o => Math.hypot(o.x - tr.x, o.y - tr.y) < o.r + 12); if (!o) break;

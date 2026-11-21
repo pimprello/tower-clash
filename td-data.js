@@ -124,6 +124,10 @@ const TOWERS = {
   clock: { name: 'CLOCK TOWER', char: 'timetraveller', cls: 'slow', range: 230, dmg: 2, cd: 3.4, shot: 'rewind', cost: 85, sfx: 'phase', spec: 'WINDS THEM BACK IN TIME', ground: true },
   bees: { name: 'BEE HIVE', char: 'beekeeper', cls: 'dot', range: 230, dmg: 1.4, cd: 2.8, shot: 'bees', cost: 65, sfx: 'jet', spec: 'UNLEASHES ANGRY BEES', air: true },
   shrink: { name: 'SHRINK RAY', char: 'alchemist', cls: 'truedmg', range: 260, dmg: 2.5, cd: 3.2, shot: 'shrink', cost: 80, sfx: 'zap', spec: 'SHRINKS GIANTS DOWN', prio: 'strong' },
+  // (rules.more, td-more.js, 2026-11-17)
+  tesla: { name: 'TESLA COIL', char: 'tesla', cls: 'pierce', range: 220, dmg: 4, cd: 1.6, shot: 'tesla', cost: 85, sfx: 'zap', spec: 'ARCS GROW STRONGER', el: 'zap', air: true },
+  railgun: { name: 'RAILGUN', char: 'gunner', cls: 'truedmg', range: 420, dmg: 22, cd: 4.4, shot: 'rail', cost: 95, sfx: 'snipe', spec: 'PIERCES THE WHOLE LINE', truedmg: true },
+  mason: { name: "MASON'S LODGE", char: 'builder', cls: 'summon', range: 200, dmg: 2, cd: 1.4, shot: 'mason', cost: 70, sfx: 'chop', spec: 'REPAIRS THE GATE', ground: true },
   barracks: { name: 'BARRACKS', char: 'swordsman', cls: 'summon', range: 160, dmg: 0, cd: 6, shot: 'spawn', spawn: 'swordsman', cost: 70, sfx: 'clang', spec: 'SENDS SWORDSMEN' },
 };
 const TOWER_KEYS = Object.keys(TOWERS);
@@ -148,6 +152,8 @@ const DEF_LINEUPS = [
   { name: 'WITCHCRAFT', towers: ['hex', 'bees', 'archer', 'mage', 'frost', 'prism'] },
   { name: 'COSMIC WONDERS', towers: ['prism', 'blackhole', 'archer', 'clock', 'sniper', 'storm'] },
   { name: 'THE STRANGE ONES', towers: ['bees', 'hex', 'cannon', 'shrink', 'archer', 'storm'] },
+  { name: 'THE STORMWORKS', towers: ['tesla', 'railgun', 'archer', 'mason', 'frost', 'cannon'] },
+  { name: 'IRON AND THUNDER', towers: ['railgun', 'tesla', 'archer', 'barracks', 'mortar', 'mason'] },
   { name: 'SCI-FI DEFENCE', towers: ['laser', 'drone', 'storm', 'mortar', 'sniper', 'gravity'], eras: ['scifi', 'modern'] },
 ];
 
@@ -164,6 +170,8 @@ const WAVE_KINDS = {
   giants: { name: 'THE GIANTS', pool: ['troll', 'ogre', 'yeti', 'minotaur', 'goliath'], n: [3, 4], gap: 1.1 },
   sappers: { name: 'SAPPERS', pool: ['bomber', 'goblin', 'berserker'], n: [6, 9], gap: 0.4 },
   titans: { name: 'TITANS', pool: ['magmacolossus', 'glaciergiant', 'stormcolossus', 'acidwyrm', 'ironhorn', 'siegegolem', 'spiderqueen'], n: [1, 2], gap: 3 },
+  // (rules.more, td-more.js) a flock that flies straight at the base, fast; it takes one middle wave's place now and then
+  skyraid: { name: 'SKY RAID', pool: ['gargoyle', 'wisp', 'imp', 'griffin', 'valkyrie'], n: [8, 12], gap: 0.18, air: true },
 };
 // bosses for the last wave: health bar, phases, an entrance shot
 const BOSSES = {

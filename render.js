@@ -16,7 +16,6 @@ registerFont(path.join(__dirname, 'fonts/BarlowCondensed-Bold.ttf'), { family: '
 
 const RVB = require('./engine.js');
 const Music = require('./music.js');
-const Commentary = require('./commentary.js');
 RVB.makeCanvas = (w, h) => createCanvas(w, h);
 const D = require('./td-data.js');
 const rules = JSON.parse(fs.readFileSync(path.join(__dirname, 'rules.json'), 'utf8'));
@@ -26,6 +25,7 @@ RVB.RS = RS;
 const { TD } = require('./td-game.js');
 const { TDCam } = require('./td-cam.js');
 const FO = require('./faceoff.js');
+const CO = require('./coldopen.js');
 const E = RVB._, { DEF, ATK } = require('./td.js');
 const OUTRO = VID.outroSeconds || 3, FIGHT = VID.fightSeconds || 60;
 const SECS = process.env.SECS ? Number(process.env.SECS) : FIGHT + OUTRO;
@@ -54,9 +54,7 @@ const era = D.TD_MAPS[map].era;
 const defOk = D.DEF_LINEUPS.filter(l => !l.eras || l.eras.includes(era));
 const defense = defOk[(slot * 3 + 1) % defOk.length];
 const attack = D.ATK_LINEUPS[(slot * 3) % D.ATK_LINEUPS.length];
-// Rellz's picks (rules.picks, 2026-11-16, for all three games; td-picks.js): PICKS=0 turns them off for a test
-const PK = rules.picks && rules.picks.on && process.env.PICKS !== '0' ? rules.picks : null;
-const mode = process.env.MODE || weighted(Object.assign({}, rules.modes || { classic: 1 }, PK && PK.modes ? PK.modes : {}));
+const mode = process.env.MODE || weighted(rules.modes || { classic: 1 });
 const defOrder = D.ORDERS[Math.floor(pick.next() * D.ORDERS.length)];
 const atkBand = D.WARBANDS[Math.floor(pick.next() * D.WARBANDS.length)];
 const pairs = rules.teamPairs || [['GOLD', 'PURPLE']];
@@ -65,7 +63,7 @@ RVB.setTeams(pair[0], pair[1]);
 const events = (rules.events || []).map(type => ({ type }));
 
 const optsFor = (power, s) => ({ map, layout, target: FIGHT, fixedLength: FIGHT + OUTRO, outroSecs: OUTRO, ui: 2, art: 2, anim: true, humans: (rules.ui || {}).humans !== false, ...((rules.ui || {}).blood && rules.ui.blood.on ? { blood: rules.ui.blood } : {}), shine: { on: true, gloss: 1, rim: 1, damage: true, screen: 1, density: 1.6 }, remains: true, clean: true, smooth: true, tdPace: PACE,
-  tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s, ...(PK ? { picks: Object.assign({}, PK, { on: true, holiday: HOL ? HOL.key : null }) } : {}) });
+  tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s });
 
 // ----- balance on the spot: quick headless battles with this set-up and other dice, aiming at an even chance -----
 function quick(power, s) {
@@ -184,11 +182,9 @@ async function main() {
     { const endT = g2.lastFightT ?? g2.fightT, ld = g2.lastDeath;
       if (VID.finale !== false && g2.phase !== 'fight') finale = { t: endT, how: ld && ld.t >= endT - 0.05 ? 'kill' : 'time', uid: ld ? ld.uid : 0, by: ld ? ld.by : 0, x: ld ? ld.x : g2.base.x, y: ld ? ld.y : g2.base.y };
     }
-    // the cold open's moment: the busiest 2 s of the battle (not the last 4 s, so the result isn't given away)
-    { const endT = g2.lastFightT ?? g2.fightT, ok = heat.filter(([t]) => t > 8 && t < endT - 4);
-      let best = -1;
-      for (let a = 0, b = 0, sum = 0; b < ok.length; b++) { sum += ok[b][1]; while (ok[b][0] - ok[a][0] > 2) sum -= ok[a++][1]; if (sum > best) { best = sum; let pk = a, pv = -1; for (let q = a; q <= b; q++) { let v = 0; for (let r = Math.max(a, q - 15); r <= Math.min(b, q + 15); r++) v += ok[r][1]; if (v > pv) { pv = v; pk = q; } } coldT = ok[pk][0]; } }
-      if (best <= 0) coldT = thumbT; }
+    // the cold open's moment (coldopen.js, the same in all three games): the busiest stretch of the battle, with a bonus for
+    // action that builds into it; never the first 8 s or the last 4 s, so the result stays a secret
+    { const endT = g2.lastFightT ?? g2.fightT; coldT = CO.pick(heat, { endT, minT: 8, tail: 4 }) ?? thumbT; }
     if (!thumbBg) { c2.setTransform(RS, 0, 0, RS, 0, 0); g2.draw(c2); thumbBg = createCanvas(W, H); thumbBg.getContext('2d').drawImage(cv2, 0, 0, W, H); }
     const tcv = createCanvas(W, H), tctx = tcv.getContext('2d');
     const keepRS = RVB.RS; RVB.RS = 1;
@@ -205,7 +201,7 @@ async function main() {
   // ----- music (rules.music, music.js, shared with Army Clash): an original soundtrack written from the seed, following the
   // battle; the camera punches in on the beat in the last seconds, and the outro fades into the cover frame so the replay loops -----
   const MU = rules.music || {}, muOn = MU.on !== false;
-  const mp = muOn ? Music.plan(seed, ['epic', 'ancient', 'modern', 'scifi'][slot % 4], PK && PK.mapMusic !== false ? { map, festive: !!(HOL && HOL.key === 'christmas') } : {})  /* (four songs in turn, one per video: Rellz 2026-11-15) */ : null, mtr = muOn ? Music.tracker() : null;
+  const mp = muOn ? Music.plan(seed, ['epic', 'ancient', 'modern', 'scifi'][slot % 4])  /* (four songs in turn, one per video: Rellz 2026-11-15) */ : null, mtr = muOn ? Music.tracker() : null;
 const clamp01 = x => Math.max(0, Math.min(1, x));
   let firstCv = null;
   // ----- the intro card (rules.intro, Rellz 2026-11-15): the thumbnail's layout (who vs who) for a couple of seconds before the
@@ -216,80 +212,52 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
   // full screen with no scoreboard, cards or words: the camera close on the action and pushing in, real speed into slow motion at
   // the peak (zoom blur and impact lines), a film grade and vignette, then a zoom and an electric white flash into the face-off.
   // Played on a third copy of the battle (looks only). -----
+  // ----- the cold open (rules.coldOpen, coldopen.js: the same file in Army Clash, Tower Clash and Territory Clash; Rellz
+  // 2026-11-17: "make an improved intro system for all 3 games"): the best few seconds of this very battle, full screen with no
+  // UI. It punches in on the action, slows into the peak, lands it with an impact frame, freezes, then rewinds back to the
+  // start and flashes into the face-off (see coldopen.js). Played on a third copy of the battle (looks only). -----
   let TEASE = 0;
-  const CO = rules.coldOpen || {}, AR = E.AR, TAU = Math.PI * 2;
-  if (CO.on !== false && coldT > 0 && !process.env.SECS) {
+  const CO_R = rules.coldOpen || {}, AR = E.AR;
+  if (CO_R.on !== false && coldT > 0 && !process.env.SECS) {
     const ct0 = Date.now(), g3 = new TD(seed, optsFor(power, seed)); g3.golden = golden; g3.fixedTicks = true; g3.tickAcc = 0;
-    const n = Math.round(FPS * (CO.seconds || 3)), sp = f => f < 0.25 ? 1 : f < 0.48 ? 1 - 0.7 * E.easeOutCubic((f - 0.25) / 0.23) : f < 0.64 ? 0.3 : f < 0.86 ? 0.3 + 0.7 * ((f - 0.64) / 0.22) ** 2 : 1;
-    let gpk = 0; for (let j = 0; j < n * 0.5; j++) gpk += sp(j / n) / FPS * PACE;
-    const t0 = Math.max(4, coldT - gpk);
+    const CT = CO.make({ fps: FPS, seconds: CO_R.seconds || 3.4, rewind: CO_R.rewind !== false });
+    const t0 = Math.max(4, coldT - CT.lead * PACE);
     // where the action is at the peak (a fourth copy run up to it), so the camera is already heading there
     let pk = null;
     { const g4 = new TD(seed, optsFor(power, seed)); g4.fixedTicks = true; g4.tickAcc = 0; let q = 0;
       while (g4.phase === 'fight' && g4.fightT < coldT && q < FPS * 400) { g4.frame(1 / FPS); g4.sfx.length = 0; q++; }
-      if (g4.phase === 'fight') pk = TDCam.prototype.front.call({ g: g4, cx: E.AR.x + E.AR.w / 2, cy: E.AR.y + E.AR.h / 2 }, 0); }
+      if (g4.phase === 'fight') pk = TDCam.prototype.front.call({ g: g4, cx: AR.x + AR.w / 2, cy: AR.y + AR.h / 2 }, 0); }
     let k = 0; while (g3.phase === 'fight' && g3.fightT < t0 && k < FPS * 400) { g3.frame(1 / FPS); g3.sfx.length = 0; k++; }
     if (g3.phase === 'fight') {
-      const KS = CO.sharp || 1.5, big = createCanvas(Math.round(W * RS * KS), Math.round(H * RS * KS)), bx = big.getContext('2d');
+      const KS = CO_R.sharp || 1.5, big = createCanvas(Math.round(W * RS * KS), Math.round(H * RS * KS)), bx = big.getContext('2d');
       const front = () => TDCam.prototype.front.call({ g: g3, cx: AR.x + AR.w / 2, cy: AR.y + AR.h / 2 }, 0);
-      const aim = f => { const a = front(); if (!pk) return a; const w = clamp01(1 - Math.abs(f - 0.5) / 0.5) * 0.6 + 0.4; return { x: a.x + (pk.x - a.x) * w, y: a.y + (pk.y - a.y) * w }; };
+      const aim = f => { const a = front(); if (!pk) return a; const w = clamp01(1 - Math.abs(f - CO.PEAK) / 0.5) * 0.6 + 0.4; return { x: a.x + (pk.x - a.x) * w, y: a.y + (pk.y - a.y) * w }; };
       const f0 = aim(0); g3.cam = { x: f0.x, y: f0.y, z: 1.35 }; g3.cine = null; g3.noUi = true;
-      const Wp = W * RS, Hp = H * RS, ins = 8, sx = (AR.x + ins) * RS * KS, sy = (AR.y + (E.UI_DY || 0) + ins) * RS * KS, sw = (AR.w - ins * 2) * RS * KS, sh = (AR.h - ins * 2) * RS * KS;
-      const cover = Math.max(Wp / sw, Hp / sh);
-      const FXr = E.rng(seed ^ 0xC01D);
-      const lines = Array.from({ length: 34 }, () => [FXr.range(0, TAU), FXr.range(0.55, 0.8), FXr.range(0.006, 0.02)]);
-      for (let j = 0; j < n; j++) {
-        const f = j / n, fc = aim(f), peak = Math.exp(-(((f - 0.5) / 0.09) ** 2));
-        g3.cam.x += (fc.x - g3.cam.x) * 0.07; g3.cam.y += (fc.y - g3.cam.y) * 0.07;
-        g3.cam.z = 1.35 + 0.4 * E.easeOutCubic(Math.min(1, f / 0.55)) + 0.15 * Math.max(0, (f - 0.86) / 0.14);
-        g3.cards.length = 0; g3.floats.length = 0; if (g3.banners) g3.banners.length = 0;
-        bx.setTransform(RS * KS, 0, 0, RS * KS, 0, 0); { const keepRS = RVB.RS; RVB.RS = RS * KS; try { g3.draw(bx); } finally { RVB.RS = keepRS; } }
-        // full screen: the battle only (the scoreboard and panels are outside the arena and are cropped away)
-        ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#05070D'; ctx.fillRect(0, 0, Wp, Hp);
-        const z = cover * (1 + 0.05 * peak + 0.35 * Math.max(0, (f - 0.9) / 0.1) ** 2 + 0.04 * Math.exp(-f * 14)), dw = sw * z, dh = sh * z;
-        ctx.drawImage(big, sx, sy, sw, sh, (Wp - dw) / 2, (Hp - dh) / 2, dw, dh);
-        // zoom blur: at the start (a punch in) and at the peak
-        const blur = Math.max(peak * 0.9, Math.exp(-f * 12) * 0.8, Math.max(0, (f - 0.9) / 0.1));
-        if (blur > 0.05) for (let q = 1; q <= 3; q++) { const zz = z * (1 + 0.018 * q * blur); ctx.globalAlpha = 0.16 * blur; ctx.drawImage(big, sx, sy, sw, sh, (Wp - sw * zz) / 2, (Hp - sh * zz) / 2, sw * zz, sh * zz); }
-        ctx.globalAlpha = 1;
-        // the grade: warm highlights, cool shadows, a touch more contrast
-        ctx.globalCompositeOperation = 'soft-light'; const gr = ctx.createLinearGradient(0, 0, 0, Hp); gr.addColorStop(0, 'rgba(255,170,90,0.55)'); gr.addColorStop(1, 'rgba(40,120,170,0.55)'); ctx.fillStyle = gr; ctx.fillRect(0, 0, Wp, Hp);
-        ctx.globalCompositeOperation = 'source-over';
-        // impact lines round the edges at the peak
-        if (peak > 0.08) { ctx.save(); ctx.translate(Wp / 2, Hp / 2); ctx.fillStyle = `rgba(255,255,255,${0.55 * peak})`; const R = Math.hypot(Wp, Hp) / 2;
-          for (const [a, r0, w] of lines) { const a1 = a + w + Math.sin(j * 0.9 + a * 5) * 0.003; ctx.beginPath(); ctx.moveTo(Math.cos(a) * R * r0, Math.sin(a) * R * r0); ctx.lineTo(Math.cos(a) * R * 1.2, Math.sin(a) * R * 1.2); ctx.lineTo(Math.cos(a1) * R * 1.2, Math.sin(a1) * R * 1.2); ctx.closePath(); ctx.fill(); } ctx.restore(); }
-        // vignette
-        const vg = ctx.createRadialGradient(Wp / 2, Hp / 2, Hp * 0.28, Wp / 2, Hp / 2, Hp * 0.62); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${0.55 + 0.15 * peak})`); ctx.fillStyle = vg; ctx.fillRect(0, 0, Wp, Hp);
-        // the way out: electric crackle and a white flash into the face-off
-        const out = Math.max(0, (f - 0.86) / 0.14);
-        if (out > 0) {
-          ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-          for (let b = 0; b < 4; b++) { let x = Wp * FXr.range(0.1, 0.9), y = 0; ctx.beginPath(); ctx.moveTo(x, y); while (y < Hp) { x += FXr.range(-60, 60) * RS; y += FXr.range(40, 110) * RS; ctx.lineTo(x, y); }
-            ctx.lineWidth = 14 * RS; ctx.strokeStyle = `rgba(150,200,255,${0.35 * out})`; ctx.stroke(); ctx.lineWidth = 4 * RS; ctx.strokeStyle = `rgba(255,255,255,${0.9 * out})`; ctx.stroke(); }
-          ctx.restore();
-          ctx.fillStyle = `rgba(255,255,255,${Math.min(1, out * out * 1.1)})`; ctx.fillRect(0, 0, Wp, Hp);
-        }
+      const ins = 8, crop = { sx: (AR.x + ins) * RS * KS, sy: (AR.y + (E.UI_DY || 0) + ins) * RS * KS, sw: (AR.w - ins * 2) * RS * KS, sh: (AR.h - ins * 2) * RS * KS };
+      const cold = new CO.ColdOpen(ctx, { fps: FPS, seconds: CT.seconds, rewind: CT.rewind, seed });
+      for (let j = 0; j < CT.n; j++) {
+        const f = j / CT.n;
+        if (CT.live(j)) {
+          const fc = aim(f);
+          g3.cam.x += (fc.x - g3.cam.x) * 0.07; g3.cam.y += (fc.y - g3.cam.y) * 0.07; g3.cam.z = 1.35 + 0.4 * E.easeOutCubic(Math.min(1, f / 0.5));
+          g3.cards.length = 0; g3.floats.length = 0; if (g3.banners) g3.banners.length = 0;
+          bx.setTransform(RS * KS, 0, 0, RS * KS, 0, 0); g3.draw(bx);
+          cold.frame(j, big, crop);
+        } else cold.frame(j, null, null);
         if (j === 0) { firstCv = createCanvas(W * RS, H * RS); firstCv.getContext('2d').drawImage(canvas, 0, 0); }
-        if (stills) { if ([3, Math.round(n * 0.3), Math.round(n * 0.5), Math.round(n * 0.75), n - 3].includes(j)) fs.writeFileSync(path.join(OUT, `still-cold-${String(j).padStart(3, '0')}.png`), canvas.toBuffer('image/png')); }
+        if (stills) { if ([3, Math.round(CT.n * 0.25), CT.peakJ, CT.peakJ + 2, Math.round(CT.n * 0.5), Math.round(CT.n * 0.7), Math.round(CT.n * 0.9), CT.n - 3].includes(j)) fs.writeFileSync(path.join(OUT, `still-cold-${String(j).padStart(3, '0')}.png`), canvas.toBuffer('image/png')); }
         else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
-        g3.frame(sp(f) / FPS);
-        for (const ev of g3.sfx) synth.play(ev, (j + 1) / FPS);
-        g3.sfx.length = 0;
+        if (CT.live(j)) { const sp = CT.speed(f); if (sp > 0) g3.frame(sp / FPS); for (const ev of g3.sfx) synth.play(ev, (j + 1) / FPS); g3.sfx.length = 0; }
       }
-      synth.play({ type: 'whoosh' }, 0.02); synth.play({ type: 'boom' }, n / FPS * 0.47); synth.play({ type: 'whoosh' }, n / FPS * 0.84); synth.play({ type: 'zap' }, n / FPS * 0.9); synth.play({ type: 'thunder' }, n / FPS * 0.93);
-      TEASE = n;
-      console.log(`cold open: ${(n / FPS).toFixed(1)} s from ${coldT.toFixed(1)} s into the battle, made in ${((Date.now() - ct0) / 1000).toFixed(0)} s`);
+      CO.sounds(synth, 0, CT);
+      TEASE = CT.n;
+      console.log(`cold open: ${CT.seconds.toFixed(1)} s, peak ${coldT.toFixed(1)} s into the battle, made in ${((Date.now() - ct0) / 1000).toFixed(0)} s`);
       if (process.env.COLD_ONLY) process.exit(0);   // (testing: stop after the cold open's stills)
     }
   }
   let ffSecs = 0, ffShot = false;
   const TOFF = TEASE / FPS;
   const INTRO = (rules.intro || {}).on !== false && thumbCv && introInfo ? Math.round(FPS * ((rules.intro || {}).seconds || 2.6)) : 0, IOFF = TOFF + INTRO / FPS;
-  const pkCalls = [], pkCrowd = [];
-  let pkEndAt = null;
-  // the slow-motion replay of the final blow (rules.picks.replay): the last moments of the fight, kept at half size, play again at
-  // half speed over the start of the outro, then fade back (the video is no longer for it)
-  const RP = PK && PK.replay !== false && !stills ? { n: Math.round((PK.replaySecs ?? 0.8) * FPS), ring: [], at: -1 } : null;
   for (let i = 0; i < MAXFRAMES; i++) {
     ctx.setTransform(RS, 0, 0, RS, 0, 0);
     const z0 = game.cam && game.cam.z, punch = muOn && MU.pulse !== false && game.cam && game.phase === 'fight' && game.fightT > FIGHT - 6 ? Music.pulse(mp, i / FPS + IOFF) : 0;
@@ -328,27 +296,6 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     // (testing: STILL_AFTER=<battle second> also saves a still every 0.75 s of video from then on, through the finale and the end)
     if (stills && process.env.STILL_AFTER && (game.phase !== 'fight' || game.fightT >= Number(process.env.STILL_AFTER)) && i % 45 === 0) fs.writeFileSync(path.join(OUT, `still-after-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png'));
     if (game.warpK > 1.2) { ffSecs += 1 / FPS; if (stills && game.warpK > 1.6 && !ffShot) { ffShot = true; fs.writeFileSync(path.join(OUT, `still-ff-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png')); } }
-    if (RP) {
-      if (game.phase === 'fight' && game.fightT > FIGHT * 0.5) {
-        const c = RP.ring.length >= RP.n ? RP.ring.shift() : createCanvas(W * RS / 2, H * RS / 2);
-        c.getContext('2d').drawImage(canvas, 0, 0, W * RS / 2, H * RS / 2); RP.ring.push(c);
-      } else if (game.phase === 'outro' && !game.holdOutro && RP.ring.length >= 4) {
-        if (RP.at < 0) RP.at = i;
-        const k = i - RP.at, len = RP.ring.length * 2, fade = 8;
-        if (k < len + fade) {
-          const f = RP.ring[Math.min(RP.ring.length - 1, k >> 1)], a = k < len ? 1 : 1 - (k - len) / fade, z = 1 + 0.06 * Math.min(1, k / len);
-          ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a;
-          ctx.drawImage(f, (W * RS - W * RS * z) / 2, (H * RS - H * RS * z) / 2, W * RS * z, H * RS * z);
-          ctx.fillStyle = 'rgba(40,20,10,0.14)'; ctx.fillRect(0, 0, W * RS, H * RS);
-          const bar = 120 * RS; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W * RS, bar); ctx.fillRect(0, H * RS - bar, W * RS, bar);
-          ctx.setTransform(RS, 0, 0, RS, 0, 0); ctx.font = `800 54px ${E.FONT || 'sans-serif'}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-          const tx = 70, ty = 66; ctx.fillStyle = '#E11D48'; ctx.beginPath(); ctx.arc(tx, ty, 13 * (0.75 + 0.25 * Math.cos(k * 0.35)), 0, Math.PI * 2); ctx.fill();
-          ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(8,11,20,0.9)'; ctx.strokeText('REPLAY', tx + 30, ty); ctx.fillStyle = '#FFFFFF'; ctx.fillText('REPLAY', tx + 30, ty);
-          ctx.globalAlpha = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-          if (k === 0) synth.play({ type: 'whoosh' }, (i + 0.5) / FPS + IOFF);
-        } else if (RP.ring.length) RP.ring.length = 0;
-      }
-    }
     if (stills) { if (stillAt.some(s => Math.abs(i / FPS - s) < 0.5 / FPS)) fs.writeFileSync(path.join(OUT, `still-${String(Math.round(i / FPS)).padStart(2, '0')}.png`), canvas.toBuffer('image/png')); }
     else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
     nFrames++;
@@ -356,13 +303,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     if (game.finished || nFrames >= FPS * SECS / PACE + FPS * 55) break;
     if (process.env.SECS && nFrames >= FPS * SECS) break;
     if (director) director.advance(1 / FPS); else game.frame(1 / FPS);
-    for (const ev of game.sfx) {
-      // the commentator's cues and the crowd's swells go to commentary.js after the battle
-      if (ev.type === 'pk_call') { pkCalls.push({ t: (i + 1) / FPS + IOFF, kind: ev.kind }); continue; }
-      if (ev.type === 'pk_crowd') { pkCrowd.push({ t: (i + 1) / FPS + IOFF, k: ev.k || 1 }); continue; }
-      synth.play(ev, (i + 1) / FPS + IOFF);
-    }
-    if (PK && game.phase !== 'fight' && pkEndAt == null && game.fightT > 1) { pkEndAt = (i + 1) / FPS + IOFF; pkCalls.push({ t: pkEndAt, kind: 'end' }); }
+    for (const ev of game.sfx) synth.play(ev, (i + 1) / FPS + IOFF);
     // (the music's drop comes on the first kill: tower kills don't make a knock-out sound, so they're passed on as one)
     if (mtr) { const kills = game.killLog.length + (game.killLogShifted || 0), ko = kills > (mtr.kills || 0); mtr.kills = kills;
       mtr.frame((i + 1) / FPS + IOFF, ko ? { phase: game.phase, sfx: game.sfx.concat({ type: 'ko' }), holdOutro: game.holdOutro, outroLen: game.outroLen, outroT: game.outroT } : game); }
@@ -376,14 +317,6 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     enc.p.stdin.end(); await enc.done;
     // (the battle's sounds a little under the music: Rellz 2026-11-15 "the sfx is louder than the music a bit too much")
     const frames = Math.round(SR * DUR), gain = (game.audioGain || 1) * ((rules.sound || {}).sfx ?? 0.7);
-    // the commentator and the crowd (rules.picks), into the effects before they're limited (the levels match them afterwards)
-    if (PK && (PK.commentator !== false || PK.crowd !== false)) {
-      // (Rellz 2026-11-17) Tower Clash's own commentator, a fortune-teller witch (sfx/make_oracle.py writes sfx/oracle/), once it's made
-      const ORACLE = path.join(__dirname, 'sfx', 'oracle'), oracle = fs.existsSync(path.join(ORACLE, 'call-first-blood.wav'));
-      const said = Commentary.mix(synth.L, synth.R, { sr: SR, cues: PK.commentator !== false ? pkCalls : [], crowd: pkCrowd, seed, startAt: IOFF + 1, endAt: Math.min(DUR, (pkEndAt ?? DUR) + 2.5), ...(oracle ? { dir: ORACLE } : {}),
-        bed: PK.crowd !== false ? (PK.crowdBed ?? 0.075) / gain : 0, voice: (oracle ? (PK.oracleVoice ?? 0.75) : (PK.voice ?? 0.62)) / gain, max: PK.maxCalls ?? 8, gap: PK.callGap ?? 6 });
-      console.log(`Commentator: ${said.length ? said.join(', ') : 'quiet'}; crowd ${PK.crowd !== false ? `on, ${pkCrowd.length} swells` : 'off'}`);
-    }
     const L = new Float32Array(frames), R = new Float32Array(frames);
     for (let i = 0; i < frames; i++) { L[i] = Math.tanh(synth.L[i] * gain); R[i] = Math.tanh(synth.R[i] * gain); }
     let mixed = { L, R };
@@ -430,21 +363,30 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
   const towerNames = [...new Set(game.towers.map(t => t.kind))].map(k => tc(D.TOWERS[k].name));
   const related = pastVideos.slice(-24).filter(v => v.id && /^[\w-]{6,}$/.test(v.id)).pop();
   const description = [
-    `Episode ${episode}${golden ? ' · a rare golden boss' : ''}.`,
+    `🏰 Episode ${episode}${golden ? ' · ⭐ RARE GOLDEN BOSS APPEARED' : ''}`,
     '',
-    `${band} march on ${baseName.toLowerCase().startsWith('the') ? baseName.replace(/^The/, 'the') : baseName}, defended by ${order.replace(/^The/, 'the')}: ${waves} waves and then ${bossName.replace(/^The/, 'the')}. Will the base survive? Call it in the comments before the end!`,
-    ...(related ? [`▶ Watch next: ${related.title} https://youtube.com/shorts/${related.id}`] : []),
+    `💬 Will the base survive? Drop your prediction in the comments BEFORE the battle ends!`,
     '',
-    `A ${Math.round(DUR)}-second tower defense simulation on the ${D.TD_MAPS[map].name} map (${tc(D.LAYOUTS[layout].name)}). Every kill earns gold, which the defenders spend on new towers, upgrades up to tier 5 and spells, traps, totems and summons from a travelling merchant, and a mystical crystal that keeps falling from the sky gives them more for free; the attackers have a war shaman and a boss.${WLD ? ` On ${D.TD_MAPS[map].name} its natives (${WLD.natives.map(k => tc(NAT[k].name) + 's').join(' and ')}) fight harder on home ground.` : ''}${M && M.line ? ' ' + M.line : ''} The outcome comes from the game's rules and chance, not real footage, and the orders and warbands are made up.`,
+    `${band} send ${waves} waves — including ${golden ? `a rare golden ` : ''}${bossName.replace(/^The /, '')} — crashing into ${baseName.toLowerCase().startsWith('the') ? baseName.replace(/^The/, 'the') : baseName}, defended by ${order.replace(/^The/, 'the')}. Can the towers hold?`,
+    ...(related ? [``, `▶ Watch last episode: ${related.title} https://youtube.com/shorts/${related.id}`] : []),
     '',
-    `Towers in this battle: ${towerNames.join(', ')}.`,
+    `A ${Math.round(DUR)}-second tower defense simulation on ${D.TD_MAPS[map].name} (${tc(D.LAYOUTS[layout].name)} layout). Defenders earn gold per kill and spend it on new towers, tier-5 upgrades, spells, merchant summons and traps — plus a sky crystal that drops free gold. Attackers field a war shaman and a ${golden ? 'rare golden ' : ''}boss.${WLD ? ` ${D.TD_MAPS[map].name}'s native troops (${WLD.natives.map(k => tc(NAT[k].name) + 's').join(' and ')}) fight harder on home ground.` : ''}${M && M.line ? ' ' + M.line : ''} All outcomes from the game's rules and chance — no real footage, warbands are made up.`,
     '',
-    'New tower defense battles 4 times a day: subscribe so you don\'t miss the next one.',
+    `🗼 Towers: ${towerNames.join(' · ')}`,
     '',
-    '#shorts #towerdefense #towerclash #simulation #strategy',
+    `🔔 New tower defense battle every day — subscribe and hit the bell!`,
+    '',
+    `#shorts #towerdefense #towerclash #strategygame #epicbattle #${bossName.replace(/^The /, '').toLowerCase().replace(/ /g, '')} #willthebasesurvive #simulation`,
   ].join('\n');
-  const tags = [...new Set(['tower defense', 'tower defence', 'tower defense game', 'will the base survive', 'tower clash', 'battle simulation', 'strategy game', 'td',
-    bossName.replace(/^The /, '').toLowerCase(), ...towerNames.map(n => n.toLowerCase()), D.TD_MAPS[map].name.toLowerCase(), mode !== 'classic' ? M.name.toLowerCase() : 'boss battle', 'shorts'])];
+  const tags = [...new Set([
+    'tower defense', 'tower defence', 'tower defense game', 'will the base survive', 'tower clash', 'battle simulation',
+    'strategy game', 'td game', 'base defense', 'castle defense', 'defend the base', 'tower battle', 'wave defense',
+    'epic tower defense', 'best tower defense', 'tower defense shorts', 'shorts', 'viral shorts',
+    bossName.replace(/^The /, '').toLowerCase(), golden ? 'golden boss' : 'boss battle', 'boss fight',
+    ...towerNames.map(n => n.toLowerCase()), D.TD_MAPS[map].name.toLowerCase(),
+    mode !== 'classic' ? M.name.toLowerCase() : 'classic tower defense',
+    'tier 5 towers', 'tower upgrades', 'tower defense strategy',
+  ])];
 
   const meta = {
     seed, slot, seconds: +DUR.toFixed(2), title: Holiday.title(HOL, title), titleKind, holiday: HOL ? HOL.key : undefined,

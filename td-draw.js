@@ -232,6 +232,7 @@ const DRAW = {
     // the mystical crystal's traps and totem reach (td-crystal.js)
     if (this.drawTraps) this.drawTraps(ctx);
     if (this.drawWeirdGround) this.drawWeirdGround(ctx);
+    if (this.drawMoreGround) this.drawMoreGround(ctx);
     // the base and the towers (the character on top is drawn by the engine with the troops). With the shine on (Rellz
     // 2026-11-15: "match graphic style and shiny texture to army clash"), only their shadows and glows go on the ground here;
     // their bodies go on the troops' shine layer (shineBegin below), so they get the same gloss and rim light as the troops
@@ -751,6 +752,7 @@ const DRAW = {
     // the mystical crystal: falling crystals, magic in flight, totems, the phoenix (td-crystal.js)
     if (this.drawCrystals) this.drawCrystals(ctx);
     if (this.drawWeird) this.drawWeird(ctx);
+    if (this.drawMore) this.drawMore(ctx);
     // webbed and frozen towers
     for (const tw of this.towers) {
       if (tw.dead) continue;
