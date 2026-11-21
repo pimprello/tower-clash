@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-21 14:34 | The Bone Tide vs The Brass Bastion: Will The Base Survive? (Ep. 46) | Survived! | https://youtube.com/shorts/B7LGdp7jtMA |
 | 2026-11-21 10:53 | Can 12 Towers Stop The Star Eater? 🏰 (Ep. 45) | Survived! | https://youtube.com/shorts/kqC473L-N3s |
 | 2026-11-20 22:39 | Boss Rush: Can 12 Towers Survive Every Boss? 🔥 (Ep. 44) | Survived! | https://youtube.com/shorts/zxrX9AHaq9U |
 | 2026-11-20 18:36 | 7 Towers Fell... Did The Base Survive? 😱 (Ep. 43) | Fallen! | https://youtube.com/shorts/C5vOnZF9Kjw |
