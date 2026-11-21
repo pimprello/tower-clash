@@ -26,6 +26,7 @@ const { TD } = require('./td-game.js');
 const { TDCam } = require('./td-cam.js');
 const FO = require('./faceoff.js');
 const CO = require('./coldopen.js');
+const { Cliff } = require('./cliffhanger.js');
 const E = RVB._, { DEF, ATK } = require('./td.js');
 const OUTRO = VID.outroSeconds || 3, FIGHT = VID.fightSeconds || 60;
 const SECS = process.env.SECS ? Number(process.env.SECS) : FIGHT + OUTRO;
@@ -162,10 +163,10 @@ async function main() {
   ]);
   // ----- the thumbnail, made before the video from a headless copy of the same battle (it plays out identically): the
   // busiest moment of the middle of the battle (many attackers on the board, the base still up) as its background. -----
-  let thumbCv = null, nFrames = 0, introInfo = null, finale = null, coldT = 0;
+  let fullGame = null, cliffed = false, thumbCv = null, nFrames = 0, introInfo = null, finale = null, coldT = 0;
   const timeline = [];
   if ((rules.thumbnail || {}).on !== false) {
-    const tt0 = Date.now(), g2 = new TD(seed, optsFor(power, seed)), cv2 = createCanvas(W * RS, H * RS), c2 = cv2.getContext('2d');
+    const tt0 = Date.now(), g2 = fullGame = new TD(seed, optsFor(power, seed)), cv2 = createCanvas(W * RS, H * RS), c2 = cv2.getContext('2d');
     g2.fixedTicks = true; g2.tickAcc = 0;
     let thumbBg = null, thumbScore = -1, thumbT = 0, k = 0;
     // (Rellz 2026-11-17) how much is happening, frame by frame, for the cold open: kills, the base being hit, a crowd at the walls,
@@ -314,6 +315,24 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     if (stills) { if (stillAt.some(s => Math.abs(i / FPS - s) < 0.5 / FPS)) fs.writeFileSync(path.join(OUT, `still-${String(Math.round(i / FPS)).padStart(2, '0')}.png`), canvas.toBuffer('image/png')); }
     else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
     nFrames++;
+    // ----- the cliffhanger ending (rules.cliffhanger, cliffhanger.js, the same in all three games; Rellz 2026-11-21: "instead of
+    // fully ending and saying game over just end at the cliff hanger and say subscribe"): a moment before the final blow lands
+    // (in the slow motion going into it), the picture freezes and the Short ends on WHO WINS?! and SUBSCRIBE TO SEE THE ENDING -----
+    const CLR = rules.cliffhanger || {};
+    if (CLR.on !== false && finale && !cliffed && game.phase === 'fight' && game.fightT >= finale.t - (CLR.lead ?? 0.5)) {
+      cliffed = true;
+      const still = createCanvas(W * RS, H * RS); still.getContext('2d').drawImage(canvas, 0, 0);
+      const C = new Cliff({ W, H, RS, fps: FPS, seed, seconds: CLR.seconds || 3.4, question: 'WHO WINS?!', cta: ['SUBSCRIBE', 'TO SEE THE ENDING'], font: (s, w = 800) => E.font(s, w) });
+      C.sounds(synth, (i + 1) / FPS + IOFF);
+      for (let j = 0; j < C.n; j++) {
+        C.frame(ctx, j, still);
+        if (stills) { if ([4, 40, 110, Math.round(C.n * 0.7), C.n - 2].includes(j)) fs.writeFileSync(path.join(OUT, `still-cliff-${String(j).padStart(3, '0')}.png`), canvas.toBuffer('image/png')); }
+        else { const frame = canvas.toBuffer('raw'); if (!enc.p.stdin.write(frame)) await once(enc.p.stdin, 'drain'); }
+        nFrames++;
+      }
+      console.log(`cliffhanger: froze ${(finale.t - game.fightT).toFixed(2)} s before the final blow (${fullGame ? fullGame.headline : '?'})`);
+      break;
+    }
     timeline.push({ f: game.fightT, fight: game.phase === 'fight', hp: game.base.hp, boss: !!(game.bossU && !game.bossU.dead), wave: game.waveNow || 0 });
     if (game.finished || nFrames >= FPS * SECS / PACE + FPS * 55) break;
     if (process.env.SECS && nFrames >= FPS * SECS) break;
@@ -352,6 +371,8 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     if (muOn) {
       const mus = Music.render(mp, { sr: SR, dur: DUR, cues: mtr.cues() });
       mixed = Music.mix(L, R, mus, { sr: SR, volume: MU.volume ?? 0.45, duck: MU.duck ?? 0.45, levels: MU.levels || null });
+      // (the cliffhanger: the sound fades away over the last moments instead of being cut off)
+      if (cliffed) { const fo = Math.round(SR * 0.9); for (let k = 0; k < fo; k++) { const f = frames - fo + k, g = 1 - k / fo; if (f >= 0) { mixed.L[f] *= g * g; mixed.R[f] *= g * g; } } }
       console.log(`Music: ${mp.style}, ${mp.bpm} bpm, the drop at ${mus.drop.toFixed(1)} s, the final hit at ${mus.fin.toFixed(1)} s`);
     }
     const wav = path.join(OUT, 'sound.wav');
@@ -380,7 +401,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
   cands.push(['bossvs', `${bossName} vs ${nTow} Towers 🔥`]);
   cands.push(['siege', `${band} Attack ${baseName}... Who Wins? ⚔️`]);
   if (fell >= 3) cands.push(['fell', `${fell} Towers Fell... Did The Base Survive? 😱`]);
-  if (low > 0 && low <= 30 && game.tdWinner === 0) cands.push(['close', `The Base Was Down To ${low}%... 😳`]);
+  if (low > 0 && low <= 30 && (cliffed ? fullGame : game).tdWinner === 0) cands.push(['close', `The Base Was Down To ${low}%... 😳`]);
   if (game.stat.big >= 2) cands.push(['tier', `Tier 5 Towers vs ${bossName} 🔥`]);
   // (Rellz 2026-11-21: "make more clickbait titles") bigger hooks that still never give the result away
   const kinds = new Set(game.towers.map(t => t.kind)), mapName = D.TD_MAPS[map].name, bossShort = bossName.replace(/^The /, '');
@@ -438,7 +459,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     seed, slot, seconds: +DUR.toFixed(2), title: Holiday.title(HOL, title), titleKind, holiday: HOL ? HOL.key : undefined,
     description: HOL ? `${HOL.emoji} ${HOL.line}\n\n${description}`.slice(0, 4900) : description, tags: HOL ? [...new Set([...tags, ...HOL.tags])] : tags,
     layout, map, mode, teams: pair, defense: defense.name, attack: attack.name, order: defOrder[0], warband: atkBand[0], boss: game.bossType,
-    power: +power.toFixed(3), winner: game.headline, winTeam: game.tdWinner, detail: game.detail, fight: +game.fightT.toFixed(1),
+    power: +power.toFixed(3), winner: (cliffed ? fullGame : game).headline, winTeam: (cliffed ? fullGame : game).tdWinner, detail: (cliffed ? fullGame : game).detail, cliffhanger: cliffed || undefined, fight: +game.fightT.toFixed(1),
     episode, golden: golden || undefined, finale: finale ? +finale.t.toFixed(1) : undefined,
     built: game.stat.built, upgrades: game.stat.upgrades, fell, lowBase: low, spells: game.stat.spells, related: related ? related.id : undefined,
   };

@@ -21,6 +21,7 @@
   "more": {
     "on": true
   },
+  "cliffhanger": { "on": true, "lead": 0.5, "seconds": 3.4 },
   "coldOpen": {
     "on": true,
     "seconds": 3.4,
