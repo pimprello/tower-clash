@@ -54,7 +54,16 @@ const era = D.TD_MAPS[map].era;
 const defOk = D.DEF_LINEUPS.filter(l => !l.eras || l.eras.includes(era));
 const defense = defOk[(slot * 3 + 1) % defOk.length];
 const attack = D.ATK_LINEUPS[(slot * 3) % D.ATK_LINEUPS.length];
-const mode = process.env.MODE || weighted(rules.modes || { classic: 1 });
+// Rellz's picks (rules.picks, 2026-11-17, all three games; td-picks.js): PICKS=0 turns them off for a test
+// (2026-11-21: put back: the 1-upload-a-day rewrite had dropped them from this file, and with them the commentator, the crowd
+// and the map music)
+const MUSIC_MAP = { forest: ['epic', 'forest'], bombed: ['modern', 'war'], enchanted: ['epic', 'forest'], beach: ['ancient', 'desert'], snow: ['epic', 'snow'], dunes: ['ancient', 'desert'],
+  swamp: ['ancient', 'forest'], neon: ['scifi', 'synth'], temple: ['epic', 'snow'], graveyard: ['ancient', 'war'], moon: ['scifi', 'synth'], furnace: ['epic', 'war'], frozen: ['epic', 'snow'],
+  castle: ['ancient', 'war'], rainbow: ['scifi', 'synth'], sweets: ['modern', 'snow'], shroom: ['ancient', 'forest'], pyramid: ['ancient', 'desert'], clouds: ['epic', 'snow'],
+  crystal: ['scifi', 'snow'], blossom: ['ancient', 'forest'] };
+const PK = rules.picks && rules.picks.on && process.env.PICKS !== '0' ? rules.picks : null;
+const Commentary = require('./commentary.js');
+const mode = process.env.MODE || weighted(Object.assign({}, rules.modes || { classic: 1 }, PK && PK.modes ? PK.modes : {}));
 const defOrder = D.ORDERS[Math.floor(pick.next() * D.ORDERS.length)];
 const atkBand = D.WARBANDS[Math.floor(pick.next() * D.WARBANDS.length)];
 const pairs = rules.teamPairs || [['GOLD', 'PURPLE']];
@@ -63,7 +72,7 @@ RVB.setTeams(pair[0], pair[1]);
 const events = (rules.events || []).map(type => ({ type }));
 
 const optsFor = (power, s) => ({ map, layout, target: FIGHT, fixedLength: FIGHT + OUTRO, outroSecs: OUTRO, ui: 2, art: 2, anim: true, humans: (rules.ui || {}).humans !== false, ...((rules.ui || {}).blood && rules.ui.blood.on ? { blood: rules.ui.blood } : {}), shine: { on: true, gloss: 1, rim: 1, damage: true, screen: 1, density: 1.6 }, remains: true, clean: true, smooth: true, tdPace: PACE,
-  tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s });
+  tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s, ...(PK ? { picks: Object.assign({}, PK, { on: true, holiday: HOL ? HOL.key : null }) } : {}) });
 
 // ----- balance on the spot: quick headless battles with this set-up and other dice, aiming at an even chance -----
 function quick(power, s) {
@@ -201,7 +210,11 @@ async function main() {
   // ----- music (rules.music, music.js, shared with Army Clash): an original soundtrack written from the seed, following the
   // battle; the camera punches in on the beat in the last seconds, and the outro fades into the cover frame so the replay loops -----
   const MU = rules.music || {}, muOn = MU.on !== false;
-  const mp = muOn ? Music.plan(seed, ['epic', 'ancient', 'modern', 'scifi'][slot % 4])  /* (four songs in turn, one per video: Rellz 2026-11-15) */ : null, mtr = muOn ? Music.tracker() : null;
+  // (Rellz 2026-11-21: "make the music match the theme of the map ... less robotic") the map picks both the style and its
+  // instruments: plucked strings and hand drums in the sands, flute in the forests and groves, glassy bells over the snow, the
+  // clouds, the candy and the crystal caves, a synth arpeggio under neon and the rainbow, war drums in the furnace and the ruins
+  const [mStyle, mTheme] = MUSIC_MAP[map] || [['epic', 'ancient', 'modern', 'scifi'][slot % 4], null];
+  const mp = muOn ? Music.plan(seed, mStyle, PK && PK.mapMusic !== false ? { theme: mTheme || undefined, map, festive: !!(HOL && HOL.key === 'christmas') } : {})  /* (four songs in turn, one per video: Rellz 2026-11-15) */ : null, mtr = muOn ? Music.tracker() : null;
 const clamp01 = x => Math.max(0, Math.min(1, x));
   let firstCv = null;
   // ----- the intro card (rules.intro, Rellz 2026-11-15): the thumbnail's layout (who vs who) for a couple of seconds before the
@@ -256,6 +269,8 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     }
   }
   let ffSecs = 0, ffShot = false;
+  const pkCalls = [], pkCrowd = [];
+  let pkEndAt = null;
   const TOFF = TEASE / FPS;
   const INTRO = (rules.intro || {}).on !== false && thumbCv && introInfo ? Math.round(FPS * ((rules.intro || {}).seconds || 2.6)) : 0, IOFF = TOFF + INTRO / FPS;
   for (let i = 0; i < MAXFRAMES; i++) {
@@ -303,7 +318,13 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     if (game.finished || nFrames >= FPS * SECS / PACE + FPS * 55) break;
     if (process.env.SECS && nFrames >= FPS * SECS) break;
     if (director) director.advance(1 / FPS); else game.frame(1 / FPS);
-    for (const ev of game.sfx) synth.play(ev, (i + 1) / FPS + IOFF);
+    for (const ev of game.sfx) {
+      // the commentator's cues and the crowd's swells go to commentary.js after the battle
+      if (ev.type === 'pk_call') { pkCalls.push({ t: (i + 1) / FPS + IOFF, kind: ev.kind }); continue; }
+      if (ev.type === 'pk_crowd') { pkCrowd.push({ t: (i + 1) / FPS + IOFF, k: ev.k || 1 }); continue; }
+      synth.play(ev, (i + 1) / FPS + IOFF);
+    }
+    if (PK && game.phase !== 'fight' && pkEndAt == null && game.fightT > 1) { pkEndAt = (i + 1) / FPS + IOFF; pkCalls.push({ t: pkEndAt, kind: 'end' }); }
     // (the music's drop comes on the first kill: tower kills don't make a knock-out sound, so they're passed on as one)
     if (mtr) { const kills = game.killLog.length + (game.killLogShifted || 0), ko = kills > (mtr.kills || 0); mtr.kills = kills;
       mtr.frame((i + 1) / FPS + IOFF, ko ? { phase: game.phase, sfx: game.sfx.concat({ type: 'ko' }), holdOutro: game.holdOutro, outroLen: game.outroLen, outroT: game.outroT } : game); }
@@ -317,6 +338,14 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     enc.p.stdin.end(); await enc.done;
     // (the battle's sounds a little under the music: Rellz 2026-11-15 "the sfx is louder than the music a bit too much")
     const frames = Math.round(SR * DUR), gain = (game.audioGain || 1) * ((rules.sound || {}).sfx ?? 0.7);
+    // the commentator (Tower Clash's fortune-teller witch, sfx/oracle) and the crowd (rules.picks), into the effects before
+    // they're limited
+    if (PK && (PK.commentator !== false || PK.crowd !== false)) {
+      const ORACLE = path.join(__dirname, 'sfx', 'oracle'), oracle = fs.existsSync(path.join(ORACLE, 'call-first-blood.wav'));
+      const said = Commentary.mix(synth.L, synth.R, { sr: SR, cues: PK.commentator !== false ? pkCalls : [], crowd: pkCrowd, seed, startAt: IOFF + 1, endAt: Math.min(DUR, (pkEndAt ?? DUR) + 2.5), ...(oracle ? { dir: ORACLE } : {}),
+        bed: PK.crowd !== false ? (PK.crowdBed ?? 0.075) / gain : 0, voice: (oracle ? (PK.oracleVoice ?? 0.62) : (PK.voice ?? 0.62)) / gain, max: PK.maxCalls ?? 8, gap: PK.callGap ?? 6 });
+      console.log(`Commentator: ${said.length ? said.join(', ') : 'quiet'}; crowd ${PK.crowd !== false ? `on, ${pkCrowd.length} swells` : 'off'}`);
+    }
     const L = new Float32Array(frames), R = new Float32Array(frames);
     for (let i = 0; i < frames; i++) { L[i] = Math.tanh(synth.L[i] * gain); R[i] = Math.tanh(synth.R[i] * gain); }
     let mixed = { L, R };
@@ -337,7 +366,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
   const baseName = tc(D.BASE_NAME[game.base.style] || 'The Base');
   const fell = game.stat.fell.length, low = Math.round(game.stat.lowBase);
   const M = D.MODES[mode];
-  const recent = new Set(pastVideos.slice(-14).map(v => v.titleKind));
+  const recent = new Set(pastVideos.slice(-20).map(v => v.titleKind));
   const cands = [];
   if (mode === 'bossrush') cands.push(['mode', `Boss Rush: Can ${nTow} Towers Survive Every Boss? 🔥`]);
   if (mode === 'swarm') cands.push(['mode', `Endless Swarm vs ${nTow} Towers: Will The Base Hold? 🐜`]);
@@ -353,11 +382,28 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
   if (fell >= 3) cands.push(['fell', `${fell} Towers Fell... Did The Base Survive? 😱`]);
   if (low > 0 && low <= 30 && game.tdWinner === 0) cands.push(['close', `The Base Was Down To ${low}%... 😳`]);
   if (game.stat.big >= 2) cands.push(['tier', `Tier 5 Towers vs ${bossName} 🔥`]);
+  // (Rellz 2026-11-21: "make more clickbait titles") bigger hooks that still never give the result away
+  const kinds = new Set(game.towers.map(t => t.kind)), mapName = D.TD_MAPS[map].name, bossShort = bossName.replace(/^The /, '');
+  cands.push(['anything', `Can ANYTHING Stop ${bossName}? 😨`]);
+  cands.push(['unstoppable', `${bossShort} Is UNSTOPPABLE?! 🔥`]);
+  cands.push(['towerfight', `They Brought ${bossName} To A Tower Fight 💀`]);
+  cands.push(['ending', `Only 1% Can Predict This Ending 🤔`]);
+  cands.push(['lastwave', `Wait For The Last Wave... 😳`]);
+  cands.push(['last10', `The Last 10 Seconds Are INSANE 🤯`]);
+  cands.push(['breaks', `${nTow} Towers vs ${waves} Waves... Who Breaks First? ⚔️`]);
+  cands.push(['mistake', `${nTow} Towers vs ${bossName}... Big Mistake? 😬`]);
+  cands.push(['chaos', `${mapName} Is Pure CHAOS 😵`]);
+  if (fell >= 3) cands.push(['destroyed', `${fell} Towers DESTROYED... Is The Base Next? 😱`]);
+  if (low > 0 && low <= 45) cands.push(['toofar', `This Boss Was NOT Supposed To Get This Far... 😳`]);
+  if (kinds.has('hex')) cands.push(['chickens', `This Tower Turns Troops Into CHICKENS 🐔`]);
+  if (kinds.has('blackhole')) cands.push(['blackhole', `A Black Hole Opened On The Battlefield 🕳️`]);
+  if (kinds.has('shrink')) cands.push(['shrink', `This Tower Shrinks Giants 😂`]);
+  if (kinds.has('clock')) cands.push(['rewind', `This Tower Sends Them Back In Time ⏪`]);
+  if (require('./td-worlds.js').WORLDS[map]) cands.push(['world', `${mapName} Is NOT What You Think... 👀`]);
   const fresh = cands.filter(c => !recent.has(c[0]));
   let [titleKind, title] = (fresh.length ? fresh : cands)[Math.floor(pick.next() * (fresh.length ? fresh : cands).length)];
-  // (retention, 2026-11-16) a golden boss is always in the title; every title carries the episode number, so the posts read as a series
+  // (retention, 2026-11-16) a golden boss is always in the title (the episode number left the title on 2026-11-21: Rellz)
   if (golden) { titleKind = 'rare'; title = `A Rare Golden ${bossName.replace(/^The /, '')} Appeared... 😱`; }
-  if (title.length <= 86) title = `${title} (Ep. ${episode})`;
 
   const { WORLDS: WDS, NATIVES: NAT } = require('./td-worlds.js'), WLD = WDS[map];
   const towerNames = [...new Set(game.towers.map(t => t.kind))].map(k => tc(D.TOWERS[k].name));

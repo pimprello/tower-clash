@@ -87,6 +87,14 @@ const SIM = {
     const u = this.addUnit(ATK, type, p.x + p.nx * lat, p.y + p.ny * lat);
     this.reserve[ATK]--;
     u.lane = lane; u.s = 0; u.lat = lat; u.face = Math.atan2(p.dy, p.dx);
+    // (Rellz 2026-11-21: "sometimes characters should walk side by side") in two waves out of three, small and middling troops
+    // pair up: each one after the first of a pair takes the other side of the path and catches up with its partner, so they
+    // walk shoulder to shoulder (no dice: the wave's number and the seed decide)
+    if (w && !w.boss && U.r <= 16 && ((w.i * 7 + (this.seed >>> 3)) % 3) !== 0) {
+      const m = Math.min(PATH_W / 2 - U.r - 2, U.r + 1), o = w.lastU;
+      if (o && !o.dead && !o.partner && !o.partnerOf && o.lane === lane && UNIT[o.type].r <= 16 && !o.flying === !U.flying) { o.partnerOf = u; u.partner = o; o.lat = -m; u.lat = m; w.lastU = null; }
+      else w.lastU = u;
+    }
     const sz = sizeOf(type);
     // small troops have barely any health (one tower shot), knights get hurt, titans and bosses decide it
     const exp = sz === 'small' ? 0.4 : sz === 'mid' ? 0.8 : 1;
@@ -216,6 +224,7 @@ const SIM = {
       this.statusTick(u, h); if (u.dead) continue;
       if (u.team === ATK) this.attackerAct(u, h); else this.defenderAct(u, h);
     }
+    this.roomTick(h);
     // shots
     this.shotTick(h);
     // delayed blasts (boulders from the siege golem, meteors)
@@ -259,6 +268,9 @@ const SIM = {
     const T = this.fightT;
     let v = u.vk || 80;
     if (u.slowT > T) v *= u.slowK;
+    // a pair: the one behind catches up, the one ahead eases off, until they walk side by side
+    if (u.partner && !u.partner.dead && u.partner.lane === u.lane) { const d = u.partner.s - u.s; if (d > 3) v *= 1 + Math.min(0.25, d / 100); else if (d < -3) v *= 0.93; }
+    if (u.partnerOf && !u.partnerOf.dead && u.partnerOf.lane === u.lane) { const d = u.s - u.partnerOf.s; if (d > 10) v *= 0.9; }
     if (u.rewindT > T) v *= 1.6;
     if (u.chickT > T) v *= 0.65;
     if (this.wNow) v *= this.worldSpd(u);
@@ -347,6 +359,7 @@ const SIM = {
       // (Rellz 2026-11-16: "fix characters overlay over each other") troops keep a little room round them: an overlapping
       // neighbour eases them apart (the bigger one shoves harder), sideways onto a free bit of the path or back into the queue,
       // a few pixels a tick, so nobody jumps
+      u._walkT = T;
       {
         let px = 0, py = 0;
         for (const o of this.near(u.x, u.y, u.r + 30)) {
@@ -361,7 +374,7 @@ const SIM = {
           const al = px * p.dx + py * p.dy, sd = px * p.nx + py * p.ny; px = p.dx * al + p.nx * sd * 0.3; py = p.dy * al + p.ny * sd * 0.3;
           const m = Math.hypot(px, py) || 1, k = Math.min(m, 1.6) / m * 55 * h;
           u.x += px * k; u.y += py * k;
-          const lw = Math.max(0, PATH_W / 2 - u.r) * 0.35;
+          const lw = Math.max(0, PATH_W / 2 - u.r) * ((u.partner && !u.partner.dead) || (u.partnerOf && !u.partnerOf.dead) ? 0.9 : 0.35);
           u.lat = clamp(u.lat + (px * p.nx + py * p.ny) * k * 0.3, -lw, lw);
         }
       }
@@ -808,6 +821,34 @@ const SIM = {
     if (this.camEv) this.camEv.push({ type: 'blast', x: c.x, y: c.y, kind: c.kind });
     if (this.fireG && el === 'fire') this.ignite(c.x, c.y, 0.25);
     return n;
+  },
+  // (Rellz 2026-11-21: "don't let troops go through each other ... make them go around the totem, not through it") everyone on the
+  // ground keeps some room: troops fighting or standing (the walking ones already make room for each other on the path), attackers
+  // and defenders' troops pressed together, and nobody walks through a totem or a standing crystal. Each overlap eases apart a few
+  // pixels a tick, the bigger one shoving harder, so nothing jumps
+  roomTick(h) {
+    const T = this.fightT, k = 60 * h;
+    for (const u of this.units) {
+      if (u.dead || u.gone || u.tower || u.flying || u.atBase) continue;
+      for (const o of this.near(u.x, u.y, u.r + 32)) {
+        if (o === u || o.dead || o.gone || o.tower || o.flying || (o.uid || 0) < (u.uid || 0)) continue;
+        if (u._walkT === T && o._walkT === T && u.team === o.team) continue;
+        const dx = o.x - u.x, dy = o.y - u.y, d = Math.hypot(dx, dy), min = (u.r + o.r) * (u.team === o.team ? 0.9 : 0.8);
+        if (d >= min) continue;
+        const nx = d > 0.01 ? dx / d : Math.cos((u.uid || 1) * 2.39), ny = d > 0.01 ? dy / d : Math.sin((u.uid || 1) * 2.39);
+        const push = Math.min(min - d, 2.5) * k / 6, wu = o.r / (u.r + o.r), wo = u.r / (u.r + o.r);
+        const fu = (u.boss || u.size === 'titan') ? 0.2 : 1, fo = (o.boss || o.size === 'titan') ? 0.2 : 1;
+        u.x -= nx * push * wu * fu; u.y -= ny * push * wu * fu; o.x += nx * push * wo * fo; o.y += ny * push * wo * fo;
+      }
+      // totems (their pole and carved head stand up from the ground, so the room is round the whole of them) and fallen crystals
+      if (this.totems) for (const tm of this.totems) if (!tm.done) this.roomFrom(u, tm.x, tm.y - 22, 30, k);
+      if (this.crystals) for (const c of this.crystals) if (c.landed && !c.opened) this.roomFrom(u, c.x, c.y - 14, 26, k);
+    }
+  },
+  roomFrom(u, x, y, r, k) {
+    const dx = u.x - x, dy = u.y - y, d = Math.hypot(dx, dy), min = r + u.r;
+    if (d >= min || d < 0.01) return;
+    const push = Math.min(min - d, 3) * k / 4; u.x += dx / d * push; u.y += dy / d * push;
   },
   shellHit(c) {
     const x = c.x, y = c.y, R = Math.min(c.r, 70) * (c.kind === 'cannonball' ? 0.75 : 0.85), T = this.t, rock = c.kind === 'boulder';

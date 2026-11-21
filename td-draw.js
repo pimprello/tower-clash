@@ -308,7 +308,41 @@ const DRAW = {
       const [mx, my] = this.muzzleOf(o), ox = (mx - o.x) * f, oy = (my - o.y + o.r * 0.32) * f;   // (the engine lifts them r * 0.32 itself)
       a.x += ox; a.y += oy; moved.push([a, ox, oy]);
     }
-    try { return RVB.Army.prototype.draw.call(this, ctx); } finally { for (const [a, ox, oy] of moved) { a.x -= ox; a.y -= oy; } }
+    // (Rellz 2026-11-21: "bigger troops should cover smaller, not the other way") troops are drawn in order of where they stand,
+    // with a bigger troop counted as standing further forward, so it covers the little ones round it (a small one well in front
+    // of it still comes over it); only the drawing order changes, never the battle's own list
+    const keep = this.units, depth = u => u.y + (u.r || 10) * (u.boss || u.size === 'titan' ? 3.2 : 2.4);
+    this.units = keep.map((u, i) => [u, depth(u), i]).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map(a => a[0]);
+    try { return RVB.Army.prototype.draw.call(this, ctx); } finally { this.units = keep; for (const [a, ox, oy] of moved) { a.x -= ox; a.y -= oy; } }
+  },
+  // (Rellz 2026-11-21: "remove black bars and add your own cinematic effect") cinematic moments (the base under attack, the
+  // final blow) get a film look instead of black bars: a stronger vignette, a warm-highlights / cool-shadows grade, a soft light
+  // leak drifting across, a faint grain, and (on the base) a red pulse at the edges like a heartbeat
+  drawCine(ctx) {
+    const c = this.cine; if (!c) return;
+    const b = clamp(c.bars || 0, 0, 1), k = b * b * (3 - 2 * b), v = Math.max(clamp(c.vig || 0, 0, 1), k * 0.65), t = this.t;
+    if (v <= 0.01 && k <= 0.01) return;
+    ctx.save(); ctx.beginPath(); ctx.rect(AR.x, AR.y, AR.w, AR.h); ctx.clip();
+    const cx = AR.x + AR.w / 2, cy = AR.y + AR.h / 2;
+    const vg = ctx.createRadialGradient(cx, cy, AR.w * 0.3, cx, cy, AR.w * 0.78); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${0.72 * v})`);
+    ctx.fillStyle = vg; ctx.fillRect(AR.x, AR.y, AR.w, AR.h);
+    if (k > 0.01) {
+      ctx.globalCompositeOperation = 'soft-light';
+      const gr = ctx.createLinearGradient(0, AR.y, 0, AR.y + AR.h); gr.addColorStop(0, `rgba(255,170,90,${0.5 * k})`); gr.addColorStop(1, `rgba(40,120,170,${0.5 * k})`);
+      ctx.fillStyle = gr; ctx.fillRect(AR.x, AR.y, AR.w, AR.h);
+      ctx.globalCompositeOperation = 'screen';
+      const lx = AR.x + AR.w * (0.15 + 0.7 * (0.5 + 0.5 * Math.sin(t * 0.35))), ly = AR.y + AR.h * 0.22, lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, AR.w * 0.45);
+      lg.addColorStop(0, `rgba(255,190,120,${0.16 * k})`); lg.addColorStop(1, 'rgba(255,190,120,0)'); ctx.fillStyle = lg; ctx.fillRect(AR.x, AR.y, AR.w, AR.h);
+      ctx.globalCompositeOperation = 'source-over';
+      const fr = Math.floor(t * 24); ctx.fillStyle = `rgba(255,255,255,${0.07 * k})`;
+      for (let i = 0; i < 140; i++) ctx.fillRect(AR.x + hash01(fr, i * 2) * AR.w, AR.y + hash01(fr, i * 2 + 1) * AR.h, 2, 2);
+      if (this.baseCineT !== undefined && t - this.baseCineT < 3.4) {
+        const q = clamp((t - this.baseCineT) / 0.3, 0, 1) * clamp((this.baseCineT + 3.4 - t) / 0.5, 0, 1), beat = Math.pow(Math.max(0, Math.sin(t * 7.5)), 6);
+        const rg = ctx.createRadialGradient(cx, cy, AR.w * 0.35, cx, cy, AR.w * 0.8); rg.addColorStop(0, 'rgba(220,30,40,0)'); rg.addColorStop(1, `rgba(220,30,40,${(0.18 + 0.3 * beat) * q * k})`);
+        ctx.fillStyle = rg; ctx.fillRect(AR.x, AR.y, AR.w, AR.h);
+      }
+    }
+    ctx.restore();
   },
   // (retention, 2026-11-16) the rare golden boss: the same boss in shining gold, with a warm glow and sparkles round it (looks only)
   drawBody(ctx, u, x, y, tm, swordy) {
@@ -1212,7 +1246,8 @@ const DRAW = {
     {
       const fa = this.glide(this, 'ffA', fight && (this.warpK || 1) > 1.2 ? 1 : 0, 6);
       if (fa > 0.02) {
-        const x = AR.x + 28, y = AR.y + AR.h - 66, w = 238, h = 48;
+        // (Rellz 2026-11-21: it covered the panel of tower portraits) under the panel, in the empty space, centred
+        const w = 238, h = 48, x = VW / 2 - w / 2, y = 1618;
         ctx.save(); ctx.globalAlpha = fa; ctx.translate(x - 30 * (1 - fa), y);
         roundRect(ctx, 0, -h / 2, w, h, h / 2); ctx.fillStyle = 'rgba(8,11,20,0.82)'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.stroke();
         const ph = (t * 2.2) % 1;

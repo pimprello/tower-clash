@@ -45,7 +45,9 @@ class TDCam extends RVB.Director {
     return k;
   }
   advance(dt) {
-    const g = this.g, want = this.lull() || 1, w0 = this.warp || 1;
+    // (a cinematic move in on the base plays its first moments in slow motion)
+    const sh = this.shot, slowB = sh && sh.kind === 'basecam' && this.t - sh.t0 < 1.5;
+    const g = this.g, want = slowB ? 0.6 : (this.lull() || 1), w0 = this.warp || 1;
     this.warp = w0 + (want - w0) * (1 - Math.exp(-(want > w0 ? 1.8 : 5) * dt));
     if (want === 1 && this.warp < 1.004) this.warp = 1;
     g.warpK = this.warp;
@@ -69,6 +71,17 @@ class TDCam extends RVB.Director {
     }
     if (g.phase !== 'fight') return super.direct(dt);
     const ev = g.camEv; g.camEv = [];
+    // (Rellz 2026-11-21: "if the base is getting attacked sometimes make a cinematic zoom to the base") when the base loses 3.5% in
+    // a second and a half, the camera moves in on it with the film look (td-draw.js drawCine) and a red heartbeat, a short slow
+    // motion first; at most three times a battle, 16 s apart, never in the last seconds before the final blow
+    { const b = g.base, hist = this.bhist || (this.bhist = []); hist.push([g.fightT, b.hp]); while (hist.length && g.fightT - hist[0][0] > 1.5) hist.shift();
+      const drop = (hist[0][1] - b.hp) / (b.max || 100);
+      if (drop > 0.035 && b.hp > 0 && this.t > (this.baseNext || 0) && (this.baseN || 0) < 3 && !(this.fin && g.fightT > this.fin.t - 6) && (!this.shot || this.shot.prio < 85)) {
+        this.baseNext = this.t + 16; this.baseN = (this.baseN || 0) + 1; g.baseCineT = g.t;
+        this.start('basecam', { prio: 85, dur: 3.2, x: b.x, y: b.y - 30, z: 2.05, bars: 1, vig: 0.55, spd: 1.6, zspd: 1.2 });
+        return;
+      }
+    }
     const want = (p, f) => { if (!this.shot || p > this.shot.prio) f(); };
     this.lastWave = g.waveNow || 0;
     // the big moments (the boss, a tower falling, the base under heavy attack): in close, not too often

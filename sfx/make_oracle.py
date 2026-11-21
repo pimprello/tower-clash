@@ -14,11 +14,11 @@ OUT = os.path.join(HERE, 'oracle')
 VOICE = sys.argv[1] if len(sys.argv) > 1 else '.'
 NAME = 'en_GB-jenny_dioco-medium'
 LINES = {
-    'first-blood': 'The first soul is claimed.', 'and-were-off': 'And so... it begins.',
+    'first-blood': 'The first soul is claimed.', 'and-were-off': 'And so, it begins.',
     'what-a-combo': 'The cards foretold this!', 'unstoppable': 'Fate itself cannot stop them!', 'triple-kill': 'Three threads, cut!',
     'titan-down': 'Even giants bow to fate.', 'the-giant-falls': "The giant's thread is cut.",
-    'what-a-hit': 'Ooh, I saw that coming!', 'ouch': 'Mmm... that will leave a mark.', 'crushed': 'Crushed, as foretold.',
-    'last-one-standing': 'One thread remains...', 'hold-the-line': 'Hold on, little ones!',
+    'what-a-hit': 'Ooh, I saw that coming!', 'ouch': 'Ooh, that will leave a mark.', 'crushed': 'Crushed, as foretold.',
+    'last-one-standing': 'Only one thread remains.', 'hold-the-line': 'Hold on, little ones!',
     'split-in-two': 'Two fates, from one!', 'traitor': 'A traitor! The stars warned me.', 'switched-sides': 'Their fate has turned!',
     'gate-is-down': 'The gate falls, as written.', 'what-a-spell': 'Such delicious magic!', 'unbelievable': 'Even I did not see that!',
     'theyre-finished': 'Their fate is sealed.', 'what-a-finish': 'Just as the cards foretold!', 'its-all-over': 'It is written. It is done.',
@@ -39,6 +39,14 @@ def room(x, seed, secs=1.1, wet=0.14):
     n = int(SR * secs); t = np.arange(n) / SR
     ir = np.random.default_rng(seed).standard_normal(n).astype(np.float32) * np.exp(-t / 0.3); ir = lp(ir, 7000); ir /= np.sqrt((ir ** 2).sum())
     return x + ss.fftconvolve(x, ir)[:len(x)].astype(np.float32) * wet
+def echo(x, secs=0.24, fb=0.32, n=3):
+    # (Rellz 2026-11-21: "a little echo and a fade and blend in with the music") a soft, darkened echo that fades away
+    d = int(secs * SR); y = np.concatenate([x, np.zeros(d * n + int(0.5 * SR), np.float32)]); tap = lp(x, 3800)
+    for k in range(1, n + 1): y[d * k:d * k + len(x)] += tap * (fb ** k)
+    return y
+def lower(x, semis=-1.0):
+    # a touch lower and slower: a regal fortune teller rather than a chirpy one
+    k = 2 ** (semis / 12); n = int(len(x) / k); return np.interp(np.arange(n) * k, np.arange(len(x)), x).astype(np.float32)
 def say(text, out, seed):
     with tempfile.TemporaryDirectory() as d:
         raw = os.path.join(d, 'v.wav')
@@ -49,10 +57,14 @@ def say(text, out, seed):
     if x.ndim > 1: x = x.mean(1)
     x = ss.resample_poly(x, SR, sr).astype(np.float32)
     x = hp(x, 140); x = x / (np.abs(x).max() + 1e-9)
-    x = comp(x); x = shelf_air(x); x = shimmer(x); x = room(x, seed)
+    x = lower(x); x = comp(x); x = shelf_air(x); x = shimmer(x); x = room(x, seed, wet=0.2)
     on = np.where(np.abs(x) > 0.02)[0]
-    if len(on): x = x[max(0, on[0] - int(0.02 * SR)):on[-1] + int(0.35 * SR)]
-    f = int(0.01 * SR); x[:f] *= np.linspace(0, 1, f); x[-f * 6:] *= np.linspace(1, 0, f * 6)
+    if len(on): x = x[max(0, on[0] - int(0.02 * SR)):on[-1] + int(0.3 * SR)]
+    x = echo(x)
+    on = np.where(np.abs(x) > 0.004)[0]
+    if len(on): x = x[:on[-1] + int(0.05 * SR)]
+    # it fades in and out instead of starting and stopping dead, so it sits in the music
+    fi, fo = int(0.04 * SR), int(0.45 * SR); x[:fi] *= np.linspace(0, 1, fi) ** 2; x[-fo:] *= np.linspace(1, 0, fo) ** 1.5
     x *= 0.89 / (np.abs(x).max() + 1e-9)
     wf.write(out, SR, (np.stack([x, x], 1) * 32767).astype(np.int16))
 if __name__ == '__main__':

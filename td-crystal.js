@@ -42,7 +42,7 @@ const CRY = {
     const p = laneAt(L, s), R = this.CRR;
     let side = R.chance(0.5) ? 1 : -1;
     for (let tries = 0; tries < 4; tries++) {
-      const off = PATH_W / 2 + 26 + (tries >> 1) * 22, x = clamp(p.x + p.nx * side * off, AR.x + 30, AR.x + AR.w - 30), y = clamp(p.y + p.ny * side * off, AR.y + 60, AR.y + AR.h - 30);
+      const off = PATH_W / 2 + 36 + (tries >> 1) * 22, x = clamp(p.x + p.nx * side * off, AR.x + 30, AR.x + AR.w - 30), y = clamp(p.y + p.ny * side * off, AR.y + 60, AR.y + AR.h - 30);
       const busy = this.spots.some(o => Math.hypot(o.x - x, o.y - y) < 40) || this.totems.some(o => !o.done && Math.hypot(o.x - x, o.y - y) < 50) || Math.hypot(this.base.x - x, this.base.y - y) < 100
         || this.lanes.some(l => { for (let q = 0; q <= l.len; q += 24) { const r = laneAt(l, q); if (Math.hypot(r.x - x, r.y - y) < PATH_W / 2 + 10) return true; } return false; });
       if (!busy) return { x, y };
@@ -362,11 +362,20 @@ const CRY = {
       ctx.save(); ctx.globalAlpha = out; ctx.translate(tm.x, tm.y);
       ctx.beginPath(); ctx.ellipse(0, 2, 16, 7, 0, 0, TAU); ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fill();
       ctx.scale(1, rise);
-      E.roundRect(ctx, -6, -44, 12, 46, 3); ctx.fillStyle = '#7A5230'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
-      for (const yy of [-30, -16]) { ctx.beginPath(); ctx.moveTo(-6, yy); ctx.lineTo(6, yy); ctx.lineWidth = 2; ctx.strokeStyle = '#4A2F18'; ctx.stroke(); }
-      const hy = -56, pulse = 0.5 + 0.5 * Math.sin(t * 4);
-      const gl = ctx.createRadialGradient(0, hy, 2, 0, hy, 34); gl.addColorStop(0, rgba(col, 0.45 * (0.6 + 0.4 * pulse))); gl.addColorStop(1, rgba(col, 0)); ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, hy, 34, 0, TAU); ctx.fill();
-      E.roundRect(ctx, -15, hy - 14, 30, 28, 8); ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
+      // (Rellz 2026-11-21: "improve the totem looks") a carved stone plinth, a tapered wooden pole bound with bands of the totem's
+      // colour and two ribbons fluttering, and a glowing orb for a head under a little gold crown, with runes circling it
+      E.roundRect(ctx, -15, -6, 30, 10, 4); ctx.fillStyle = '#8A8F98'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
+      E.roundRect(ctx, -11, -12, 22, 8, 3); ctx.fillStyle = '#A3A8B0'; ctx.fill(); ctx.stroke();
+      const wood = ctx.createLinearGradient(-7, 0, 7, 0); wood.addColorStop(0, '#5C3A1E'); wood.addColorStop(0.45, '#9A6B3E'); wood.addColorStop(1, '#5C3A1E');
+      ctx.beginPath(); ctx.moveTo(-7, -11); ctx.lineTo(-5, -44); ctx.lineTo(5, -44); ctx.lineTo(7, -11); ctx.closePath(); ctx.fillStyle = wood; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
+      for (const [yy, w2] of [[-20, 6.8], [-34, 6]]) { ctx.fillStyle = col; ctx.fillRect(-w2, yy - 2.5, w2 * 2, 5); ctx.lineWidth = 1.5; ctx.strokeStyle = INK; ctx.strokeRect(-w2, yy - 2.5, w2 * 2, 5); }
+      for (const sd of [-1, 1]) { const fl = Math.sin(t * 6 + sd) * 4; ctx.beginPath(); ctx.moveTo(sd * 5, -40); ctx.quadraticCurveTo(sd * 14, -34 + fl, sd * 12, -24 + fl); ctx.lineWidth = 3.5; ctx.strokeStyle = col; ctx.lineCap = 'round'; ctx.stroke(); }
+      const hy = -58, pulse = 0.5 + 0.5 * Math.sin(t * 4);
+      const gl = ctx.createRadialGradient(0, hy, 2, 0, hy, 38); gl.addColorStop(0, rgba(col, 0.5 * (0.6 + 0.4 * pulse))); gl.addColorStop(1, rgba(col, 0)); ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, hy, 38, 0, TAU); ctx.fill();
+      ctx.beginPath(); for (const [a, b] of [[-10, -14], [-5, -20], [0, -15], [5, -20], [10, -14]]) ctx.lineTo(a, hy + b); ctx.lineTo(10, hy - 9); ctx.lineTo(-10, hy - 9); ctx.closePath(); ctx.fillStyle = '#F5C542'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke();
+      const orb = ctx.createRadialGradient(-5, hy - 6, 2, 0, hy, 16); orb.addColorStop(0, '#FFFFFF'); orb.addColorStop(0.35, col); orb.addColorStop(1, rgba(col, 0.85));
+      ctx.beginPath(); ctx.arc(0, hy, 15, 0, TAU); ctx.fillStyle = orb; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
+      ctx.save(); ctx.translate(0, hy); ctx.scale(1, 0.35); ctx.rotate(t * 1.6); ctx.setLineDash([4, 7]); ctx.beginPath(); ctx.arc(0, 0, 24, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = rgba(col, 0.85); ctx.stroke(); ctx.restore();
       ctx.lineWidth = 3; ctx.strokeStyle = '#FFFFFF'; ctx.fillStyle = '#FFFFFF'; ctx.lineCap = 'round';
       if (tm.k === 'wartotem') { ctx.beginPath(); ctx.moveTo(-15, hy - 8); ctx.lineTo(-22, hy - 20); ctx.lineTo(-9, hy - 13); ctx.moveTo(15, hy - 8); ctx.lineTo(22, hy - 20); ctx.lineTo(9, hy - 13); ctx.fill(); ctx.beginPath(); ctx.moveTo(-8, hy - 3); ctx.lineTo(-3, hy); ctx.moveTo(8, hy - 3); ctx.lineTo(3, hy); ctx.moveTo(-5, hy + 7); ctx.lineTo(5, hy + 7); ctx.strokeStyle = INK; ctx.stroke(); }
       else if (tm.k === 'frosttotem') { ctx.beginPath(); for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3; ctx.moveTo(Math.cos(a) * 9, hy + Math.sin(a) * 9); ctx.lineTo(-Math.cos(a) * 9, hy - Math.sin(a) * 9); } ctx.stroke(); }

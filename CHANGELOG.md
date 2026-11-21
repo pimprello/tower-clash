@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-11-21 (Rellz's request from the Tower Clash chat): titles, cinematic base moments, voice, map music, layering, pairs, room round everyone, totems
+
+Rellz: "remove episode names from title make more clickbait titles, if the base is getting attacked sometimes make a cinematic zoom to the base and make a cinematic effect, fast forward covers bottom ui that displays characters, make the voice have a little echo and a fade and blend in with the music, also make the music match the theme of the map, fix the layering bigger troops should cover smaller not other way unless if it looks weird, fix all layering and sometimes characters should walk side by side" (and earlier: "remove black bars and add your own cinematic effect", the "Mmm..." line read out as letters, "make them go around the totem not through it, don't let troops go through each other", "improve the totem looks"). Tower Clash only.
+
+- **Put back what the 1-upload-a-day rewrite (3ccf302) had dropped from render.js**: Rellz's picks (`rules.picks`: the new troops, spells, modes, weather and the rest were off in Tower Clash since), the commentator (the fortune-teller witch), the crowd and the map music.
+- **Titles**: no episode number in the title any more (it stays in the description). Fifteen new hooks that never give the result away ("Can ANYTHING Stop ...?", "Only 1% Can Predict This Ending", "Wait For The Last Wave...", "The Last 10 Seconds Are INSANE", "This Boss Was NOT Supposed To Get This Far...", "This Tower Turns Troops Into CHICKENS" when the Hex Hut is in it, "A Black Hole Opened On The Battlefield", "... Is NOT What You Think" on the new worlds and more); a kind isn't reused within 20 videos.
+- **The base under attack** (td-cam.js): when the base loses 3.5% in a second and a half the camera moves in on it with a short slow motion, at most three times a battle, 16 s apart.
+- **Our own cinematic look instead of black bars** (td-draw.js `drawCine`): on the base moments and the final blow, a stronger vignette, a warm/cool film grade, a soft light leak drifting across and a faint grain; on the base a red heartbeat at the edges.
+- **FAST FORWARD** sits under the tower panel now, not over it.
+- **Voice** (sfx/make_oracle.py, remade): the line Piper read as letters ("Mmm...") is now "Ooh, that will leave a mark."; no more "..." in any line; a touch lower and slower (more regal); a soft darkened echo (three repeats, 0.24 s apart); it fades in and fades out with its echo instead of starting and stopping dead, and sits a little lower (`oracleVoice` 0.62) so it blends with the music.
+- **Map music** (render.js `MUSIC_MAP`): the map picks the style and the instruments (sands: plucked strings and hand drums; forests, groves, blossom: flute; snow, clouds, sky temple, candy, crystal caves: glassy bells; neon, moon, rainbow: synth arpeggio; furnace, ruins, castle, graveyard: war drums). music.js is unchanged (still identical in every game).
+- **Layering** (td-draw.js): troops are drawn in order of where they stand, with a bigger troop counted as further forward, so big ones cover the little ones round them (a small one well in front still comes over); only the drawing order changes.
+- **Side by side** (td-sim.js): in two waves out of three, small and middling troops pair up and walk shoulder to shoulder (the one behind catches up, no dice).
+- **Room round everyone** (td-sim.js `roomTick`): troops fighting or standing, and attackers pressed against the defenders' troops, ease apart instead of overlapping; nobody walks through a totem or a fallen crystal (they step round them); totems stand a little further from the path.
+- **Totems** look better: a carved stone plinth, a tapered wooden pole bound in the totem's colour with two fluttering ribbons, a glowing orb head under a little gold crown, runes circling it.
+- Checked: headless battles (no crashes), stills of the base moment, the cinematic look and the totems, and a full render (commentator lines, sci-fi music on Neon City, title "Neon City Is Pure CHAOS 😵").
+
 ## 2026-11-17 (Rellz's request from the Tower Clash chat): a fortune-teller witch for the commentator
 
 Rellz: "make the voice clearer and more appropriate, it should be like League of Legends, it should be like a witch girl fortune teller". Tower Clash only (the other games keep the shared sfx/call-*.wav, and commentary.js is unchanged).
