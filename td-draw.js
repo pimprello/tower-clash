@@ -1235,7 +1235,7 @@ const DRAW = {
       if (ca > 0.02 && this.comboN) {
         n = this.comboN;
         const last = this.killLog[this.killLog.length - 1] || 0, pop = (1 + 0.25 * clamp(1 - (t - last) / 0.18, 0, 1)) * (0.8 + 0.2 * ca);
-        const x = AR.x + AR.w - 96, y = AR.y + AR.h - 70;
+        const x = AR.x + 110, y = AR.y + AR.h - 70;   // (2026-11-22) bottom-left: the right side is under YouTube's like/comment buttons on every phone
         ctx.save(); ctx.globalAlpha = ca; ctx.translate(x, y); ctx.rotate(-0.08); ctx.scale(pop, pop);
         ctx.font = font(n >= 12 ? 64 : 54, 800); strokeText(ctx, `x${n}`, 0, -6, n >= 12 ? '#FF7A45' : COL.gold, COL.ink, 9);
         ctx.font = font(22, 800); strokeText(ctx, 'COMBO', 0, 30, COL.white, COL.ink, 5);

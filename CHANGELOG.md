@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-22: Fits on every phone
+
+- Checked every piece of text each game draws, frame by frame, against what phones and YouTube cover (top notch, bottom title and channel line, the like/comment column, side crop on tall 20:9 phones). Fixed: the face-off question (WHO WINS? / WILL THE BASE SURVIVE? / WHO RULES THE MAP?) and the bottom side's name sat under YouTube's title; the face-off is lifted (rings smaller and higher, question at y 1480) for 2, 3 and 4 sides.
+- Tower Clash: the combo counter moved from the bottom-right (under the like/comment buttons on every phone) to the bottom-left of the battlefield.
+
 ## 2026-11-22: No links in descriptions
 
 - Removed the "Watch the last battle / Watch next" line and its YouTube link from every description (Rellz, 2026-11-22). Other videos are to be linked only through YouTube's related-video link (Shorts) and end screens (long-form, when they start); neither can be set through the upload API.
