@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-22: Franchise consistency + invisible-overlay fix
+
+- **Franchise subscribe CTA** (all 3 channels): every description now ends with "New battle every day on Army Clash · Tower Clash · Territory Clash — subscribe and hit the bell!" so viewers discover the other two channels.
+- **Franchise tags**: added `clash game` and `clash universe` tags on every video and `#clashuniverse` to the hashtag line for cross-channel YouTube search.
+- **Invisible-overlay fix** (`render.js`): added `ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'` after the main draw call in every game's render loop. Any `globalCompositeOperation` or `globalAlpha` leaked by an internal draw function is now reset before overlays paint — so roster cards, the cliffhanger pill and the subscribe CTA are always visible.
+
 ## 2026-11-22: Christmas content ready (switched on 24 to 26 December only)
 
 - On Christmas posts (`holiday.js`, 24 to 26 December) every little person wears a Santa hat, every drop comes as a wrapped present (red or green paper, gold ribbon and bow) and the banner reads GIFT DROP! (`this.xmas` in `engine.js`, looks only, so battles are unchanged). Together with what was already there (snow falling, the snowy map, the festive soundtrack, the holiday title and tags) this is the Christmas special. Built in Army and Tower Clash's engines (the same code in both); Territory Clash already has its Christmas look (the Frostwild island in snow, festive music).
