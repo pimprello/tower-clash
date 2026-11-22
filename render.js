@@ -438,7 +438,6 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     `💬 Will the base survive? Drop your prediction in the comments BEFORE the battle ends!`,
     '',
     `${band} send ${waves} waves — including ${golden ? `a rare golden ` : ''}${bossName.replace(/^The /, '')} — crashing into ${baseName.toLowerCase().startsWith('the') ? baseName.replace(/^The/, 'the') : baseName}, defended by ${order.replace(/^The/, 'the')}. Can the towers hold?`,
-    ...(related ? [``, `▶ Watch the last battle: ${related.title} https://youtube.com/shorts/${related.id}`] : []),
     '',
     `A ${Math.round(DUR)}-second tower defense simulation on ${D.TD_MAPS[map].name} (${tc(D.LAYOUTS[layout].name)} layout). Defenders earn gold per kill and spend it on new towers, tier-5 upgrades, spells, merchant summons and traps — plus a sky crystal that drops free gold. Attackers field a war shaman and a ${golden ? 'rare golden ' : ''}boss.${WLD ? ` ${D.TD_MAPS[map].name}'s native troops (${WLD.natives.map(k => tc(NAT[k].name) + 's').join(' and ')}) fight harder on home ground.` : ''}${M && M.line ? ' ' + M.line : ''} All outcomes from the game's rules and chance — no real footage, warbands are made up.`,
     '',

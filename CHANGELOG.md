@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-22: No links in descriptions
+
+- Removed the "Watch the last battle / Watch next" line and its YouTube link from every description (Rellz, 2026-11-22). Other videos are to be linked only through YouTube's related-video link (Shorts) and end screens (long-form, when they start); neither can be set through the upload API.
+
 ## 2026-11-22: Franchise consistency + invisible-overlay fix
 
 - **Franchise subscribe CTA** (all 3 channels): every description now ends with "New battle every day on Army Clash · Tower Clash · Territory Clash — subscribe and hit the bell!" so viewers discover the other two channels.
