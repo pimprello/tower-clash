@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-22 19:03 | A Rare Golden Ironhorn Appeared... 😱 | Fallen! | https://youtube.com/shorts/F0rPEbx9d5k |
 | 2026-11-21 21:15 | A Rare Golden Glacier Behemoth Appeared... 😱 | Survived! | https://youtube.com/shorts/g7pe5Uv4yAU |
 | 2026-11-21 19:01 | Can 3 Towers Stop The Bone Colossus? 🏰 (Ep. 47) | Survived! | https://youtube.com/shorts/3c2-gBz1WTg |
 | 2026-11-21 14:34 | The Bone Tide vs The Brass Bastion: Will The Base Survive? (Ep. 46) | Survived! | https://youtube.com/shorts/B7LGdp7jtMA |
