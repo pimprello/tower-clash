@@ -17,7 +17,7 @@ Every Short is a brand-new 60-second battle. A warband marches on the base in wa
 
 Every battle is played out by the game's own rules and dice, on a different map and path each time, with an original soundtrack made for every video. The orders and warbands are made up.
 
-New battles every day at 10:00, 14:00, 18:00 and 22:00 (UK time).
+New battles every day at 18:00 (UK time).
 Guess the result in the comments before the end.
 
 Sister channel: Army Clash.
@@ -36,7 +36,7 @@ Every Short is a brand-new 60-second battle between two armies, sometimes three:
 
 Every battle is played out by the game's own rules and dice, with an original soundtrack made for every video. The tribes and their stories are made up.
 
-New battles every day at 10:00, 14:00, 18:00 and 22:00 (UK time).
+New battles every day at 18:00 (UK time).
 Pick your side in the comments before the end.
 
 Sister channel: Tower Clash.

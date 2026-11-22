@@ -6,7 +6,7 @@ It reuses the Army Clash engine (`engine.js`: the cast, art, shine, blood, camer
 
 ## How it runs
 
-- `.github/workflows/post-tower-clash.yml` wakes every 15 minutes. `slot.js` lets the first run after each upload hour (London time) post, so there are **4 top-quality Shorts a day** (10:00, 14:00, 18:00, 22:00); each is the most dramatic of 5 candidate battles (`pick-seed.js`). A manual run (Actions → Post Tower Clash → Run workflow) always posts.
+- `.github/workflows/post-tower-clash.yml` wakes every 15 minutes from 16:00 to 19:59 UTC. `slot.js` lets the first run after the upload hour (London time) post, so there is **1 top-quality Short a day** (18:00); each is the most dramatic of 5 candidate battles (`pick-seed.js`). A manual run (Actions → Post Tower Clash → Run workflow) always posts.
 - `render.js` picks the set-up (layout, map, towers, attackers, mode, colours), balances it on the spot with quick headless battles (aiming at an even chance), then renders a 4K 60 fps video with sound, a thumbnail and the title, description and tags.
 - `upload.js` uploads it and sets the thumbnail (again after YouTube has processed it). `log-upload.js` records it in `uploads.md` and `videos.jsonl`.
 - `stats.js` fetches view counts once a day into `stats/`.
