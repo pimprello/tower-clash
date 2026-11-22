@@ -281,6 +281,8 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     const z0 = game.cam && game.cam.z, punch = muOn && MU.pulse !== false && game.cam && game.phase === 'fight' && game.fightT > FIGHT - 6 ? Music.pulse(mp, i / FPS + IOFF) : 0;
     if (punch) game.cam.z = z0 * (1 + punch);
     game.draw(ctx);
+    // defensive reset: clear any leaked canvas state from draw() so overlays are never invisible
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     if (punch) game.cam.z = z0;
     if (i === 0 && INTRO) {
       // the electric face-off (faceoff.js, shared with Army Clash): the best tower against the boss, then a flash into the fight
@@ -442,14 +444,14 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     '',
     `🗼 Towers: ${towerNames.join(' · ')}`,
     '',
-    `🔔 New tower defense battle every day — subscribe and hit the bell!`,
+    `🔔 New battle every day on Army Clash · Tower Clash · Territory Clash — subscribe and hit the bell!`,
     '',
-    `#shorts #towerdefense #towerclash #strategygame #epicbattle #${bossName.replace(/^The /, '').toLowerCase().replace(/ /g, '')} #willthebasesurvive #simulation`,
+    `#shorts #towerdefense #towerclash #strategygame #epicbattle #${bossName.replace(/^The /, '').toLowerCase().replace(/ /g, '')} #willthebasesurvive #simulation #clashuniverse`,
   ].join('\n');
   const tags = [...new Set([
     'tower defense', 'tower defence', 'tower defense game', 'will the base survive', 'tower clash', 'battle simulation',
     'strategy game', 'td game', 'base defense', 'castle defense', 'defend the base', 'tower battle', 'wave defense',
-    'epic tower defense', 'best tower defense', 'tower defense shorts', 'shorts', 'viral shorts',
+    'epic tower defense', 'best tower defense', 'tower defense shorts', 'shorts', 'viral shorts', 'clash game', 'clash universe',
     bossName.replace(/^The /, '').toLowerCase(), golden ? 'golden boss' : 'boss battle', 'boss fight',
     ...towerNames.map(n => n.toLowerCase()), D.TD_MAPS[map].name.toLowerCase(),
     mode !== 'classic' ? M.name.toLowerCase() : 'classic tower defense',
