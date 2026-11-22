@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-22 (Rellz, Tower Clash chat): no episodes; troops no longer cut off in the cold open
+
+- Rellz: "there's no episodes, remove episodes from thumbnails and titles". The face-off's EPISODE tag is gone (it shows RARE GOLDEN BOSS on a golden-boss battle, nothing otherwise), the description no longer opens with "Episode N", and "Watch last episode" is now "Watch the last battle". (Titles already had none since 2026-11-21.)
+- Rellz (a screenshot of troops sliced off by a straight line): the cold open draws the battle on a 1.5x canvas, but the engine's troop layer was still sized for the normal screen, so everything below two thirds of the big canvas was cut. The engine's scale is set to the big canvas's while it draws again (this fix of 2026-11-17 had been lost in the 1-upload-a-day rewrite).
+
 ## 2026-11-21 (Rellz, Tower Clash chat): nothing under the phone's notch
 
 Rellz: "nothing in the UI should be in the top 190 px of the 1080x1920 frame, where the iPhone notch/camera island and YouTube's top bar cover it."

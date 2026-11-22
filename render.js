@@ -255,7 +255,9 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
           const fc = aim(f);
           g3.cam.x += (fc.x - g3.cam.x) * 0.07; g3.cam.y += (fc.y - g3.cam.y) * 0.07; g3.cam.z = 1.35 + 0.4 * E.easeOutCubic(Math.min(1, f / 0.5));
           g3.cards.length = 0; g3.floats.length = 0; if (g3.banners) g3.banners.length = 0;
-          bx.setTransform(RS * KS, 0, 0, RS * KS, 0, 0); g3.draw(bx);
+          // (drawn with the engine's scale set to the big canvas's, so the troops' shine layer covers all of it: Rellz 2026-11-22,
+        // troops were cut off by a straight line in the cold open)
+        bx.setTransform(RS * KS, 0, 0, RS * KS, 0, 0); { const keepRS = RVB.RS; RVB.RS = RS * KS; try { g3.draw(bx); } finally { RVB.RS = keepRS; } }
           cold.frame(j, big, crop);
         } else cold.frame(j, null, null);
         if (j === 0) { firstCv = createCanvas(W * RS, H * RS); firstCv.getContext('2d').drawImage(canvas, 0, 0); }
@@ -292,7 +294,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
         { col: E.TEAMS[ATK], name: golden ? (/^THE /.test(IS.bossName) ? IS.bossName.replace(/^THE /, 'THE GOLDEN ') : 'GOLDEN ' + IS.bossName) : IS.bossName, sub: game.atkBand[0], count: `${IS.waves} WAVES`, portrait: pic(IS.g, IS.bossType, ATK) },
       ];
       RVB.RS = keepRS;
-      const fo = { W, H, RS, seed, dur: INTRO / FPS, title: null /* (the logo sat in the phone's notch area: Rellz 2026-11-21) */, tag: `EPISODE ${episode}`, question: game.hook, sides, bg: bg1, battle0: b0 };
+      const fo = { W, H, RS, seed, dur: INTRO / FPS, title: null /* (the logo sat in the phone's notch area: Rellz 2026-11-21) */, tag: golden ? 'RARE GOLDEN BOSS' : '' /* (no episodes: Rellz 2026-11-21) */, question: game.hook, sides, bg: bg1, battle0: b0 };
       FO.faceoffSounds(synth, INTRO / FPS, TOFF);
       for (let j = 0; j < INTRO; j++) {
         FO.drawFaceoff(ctx, j / FPS, fo);
@@ -430,12 +432,11 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
   const towerNames = [...new Set(game.towers.map(t => t.kind))].map(k => tc(D.TOWERS[k].name));
   const related = pastVideos.slice(-24).filter(v => v.id && /^[\w-]{6,}$/.test(v.id)).pop();
   const description = [
-    `🏰 Episode ${episode}${golden ? ' · ⭐ RARE GOLDEN BOSS APPEARED' : ''}`,
-    '',
+    ...(golden ? ['⭐ RARE GOLDEN BOSS APPEARED', ''] : []),
     `💬 Will the base survive? Drop your prediction in the comments BEFORE the battle ends!`,
     '',
     `${band} send ${waves} waves — including ${golden ? `a rare golden ` : ''}${bossName.replace(/^The /, '')} — crashing into ${baseName.toLowerCase().startsWith('the') ? baseName.replace(/^The/, 'the') : baseName}, defended by ${order.replace(/^The/, 'the')}. Can the towers hold?`,
-    ...(related ? [``, `▶ Watch last episode: ${related.title} https://youtube.com/shorts/${related.id}`] : []),
+    ...(related ? [``, `▶ Watch the last battle: ${related.title} https://youtube.com/shorts/${related.id}`] : []),
     '',
     `A ${Math.round(DUR)}-second tower defense simulation on ${D.TD_MAPS[map].name} (${tc(D.LAYOUTS[layout].name)} layout). Defenders earn gold per kill and spend it on new towers, tier-5 upgrades, spells, merchant summons and traps — plus a sky crystal that drops free gold. Attackers field a war shaman and a ${golden ? 'rare golden ' : ''}boss.${WLD ? ` ${D.TD_MAPS[map].name}'s native troops (${WLD.natives.map(k => tc(NAT[k].name) + 's').join(' and ')}) fight harder on home ground.` : ''}${M && M.line ? ' ' + M.line : ''} All outcomes from the game's rules and chance — no real footage, warbands are made up.`,
     '',
