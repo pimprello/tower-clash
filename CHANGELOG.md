@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-22: the witch's voice at her own pitch again
+
+- The "a touch lower and slower, more regal" take of 2026-11-21 was meant for Territory Clash, not here (Rellz), so `sfx/make_oracle.py` no longer lowers her and `sfx/oracle/` is remade: the same lines, with the soft echo and the fades, at her normal pitch.
+
 ## 2026-11-22 (Rellz, Tower Clash chat): no episodes; troops no longer cut off in the cold open
 
 - Rellz: "there's no episodes, remove episodes from thumbnails and titles". The face-off's EPISODE tag is gone (it shows RARE GOLDEN BOSS on a golden-boss battle, nothing otherwise), the description no longer opens with "Episode N", and "Watch last episode" is now "Watch the last battle". (Titles already had none since 2026-11-21.)

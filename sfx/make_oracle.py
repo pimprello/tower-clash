@@ -57,7 +57,8 @@ def say(text, out, seed):
     if x.ndim > 1: x = x.mean(1)
     x = ss.resample_poly(x, SR, sr).astype(np.float32)
     x = hp(x, 140); x = x / (np.abs(x).max() + 1e-9)
-    x = lower(x); x = comp(x); x = shelf_air(x); x = shimmer(x); x = room(x, seed, wet=0.2)
+    # (the lower, more regal take of 2026-11-21 was for Territory Clash: Rellz; not used here)
+    x = comp(x); x = shelf_air(x); x = shimmer(x); x = room(x, seed, wet=0.2)
     on = np.where(np.abs(x) > 0.02)[0]
     if len(on): x = x[max(0, on[0] - int(0.02 * SR)):on[-1] + int(0.3 * SR)]
     x = echo(x)
