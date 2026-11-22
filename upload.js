@@ -10,9 +10,23 @@ const file = path.join(OUT, 'tower-clash.mp4');
 const meta = (() => { try { return JSON.parse(fs.readFileSync(path.join(OUT, 'meta.json'), 'utf8')); } catch (e) { return { title: '', description: '', tags: [] }; } })();
 const privacy = ['public', 'unlisted', 'private'].includes(process.env.PRIVACY) ? process.env.PRIVACY : 'public';
 
+function noAngle(t) { return String(t || '').replace(/[<>]/g, ''); }
+function cleanTags(list) {
+  const out = [], seen = new Set(); let used = 0;
+  for (const raw of list || []) {
+    const t = String(raw || '').replace(/[<>",#]/g, ' ').replace(/[^\p{L}\p{N} '&.\-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 30).trim();
+    if (t.length < 2 || seen.has(t.toLowerCase())) continue;
+    const cost = t.length + (t.includes(' ') ? 2 : 0) + (out.length ? 1 : 0);
+    if (used + cost > 450) continue;
+    seen.add(t.toLowerCase()); out.push(t); used += cost;
+  }
+  return out;
+}
 const body = {
-  // (YouTube refuses tags over 500 characters in all; keep as many as fit, in order)
-  snippet: { title: meta.title.slice(0, 100), description: meta.description.slice(0, 4900), tags: (meta.tags || []).reduce((a, t) => (a.join(',').length + t.length + 3 <= 480 ? a.concat(t) : a), []), categoryId: '20' },
+  // (YouTube refuses the whole upload over one bad tag, 2026-11-22: "invalid video keywords") tags are cleaned: no < > " , # or emoji,
+  // trimmed, at most 30 characters, no empties or repeats, and under 450 characters in all, counting the quotes YouTube adds round
+  // a tag with a space. The title and description lose < and > too (YouTube refuses those as well).
+  snippet: { title: noAngle(meta.title).slice(0, 100), description: noAngle(meta.description).slice(0, 4900), tags: cleanTags(meta.tags), categoryId: '20' },
   status: { privacyStatus: privacy, selfDeclaredMadeForKids: false },
 };
 
