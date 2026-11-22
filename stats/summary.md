@@ -1,8 +1,8 @@
 # View stats
 
-Updated 2026-11-21 10:57 UTC. 6 videos, 1 at least a day old (used below). Groups need 3+ videos.
+Updated 2026-11-22 19:07 UTC. 1 videos, 0 at least a day old (used below). Groups need 3+ videos.
 
-Total views: 76. Median views per video: 18.
+Total views: 0. Median views per video: 0.
 
 ### By upload hour (UK time)
 
@@ -23,7 +23,6 @@ Total views: 76. Median views per video: 18.
 
 | Day | Videos | Median views | Total views |
 | --- | --- | --- | --- |
-| 2026-11-19 | 1 | 18 | 18 |
 
 ### By layout
 
@@ -74,9 +73,4 @@ Total views: 76. Median views per video: 18.
 
 | Views | Likes | Title |
 | --- | --- | --- |
-| 31 | 0 | Boss Rush: Can 12 Towers Survive Every Boss? 🔥 (Ep. 44) |
-| 18 | 0 | Graverot Legion Attack The Temple... Who Wins? ⚔️ (Ep. 41) |
-| 18 | 0 | The War Mammoth vs 10 Towers 🔥 (Ep. 40) |
-| 5 | 1 | The Base Was Down To 11%... 😳 (Ep. 42) |
-| 4 | 0 | 7 Towers Fell... Did The Base Survive? 😱 (Ep. 43) |
-| 0 | 0 | Can 12 Towers Stop The Star Eater? 🏰 (Ep. 45) |
+| 0 | 0 | A Rare Golden Ironhorn Appeared... 😱 |
