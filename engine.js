@@ -2773,7 +2773,7 @@ const RVB = (() => {
           : { x: E.range(AR.x + 170, AR.x + AR.w - 170), y: AR.y + AR.h / 2 + (behind < 0 ? 0 : behind === 0 ? -150 : 150) + E.range(-30, 30), r: 22 };
         for (let k = 0; k < 4; k++) this.pushOut(p);
         Object.assign(ev, { started: true, x: p.x, y: p.y, r: 14, dir: E.chance(0.5) ? 1 : -1, release: ev.plane ? 1 : 0, T: 2.2, size: ev.kind === 'heavy' ? 1.45 : 1 });
-        this.banner(ev.plane ? 'AIRDROP INCOMING!' : 'SUPPLY DROP!', COL.gold);
+        this.banner(this.xmas ? 'GIFT DROP!' : ev.plane ? 'AIRDROP INCOMING!' : 'SUPPLY DROP!', COL.gold);
         this.snd(ev.plane ? 'plane' : 'whoosh');
         if (this.camEv) this.camEv.push({ type: 'airdrop', ev });
       }
@@ -2970,6 +2970,15 @@ const RVB = (() => {
     // a supply crate; its colour and icon show what's inside
     drawCrate(ctx, kind, x, y, b) {
       const C = CRATE[kind], INK = COL.ink;
+      // (Christmas) every drop comes as a wrapped present: red or green paper, a gold ribbon and a bow
+      if (this.xmas) {
+        const red = (Math.round(x + y) & 1) === 0;
+        roundRect(ctx, x - b, y - b, b * 2, b * 2, 3); ctx.fillStyle = red ? '#C81D25' : '#1B7F3B'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
+        ctx.fillStyle = '#F6C445'; ctx.fillRect(x - b * 0.18, y - b, b * 0.36, b * 2); ctx.fillRect(x - b, y - b * 0.18, b * 2, b * 0.36);
+        ctx.lineWidth = 2; ctx.strokeStyle = '#F6C445';
+        for (const sg of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x + sg * b * 0.32, y - b * 0.3, b * 0.34, b * 0.2, sg * 0.6, 0, TAU); ctx.stroke(); }
+        return;
+      }
       roundRect(ctx, x - b, y - b, b * 2, b * 2, 3); ctx.fillStyle = C.box; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
       if (kind === 'squad') {
         ctx.lineWidth = 2; ctx.strokeStyle = '#6E4A22'; ctx.beginPath(); ctx.moveTo(x - b, y - b * 0.33); ctx.lineTo(x + b, y - b * 0.33); ctx.moveTo(x - b, y + b * 0.33); ctx.lineTo(x + b, y + b * 0.33); ctx.stroke();
@@ -15811,6 +15820,13 @@ const RVB = (() => {
       const hdY = -9.6, hdR = 4.6;
       dot(0.6, hdY, hdR, skin);
       this.humanHead(ctx, kit.head, 0.6, hdY, hdR, tm, skin, away, T);
+      // (Christmas, 24 to 26 December only: holiday.js) a Santa hat on every little person
+      if (this.xmas) {
+        ctx.beginPath(); ctx.moveTo(0.6 - hdR * 1.05, hdY - hdR * 0.35); ctx.quadraticCurveTo(0.6 + hdR * 0.2, hdY - hdR * 2.4, 0.6 + hdR * 1.7, hdY - hdR * 1.2);
+        ctx.lineTo(0.6 + hdR * 1.05, hdY - hdR * 0.35); ctx.closePath(); ctx.fillStyle = '#D62828'; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = COL.ink; ctx.stroke();
+        ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0.6 - hdR * 1.15, hdY - hdR * 0.55, hdR * 2.3, hdR * 0.45);
+        ctx.beginPath(); ctx.arc(0.6 + hdR * 1.75, hdY - hdR * 1.2, hdR * 0.38, 0, TAU); ctx.fill();
+      }
       if (!away && kit.head !== 'mask' && kit.head !== 'fullhelm' && kit.head !== 'visor' && kit.head !== 'eye' && kit.head !== 'veil') {
         ctx.fillStyle = kit.skin === 'bone' ? '#1B1D22' : INK;
         for (const ex of [2.3, 4.2]) { ctx.beginPath(); ctx.arc(ex, hdY - 0.4, kit.skin === 'bone' ? 1.05 : 0.75, 0, TAU); ctx.fill(); }
@@ -16088,6 +16104,7 @@ const RVB = (() => {
       this.pk = P; this.ext = true;
       this.pkS = { next: 0, songAt: 0, lsAt: 0, clouds: [], smokes: [], rains: [], walls: [], fx: [], flasks: [], ls: [false, false, false], hs: [0, 0], calls: 0, first: false };
       if (this.opts.mode === 'boss') this.bossTeam = this.opts.pkSide ?? 0;
+      if (P.holiday === 'christmas') this.xmas = true;   // (Christmas, looks only: Santa hats, presents for drops, GIFT DROP!)
       // the looks (their own dice): weather and dusk
       const W = rng(((this.seed >>> 0) ^ 0x5EA7E2) >>> 0), rw = W.next(), rk = W.next(), rd = W.next();
       const map = this.opts.map, cold = map === 'snow' || map === 'frozen';

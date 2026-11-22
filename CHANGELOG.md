@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-22: Christmas content ready (switched on 24 to 26 December only)
+
+- On Christmas posts (`holiday.js`, 24 to 26 December) every little person wears a Santa hat, every drop comes as a wrapped present (red or green paper, gold ribbon and bow) and the banner reads GIFT DROP! (`this.xmas` in `engine.js`, looks only, so battles are unchanged). Together with what was already there (snow falling, the snowy map, the festive soundtrack, the holiday title and tags) this is the Christmas special. Built in Army and Tower Clash's engines (the same code in both); Territory Clash already has its Christmas look (the Frostwild island in snow, festive music).
+
 ## 2026-11-22: the witch's voice at her own pitch again
 
 - The "a touch lower and slower, more regal" take of 2026-11-21 was meant for Territory Clash, not here (Rellz), so `sfx/make_oracle.py` no longer lowers her and `sfx/oracle/` is remade: the same lines, with the soft echo and the fades, at her normal pitch.
