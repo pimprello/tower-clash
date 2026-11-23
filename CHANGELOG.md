@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: Normal crowd sizes again, defenders win more
+
+- (Rellz: "dont necessarily put that many troops i dont mind if defenders win more it looks satisfying") troop numbers are back to normal (about 90 a battle); towers keep the 1.6x damage, troops stay squishy (hp grows only as power^0.5, power capped at x3), and the close-finish pick now wants the defenders to win 70% of the time (`rules.balance.target` 0.7). On test seeds the towers killed 80-95% of every army.
+
 ## 2026-11-23: Towers kill more, faster; the war shaman's totem updated
 
 - (Rellz: "make towers do a bit more damage, i want towers to be killing more people and creatures quicker") `rules.slay`: towers hit 1.6x harder, and when the on-the-spot tuning makes attackers stronger they now come as more troops rather than tougher ones (hp grows as power^0.4, numbers grow with power). Battles stay close, but there is far more to kill: on test seeds the towers killed 1.3x to 2.2x as many troops (up to about 210 in a battle) at 1.6 to 3.4 kills a second. The tuning can now go up to x7.
