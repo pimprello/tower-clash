@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-11-23: One mix for all three channels; a rarer, softer narrator
+
+- Measured the mix of one video from each game. Music as heard: Tower Clash -21.4 dB, Army Clash -22.6, Territory Clash -21.1. Narrator: Tower Clash -21.6 dB, Army Clash -13.4, Territory Clash -10.9 (it rode on the effects' level, so a quiet battle pushed it up), with 7 or 8 lines a video.
+- Now all three: the music is set by how loud it is as heard (`music.levels.heard` -21.5, Tower Clash's level) and the narrator from the music (`levels.voice` -1, with a 3 dB dip in the music under it), so the balance is the same on every channel and in every video.
+- The narrator is rare: at most 3 lines a video, at least 15 s apart (was 8, 6 s), keeping the biggest moments.
+- Blended in: its own bus, faded in and out, rounded off (no rumble or hiss), sent into a hall reverb (wet 0.4) and landed on the beat (`rules.picks.blend`; Army Clash's general uses the same settings).
+- `music.js` `mix()` and `commentary.js` are now the same code in all three games; with the new options off, the mix is unchanged (checked sample by sample).
+
+## 2026-11-23: Normal crowd sizes again, defenders win more
+
+- (Rellz: "dont necessarily put that many troops i dont mind if defenders win more it looks satisfying") troop numbers are back to normal (about 90 a battle); towers keep the 1.6x damage, troops stay squishy (hp grows only as power^0.5, power capped at x3), and the close-finish pick now wants the defenders to win 70% of the time (`rules.balance.target` 0.7). On test seeds the towers killed 80-95% of every army.
+
 ## 2026-11-23 (Rellz): troops no longer turn see-through
 
 - The same fix as Army Clash's: a troop hit by several kinds of damage at once had every one of their marks painted over its body on the shine layer, so big troops (titans, the boss) could read as faint, see-through blobs. Now only its two strongest damage looks are painted, at half strength, and the damage washes (acid, frost, char, red-hot, wet, gore, smears) are lighter. Looks only.

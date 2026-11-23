@@ -88,7 +88,7 @@ function quick(power, s) {
 function closeFinish() {
   const want = pick.next() < ((rules.balance || {}).target ?? 0.5) ? 'def' : 'atk';
   const t0 = Date.now(); let best = null;
-  for (let p = 0.4; p <= ((rules.slay || {}).on ? 7 : 5.2); p *= ((rules.quality || {}).fine ? 1.07 : 1.12)) {
+  for (let p = 0.4; p <= ((rules.slay || {}).on ? (rules.slay.maxPower ?? 5.2) : 5.2); p *= ((rules.quality || {}).fine ? 1.07 : 1.12)) {
     const r = quick(p, seed), side = r.def ? 'def' : 'atk';
     // close: a defenders' win with the base scraped down (about 10-35%), or an attackers' win in the last seconds
     const close = r.def ? 60 - Math.abs(r.hp - 20) * 1.2 + Math.min(r.T, 58) * 0.4 : Math.min(r.T, 59.4) * 1.1;
@@ -363,18 +363,26 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     const frames = Math.round(SR * DUR), gain = (game.audioGain || 1) * ((rules.sound || {}).sfx ?? 0.7);
     // the commentator (Tower Clash's fortune-teller witch, sfx/oracle) and the crowd (rules.picks), into the effects before
     // they're limited
+    // (rules.picks.blend, all three games, Rellz 2026-11-23: "the narrator speaks too much it should be rare and blended into the
+    // music ... mix it into the game music a bit more and maybe add some reverb") the voice on a bus of its own: faded, rounded
+    // off, sent into a hall, landed on the beat, with the music dipping a little under it and the bus set from the music's level
+    // (music.js levels.voice). Off: the voice goes into the effects as before.
+    const BL = PK && PK.blend && PK.blend.on !== false ? PK.blend : null, vBus = BL ? { L: new Float32Array(synth.L.length), R: new Float32Array(synth.R.length) } : null, vDips = BL ? [] : null;
     if (PK && (PK.commentator !== false || PK.crowd !== false)) {
       const ORACLE = path.join(__dirname, 'sfx', 'oracle'), oracle = fs.existsSync(path.join(ORACLE, 'call-first-blood.wav'));
       const said = Commentary.mix(synth.L, synth.R, { sr: SR, cues: PK.commentator !== false ? pkCalls : [], crowd: pkCrowd, seed, startAt: IOFF + 1, endAt: Math.min(DUR, (pkEndAt ?? DUR) + 2.5), ...(oracle ? { dir: ORACLE } : {}),
-        bed: PK.crowd !== false ? (PK.crowdBed ?? 0.075) / gain : 0, voice: (oracle ? (PK.oracleVoice ?? 0.62) : (PK.voice ?? 0.62)) / gain, max: PK.maxCalls ?? 8, gap: PK.callGap ?? 6 });
+        bed: PK.crowd !== false ? (PK.crowdBed ?? 0.075) / gain : 0, voice: (oracle ? (PK.oracleVoice ?? 0.62) : (PK.voice ?? 0.62)) / gain, max: PK.maxCalls ?? 8, gap: PK.callGap ?? 6 ,
+        ...(BL ? { bus: vBus, fade: BL.fade || [0.06, 0.35], wet: BL.wet ?? 0.4, soft: BL.soft !== false, beat: mp && BL.onBeat !== false ? mp.beat : 0, dips: vDips } : {}) });
       console.log(`Commentator: ${said.length ? said.join(', ') : 'quiet'}; crowd ${PK.crowd !== false ? `on, ${pkCrowd.length} swells` : 'off'}`);
     }
     const L = new Float32Array(frames), R = new Float32Array(frames);
     for (let i = 0; i < frames; i++) { L[i] = Math.tanh(synth.L[i] * gain); R[i] = Math.tanh(synth.R[i] * gain); }
+    if (vBus && !muOn) for (let i = 0; i < frames; i++) { L[i] = Math.tanh(L[i] + (vBus.L[i] || 0) * gain); R[i] = Math.tanh(R[i] + (vBus.R[i] || 0) * gain); }
     let mixed = { L, R };
     if (muOn) {
       const mus = Music.render(mp, { sr: SR, dur: DUR, cues: mtr.cues() });
-      mixed = Music.mix(L, R, mus, { sr: SR, volume: MU.volume ?? 0.45, duck: MU.duck ?? 0.45, levels: MU.levels || null });
+      mixed = Music.mix(L, R, mus, { sr: SR, volume: MU.volume ?? 0.45, duck: MU.duck ?? 0.45, levels: MU.levels || null,
+        ...(vBus ? { voice: { L: vBus.L.map(v => v * gain), R: vBus.R.map(v => v * gain) }, dips: vDips, dipDb: BL.dipDb ?? -3 } : {}) });
       // (the cliffhanger: the sound fades away over the last moments instead of being cut off)
       if (cliffed) { const fo = Math.round(SR * 0.9); for (let k = 0; k < fo; k++) { const f = frames - fo + k, g = 1 - k / fo; if (f >= 0) { mixed.L[f] *= g * g; mixed.R[f] *= g * g; } } }
       console.log(`Music: ${mp.style}, ${mp.bpm} bpm, the drop at ${mus.drop.toFixed(1)} s, the final hit at ${mus.fin.toFixed(1)} s`);
