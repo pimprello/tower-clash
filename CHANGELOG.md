@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: No more "11 Towers vs 8 Waves" titles
+
+- (Rellz: "11 Towers vs 8 Waves... I don't like titles like that") the counting / versus titles are gone ("N Towers vs N Waves", "Boss vs N Towers", "Can N Towers Stop...", "N Waves. 1 Base.", "Band vs Order", "Tier 5 Towers vs..."); the mode titles lost their counts. New hooks: "They Did NOT Expect <boss>", "Everything Went Wrong At Once...", "Watch What Happens To The Base", "Nothing Survives These Towers... Right?", "Don't Blink At The End", "Max Level Towers Weren't Enough?!". Still never giving the result away.
+
 ## 2026-11-23: Manual runs no longer post extra videos
 
 - (Rellz, Tower Clash chat: "tower clash accidentally uploads two, fix that, only upload one") manual runs (Run workflow) were posting a video every time they were started (three were started on 23 Nov, besides the scheduled ones). Now every run, manual or scheduled, posts only into an upload slot that is still empty, and checks again just before uploading; a manual run posts regardless only with the new "force" box ticked. Same in all three channels.
