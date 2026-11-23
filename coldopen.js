@@ -7,7 +7,7 @@
 //   0.00  PUNCH IN    opens already in the action: a zoom-blur punch in, real speed, the camera pushing in
 //   0.10  BUILD       real speed easing into slow motion as the peak nears; a riser builds under it
 //   0.40  IMPACT      the peak lands: an impact frame (two inverted black-and-white frames, anime style), a colour split,
-//                     a camera jolt, white impact lines round the edges, film bars easing in, and a sub drop
+//                     a camera jolt, white impact lines round the edges, and a sub drop (no film bars)
 //   0.40  FREEZE      time stops for a moment on the hit (the picture breathes in), with a tape-stop sound
 //   0.47  AFTERMATH   super slow motion as it plays out
 //   0.56  REWIND      then the whole thing rewinds back to the start, faster and faster (tape tracking lines, scanlines, a
@@ -113,7 +113,7 @@ class ColdOpen {
       this.grade(f);
       // keep a small copy for the rewind (every other frame)
       if (T.rewind && j % 2 === 0) { const c = createCanvas(this.cw, this.ch); c.getContext('2d').drawImage(ctx.canvas, 0, 0, this.cw, this.ch); this.cache.push(c); }
-      this.bars(f);
+      // (no film bars: Rellz 2026-11-23 "remove black bars from intro")
       if (peak > 0.08) this.impactLines(j, peak);
       const after = j - T.peakJ;
       if (after >= 0 && after < 10) this.split(Math.round((14 - after) * (W / 1080)) * (after < 5 ? 1 : 0.5));

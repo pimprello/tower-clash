@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: No black bars in the intro
+
+- (Rellz: "remove black bars from intro") the cold open no longer eases film bars in over the slow motion; the picture stays full screen the whole way through.
+
 ## 2026-11-23: 2 Shorts a day
 
 - Rellz, 2026-11-23: "make all upload 2 a day". Every channel now posts at 12:00 and 18:00 London time (`rules.schedule.hours` [12, 18]); the workflow also wakes from 10:00 to 13:59 UTC for the new slot (summer time covered). One extra post each was started by hand the same night, as he asked.
