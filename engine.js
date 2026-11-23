@@ -4186,7 +4186,7 @@ const RVB = (() => {
       if (this.g5) { this.drawCast5Ground(ctx); this.drawCast5Under(ctx); }
       if (this.events) this.drawEventsUnder(ctx);
       // a planted troop's shield bubble lies on the ground under the troops, so the troops next to it are never drawn under it
-      if (this.clean) for (const u of this.units) if (!u.dead && u.planted) { ctx.beginPath(); ctx.ellipse(u.x, u.y + u.r * 0.25, u.r + u.shell, (u.r + u.shell) * 0.8, 0, 0, TAU); ctx.fillStyle = 'rgba(124,200,255,0.1)'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(160,220,255,0.45)'; ctx.stroke(); }
+      if (this.clean && !this.opts.noRings) for (const u of this.units) if (!u.dead && u.planted) { ctx.beginPath(); ctx.ellipse(u.x, u.y + u.r * 0.25, u.r + u.shell, (u.r + u.shell) * 0.8, 0, 0, TAU); ctx.fillStyle = 'rgba(124,200,255,0.1)'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(160,220,255,0.45)'; ctx.stroke(); }
       if (this.blood && this.bPools.length) this.drawBloodGround(ctx);
       if (this.remains) this.drawRemains(ctx);
       if (this.sp3) { this.drawSp3Ground(ctx); this.drawSp3Under(ctx); }
@@ -9146,7 +9146,7 @@ const RVB = (() => {
         if (!over && S.glow) { ctx.fillStyle = rgba(col(S.glow), S.glowA); ctx.fill(); }
         if (over && S.ring) { if (S.dash) ctx.setLineDash([5, 4]); ctx.lineWidth = S.w; ctx.strokeStyle = rgba(col(S.ring), 0.9); ctx.stroke(); if (S.dash) ctx.setLineDash([]); }
       }
-      if (over && this.heroTeam >= 0) {
+      if (over && this.heroTeam >= 0 && !this.opts.noRings) {
         // heroes: a bright gold ring
         ctx.beginPath(); let any = false;
         for (const u of list) if (u.hero && !u.dead) { ctx.moveTo(u.x + u.r + 4, u.y); ctx.arc(u.x, u.y, u.r + 4, 0, TAU); any = true; }
@@ -11511,7 +11511,7 @@ const RVB = (() => {
         if (u.sleepT > T) { ctx.font = font(18, 800); ctx.textAlign = 'center'; const b = (t * 1.5 + u.gait) % 1; strokeText(ctx, 'Z', u.x + 6 + b * 8, u.y - u.r - 8 - b * 14, '#F5DEB3', COL.ink, 4); }
         if (u.stoneT3 > T) { ctx.beginPath(); ctx.arc(u.x, u.y, u.r + 1, 0, TAU); ctx.fillStyle = 'rgba(156,163,175,0.75)'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#4B5563'; ctx.stroke(); }
         if (u.markT > T) { const [ex, ey] = [u.x, u.y - u.r - 16]; ell(ctx, ex, ey, 10, 6, 0, '#FFFFFF', 2); disc(ctx, ex, ey, 3.5, '#7C3AED', 0); }
-        if (u.shieldT > T) { ctx.beginPath(); ctx.arc(u.x, u.y, u.r + 7, 0, TAU); ctx.fillStyle = 'rgba(253,230,138,0.18)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(253,224,71,0.85)'; ctx.stroke(); }
+        if (u.shieldT > T && !this.opts.noRings) { ctx.beginPath(); ctx.arc(u.x, u.y, u.r + 7, 0, TAU); ctx.fillStyle = 'rgba(253,230,138,0.18)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(253,224,71,0.85)'; ctx.stroke(); }
         if (u.hooking && !u.hooking.dead) { const o = u.hooking; stick(ctx, u.x, u.y, o.x, o.y, 3, '#9CA3AF'); for (let k = 1; k < 6; k++) disc(ctx, u.x + (o.x - u.x) * k / 6, u.y + (o.y - u.y) * k / 6, 2.5, '#D1D5DB', 1); }
         if (u.type === 'bard' && !u.dead) { const k = (t * 0.8 + u.gait) % 1; ctx.font = font(20, 800); ctx.textAlign = 'center'; ctx.globalAlpha = 1 - k; strokeText(ctx, '♪', u.x + Math.sin(k * 6) * 10, u.y - u.r - 6 - k * 26, '#86EFAC', COL.ink, 3); ctx.globalAlpha = 1; }
       }
@@ -12236,7 +12236,7 @@ const RVB = (() => {
         if (o.dead || !(o.wantedT > T)) continue;
         const left = o.wantedT - T, al = clamp((3 - left) / 0.2, 0, 1) * clamp(left / 0.6, 0, 1), R = o.r + 7 + 3 * Math.sin(T * 8);
         ctx.globalAlpha = al * 0.9;
-        ctx.beginPath(); ctx.arc(o.x, o.y, R, 0, TAU);
+        ctx.beginPath(); if (!this.opts.noRings) ctx.arc(o.x, o.y, R, 0, TAU);
         for (let k = 0; k < 4; k++) { const an = k * Math.PI / 2; ctx.moveTo(o.x + Math.cos(an) * (R - 4), o.y + Math.sin(an) * (R - 4)); ctx.lineTo(o.x + Math.cos(an) * (R + 5), o.y + Math.sin(an) * (R + 5)); }
         ctx.lineWidth = 2.2; ctx.strokeStyle = '#FF5A5A'; ctx.stroke();
       }
@@ -12482,8 +12482,8 @@ const RVB = (() => {
     drawClassFx(ctx, list, top) {
       const t = this.t, T = this.fightT, C = this.cls;
       ctx.save(); ctx.lineCap = 'round';
-      if (!top) {
-        // under the troops: royal auras, guardian rings, time fields, frenzy
+      if (!top && !this.opts.noRings) {
+        // under the troops: royal auras, guardian rings, time fields, frenzy (rules.ui.noRings: none of these circles)
         for (const u of list) {
           if (u.dead || u.fade === 0) continue;
           const c = this.clsOf(u)[0];
@@ -12498,7 +12498,7 @@ const RVB = (() => {
           } else if (c === 'chrono') {
             ctx.globalAlpha = 0.25;
             for (let k = 0; k < 12; k++) { const a = k * Math.PI / 6 + t * 0.5, r0 = k % 3 ? 100 : 94; ctx.beginPath(); ctx.moveTo(u.x + Math.cos(a) * r0, u.y + Math.sin(a) * r0); ctx.lineTo(u.x + Math.cos(a) * 110, u.y + Math.sin(a) * 110); ctx.lineWidth = k % 3 ? 1.5 : 3; ctx.strokeStyle = CLASSES.chrono.col; ctx.stroke(); }
-          } else if (c === 'beast' && u.frenzy) {
+          } else if (c === 'beast' && u.frenzy && !this.opts.noRings) {
             ctx.globalAlpha = 0.35 + 0.2 * Math.sin(t * 12 + (u.uid || 0)); ctx.beginPath(); ctx.arc(u.x, u.y, u.r + 4, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = '#FF3B30'; ctx.stroke();
           }
         }
@@ -14745,7 +14745,7 @@ const RVB = (() => {
     drawAff(ctx, u, x, y) {
       const T = this.fightT, t = this.t, r = u.r, col = AFF_COL[u.affEl] || '#FFFFFF', k = clamp((u.affT - T) / 0.6, 0, 1);
       ctx.save(); ctx.globalAlpha = 0.85 * k;
-      ctx.beginPath(); ctx.arc(x, y, r + 4 + 1.5 * Math.sin(t * 9 + (u.gait || 0)), 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = col; ctx.stroke();
+      if (!this.opts.noRings) { ctx.beginPath(); ctx.arc(x, y, r + 4 + 1.5 * Math.sin(t * 9 + (u.gait || 0)), 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = col; ctx.stroke(); }
       for (let i = 0; i < 3; i++) { const ph = (t * 1.6 + i / 3 + (u.gait || 0)) % 1; disc(ctx, x + Math.sin(i * 2.1 + (u.gait || 0)) * r * 0.7, y - r * 0.3 - ph * r * 1.4, 3 * (1 - ph) + 1.5, col, 0); }
       // a small up-arrow over its head: stronger
       const ay = y - r - 12 - 2 * Math.sin(t * 6);
@@ -15680,6 +15680,8 @@ const RVB = (() => {
     // a ring round a troop (a buff, a slow, a champion...): for a little person it lies on the ground at its feet instead of
     // circling its body, so nobody looks trapped inside a circle
     gRing(ctx, u, x, y, R, a0, a1) {
+      // (rules.ui.noRings, Rellz 2026-11-23: "Don't make everyone have circle underneath them") no rings under troops
+      if (this.opts.noRings) return;
       if (this.humans && HUMAN[u.type]) ctx.ellipse(x, y + u.r * 0.8, Math.max(0.5, R), Math.max(0.5, R * 0.38), 0, a0, a1);
       else ctx.arc(x, y, R, a0, a1);
     },

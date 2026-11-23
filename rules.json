@@ -21,7 +21,11 @@
   "more": {
     "on": true
   },
-  "cliffhanger": { "on": true, "lead": 0.5, "seconds": 3.4 },
+  "cliffhanger": {
+    "on": true,
+    "lead": 0.5,
+    "seconds": 3.4
+  },
   "coldOpen": {
     "on": true,
     "seconds": 3.4,
@@ -126,7 +130,8 @@
       "drops": 1.5,
       "sparks": 0.4,
       "stay": 0.6
-    }
+    },
+    "noRings": true
   },
   "picks": {
     "on": true,
@@ -177,7 +182,10 @@
     "callGap": 15,
     "blend": {
       "on": true,
-      "fade": [0.06, 0.35],
+      "fade": [
+        0.06,
+        0.35
+      ],
       "wet": 0.4,
       "soft": true,
       "onBeat": true,
@@ -189,5 +197,13 @@
     "mapMusic": true,
     "winFrom": 9
   },
-  "slay": { "on": true, "dmg": 1.6, "count": 1, "countP": 0.25, "hpExp": 0.5, "maxPower": 3, "why": "Rellz 2026-11-23: towers kill more troops, quicker (satisfying deaths). Towers hit x dmg; stronger attackers come as more troops (countP) rather than tougher ones (hp grows as power^hpExp)" }
+  "slay": {
+    "on": true,
+    "dmg": 1.6,
+    "count": 1,
+    "countP": 0.25,
+    "hpExp": 0.5,
+    "maxPower": 3,
+    "why": "Rellz 2026-11-23: towers kill more troops, quicker (satisfying deaths). Towers hit x dmg; stronger attackers come as more troops (countP) rather than tougher ones (hp grows as power^hpExp)"
+  }
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23 (Rellz: "Don't make everyone have circle underneath them"): no circles under troops
+
+- `rules.ui.noRings`: troops no longer get circles on the ground or round them: buff, level, upgrade, slow, champion and hero rings, class auras (royal pulses, guardian hexes, time fields, frenzy), affinity glows, the spell shield bubble round each troop and the hunted target's circle (its crosshair ticks stay). Spell areas, explosions and tower ranges are unchanged. Looks only. Done in Army Clash and Tower Clash (same drawing code).
+
 ## 2026-11-23: One mix for all three channels; a rarer, softer narrator
 
 - Measured the mix of one video from each game. Music as heard: Tower Clash -21.4 dB, Army Clash -22.6, Territory Clash -21.1. Narrator: Tower Clash -21.6 dB, Army Clash -13.4, Territory Clash -10.9 (it rode on the effects' level, so a quiet battle pushed it up), with 7 or 8 lines a video.
