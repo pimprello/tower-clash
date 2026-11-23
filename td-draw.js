@@ -217,6 +217,8 @@ const DRAW = {
     }
     // towers being rebuilt: scaffolding over the rubble, stone courses rising inside it, builders' hammer sparks, a progress bar
     for (const s of this.spots) if (s.raising) this.drawRaising(ctx, s);
+    // (rules.pacing) towers being upgraded between waves, and the builders at work on them and on the rebuilds
+    if (this.opts.pacing && this.opts.pacing.on) this.drawBuilders(ctx);
     // walls across the path
     for (const w of this.walls) this.drawWall(ctx, w);
     // where meteors are about to land: on the ground, under everyone
@@ -449,6 +451,58 @@ const DRAW = {
     ctx.beginPath(); ctx.arc(-dx * rr * 0.35, -dy * rr * 0.35, rr * 0.55, 0, TAU); ctx.fillStyle = 'rgba(255,200,110,0.45)'; ctx.fill();
     ctx.restore();
   },
+  // (Rellz 2026-11-23: "we can see the builders upgrading the towers and fixing broken ones, that's visually satisfying")
+  // looks only: for every job (a rebuild, an upgrade) two little builders walk out from the base, work at the site with their
+  // hammers (sparks and dust on each blow), and walk home once it's done; an upgrade gets a light scaffold and a progress bar
+  drawBuilders(ctx) {
+    const T = this.fightT, jobs = [];
+    for (const s of this.spots) if (s.raising) jobs.push({ x: s.x, y: s.y, t0: s.raising.t0, end: s.raising.end, id: s.id ?? (s.x * 3 + s.y) });
+    for (const tw of this.towers) if (tw.upWork) jobs.push({ x: tw.x, y: tw.y, t0: tw.upWork.t0, end: tw.upWork.end, id: tw.u.uid, up: tw.upWork, tw });
+    // (and for a moment after a job ends, they walk home)
+    this.bHome = (this.bHome || []).filter(h => T - h.end < 1.2 && T >= h.end);
+    for (const j of jobs) j.live = true;
+    if (!this.bJobs) this.bJobs = new Map();
+    for (const [id, j] of this.bJobs) if (!jobs.find(k => k.id === id)) { if (T >= j.end - 0.05 && T - j.end < 1.2) this.bHome.push(j); this.bJobs.delete(id); }
+    for (const j of jobs) this.bJobs.set(j.id, j);
+    const b = this.base, walkIn = 0.7;
+    const crew = (j, home) => {
+      for (let k = 0; k < 2; k++) {
+        const side = k ? 1 : -1, wx = j.x + side * 38, wy = j.y + 16 - k * 4;
+        let x, y, a = 1, work = false;
+        if (home) { const q = clamp((T - j.end) / 1.1, 0, 1); x = lerp(wx, b.x + side * 20, q); y = lerp(wy, b.y, q); a = 1 - clamp((q - 0.7) / 0.3, 0, 1); }
+        else { const q = easeOutCubic(clamp((T - j.t0) / walkIn, 0, 1)); x = lerp(b.x + side * 20, wx, q); y = lerp(b.y, wy, q); a = clamp((T - j.t0) / 0.2, 0, 1); work = q >= 1; }
+        const ph = (T * 2.2 + k * 0.5) % 1, sw = work ? (ph < 0.25 ? ph / 0.25 : 1 - (ph - 0.25) / 0.75) : 0, bob = work ? -2 * (1 - sw) : Math.abs(Math.sin(T * 14 + k)) * -2;
+        ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y + bob); ctx.scale(0.9, 0.9);
+        try { this.drawPortrait(ctx, 'builder', DEF); } catch (e) { disc(ctx, 0, 0, 12, TEAMS[DEF].c, 3); }
+        ctx.restore();
+        if (work) {
+          // the hammer, swung at the tower, and the sparks of the blow
+          const hx = x - side * 15, hy = y - 10;
+          ctx.save(); ctx.globalAlpha = a; ctx.translate(hx, hy - 10 * (1 - sw)); ctx.rotate(side * (0.9 - 1.2 * sw));
+          ctx.fillStyle = '#8B5A2B'; ctx.fillRect(-1.5, 0, 3, 12); ctx.fillStyle = '#9CA3AF'; ctx.fillRect(-5, -3, 10, 5); ctx.lineWidth = 1.5; ctx.strokeStyle = INK; ctx.strokeRect(-5, -3, 10, 5);
+          ctx.restore();
+          if (ph < 0.16) for (let i = 0; i < 5; i++) { const an = H01(i + k * 9, Math.floor(T * 2.2)) * TAU, d = 3 + ph * 55; ctx.beginPath(); ctx.arc(hx - side * 4 + Math.cos(an) * d, hy + Math.sin(an) * d * 0.6, 1.7, 0, TAU); ctx.fillStyle = i % 2 ? '#FFD23F' : '#FFF4C2'; ctx.fill(); }
+        }
+      }
+    };
+    for (const j of jobs) {
+      if (j.up) {
+        // the upgrade: a light scaffold round the tower, and its progress bar (the next tier's pips)
+        const p = clamp((T - j.t0) / (j.end - j.t0), 0, 1), up = easeOutCubic(clamp(p / 0.15, 0, 1)), down = 1 - clamp((p - 0.9) / 0.1, 0, 1), R = 30;
+        ctx.save(); ctx.translate(j.x, j.y); ctx.globalAlpha = Math.min(up, down); ctx.lineCap = 'round';
+        const P = [[-R, -R - 8], [R, -R - 8], [R, R - 2], [-R, R - 2]].map(([x, y]) => [x * up, y * up]);
+        for (let i = 0; i < 4; i++) { const [ax, ay] = P[i], [bx, by] = P[(i + 1) % 4]; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 3; ctx.strokeStyle = i % 2 ? '#8B5A2B' : '#5C3A1B'; ctx.stroke(); }
+        for (const [x, y] of P) { ctx.beginPath(); ctx.arc(x, y, 4, 0, TAU); ctx.fillStyle = '#8B5A2B'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke(); }
+        const bw = 60, by = R + 10;
+        roundRect(ctx, -bw / 2, by, bw, 9, 4.5); ctx.fillStyle = 'rgba(8,11,20,0.85)'; ctx.fill();
+        roundRect(ctx, -bw / 2 + 2, by + 2, (bw - 4) * p, 5, 2.5); ctx.fillStyle = '#7DD3FC'; ctx.fill();
+        ctx.font = font(15, 800, true); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; strokeText(ctx, `TIER ${j.up.tier}`, 0, by + 22, '#E0F2FE', INK, 4);
+        ctx.restore();
+      }
+      crew(j, false);
+    }
+    for (const h of this.bHome) crew(h, true);
+  },
   drawRaising(ctx, s) {
     const T = this.fightT, t = this.t, R0 = s.raising, p = clamp((T - R0.t0) / (R0.end - R0.t0), 0, 1), R = 26, WOOD = '#8B5A2B', WOOD_D = '#5C3A1B';
     ctx.save(); ctx.translate(s.x, s.y);
@@ -489,7 +543,7 @@ const DRAW = {
     const L = this.corpses; if (!L || !L.length) return;
     const t = this.t;
     for (const c of L) {
-      const age = t - c.t0, life = 7; if (age > life) continue;
+      const age = t - c.t0, life = this.opts.pacing && this.opts.pacing.on ? this.opts.pacing.corpseLife || 16 : 7; if (age > life) continue;
       const a = Math.min(1, (life - age) / 1.5), k = clamp(age / 0.6, 0, 1), r = c.r;
       ctx.save(); ctx.globalAlpha = a;
       if (c.kind === 'bones') {
@@ -1210,7 +1264,12 @@ const DRAW = {
     if (this.phase === 'fight') {
       const w = this.plan.find(x => !x.started);
       if (this.bossU && !this.bossU.dead) next = 'THE BOSS IS HERE';
-      else if (w) { const s = Math.max(0, Math.ceil(w.at - T)); next = `NEXT: ${w.boss && !w.mini ? 'THE BOSS' : w.name} IN ${s}`; }
+      else if (w) {
+        // (rules.pacing: a wave that waits for the one before to be wiped out says so, then counts down the breather)
+        const PC = this.opts.pacing && this.opts.pacing.on ? this.opts.pacing : null, nm = w.boss && !w.mini ? 'THE BOSS' : w.name;
+        if (PC && !w.go && this.clearT !== undefined && T - this.clearT < 0.05) next = `NEXT: ${nm} · CLEAR THIS WAVE`;
+        else { const s = Math.max(1, Math.ceil(PC && !w.go && this.clearT !== undefined ? Math.max((PC.cool ?? 3.5) - (T - this.clearT), w.at - (PC.early ?? 4) - T) : w.at - T)); next = `NEXT: ${nm} IN ${s}`; }
+      }
       else next = this.pushed ? 'THE FINAL PUSH' : 'LAST WAVE';
     } else next = this.tdWinner === DEF ? 'THE BASE HOLDS' : 'THE BASE HAS FALLEN';
     this.fitText(ctx, next, x1 - 20, gy, x1 - x0 - 300, 28, 800, true, COL.white, 'right', 16);

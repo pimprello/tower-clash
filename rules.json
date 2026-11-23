@@ -25,7 +25,8 @@
   "cliffhanger": {
     "on": true,
     "lead": 0.5,
-    "seconds": 3.4
+    "seconds": 3.4,
+    "at": 0.8
   },
   "coldOpen": {
     "on": true,
@@ -206,5 +207,25 @@
     "hpExp": 0.5,
     "maxPower": 3,
     "why": "Rellz 2026-11-23: towers kill more troops, quicker (satisfying deaths). Towers hit x dmg; stronger attackers come as more troops (countP) rather than tougher ones (hp grows as power^hpExp)"
+  },
+  "pacing": {
+    "on": true,
+    "ramp": [
+      0.55,
+      1.25
+    ],
+    "cool": 3.5,
+    "workWait": 2.5,
+    "early": 10,
+    "free": 2,
+    "buildAnyAfter": 0.72,
+    "upgradeSecs": 2.6,
+    "corpseLife": 16,
+    "why": "Rellz 2026-11-23: early waves are small and wiped out, then a breather (bones, blood, acid on screen; builders walk out, upgrade and rebuild); it gets harder slowly; the last waves and the boss pile up",
+    "hpRamp": [
+      0.4,
+      1.1
+    ],
+    "maxGap": 15
   }
 }

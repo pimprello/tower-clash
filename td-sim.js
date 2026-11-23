@@ -33,7 +33,10 @@ const SIM = {
       // (Rellz 2026-11-23: "make towers do a bit more damage ... killing more people and creatures quicker") with rules.slay on,
       // stronger attackers come as more troops rather than tougher ones, so the towers mow through bigger crowds
       const SL = o.slay && o.slay.on ? o.slay : null;
-      const n = Math.round(R.int(W.n[0], W.n[1]) * (SL ? (SL.count ?? 1) * (1 - (SL.countP ?? 0.25) + (SL.countP ?? 0.25) * P) : 0.75 + 0.25 * P) * endless * (mode === 'swarm' ? 1.3 : 1));
+      // (Rellz 2026-11-23: "it needs to get more difficult slowly, not straight away") with rules.pacing on, the first waves are
+      // small and each one is bigger than the last
+      const PCr = o.pacing && o.pacing.on ? o.pacing.ramp || [0.55, 1.25] : null, ramp = PCr ? PCr[0] + (PCr[1] - PCr[0]) * (i / Math.max(1, nNormal - 1)) : 1;
+      const n = Math.round(ramp * R.int(W.n[0], W.n[1]) * (SL ? (SL.count ?? 1) * (1 - (SL.countP ?? 0.25) + (SL.countP ?? 0.25) * P) : 0.75 + 0.25 * P) * endless * (mode === 'swarm' ? 1.3 : 1));
       const list = [];
       for (let k = 0; k < n; k++) list.push(types[k % types.length === 0 || types.length === 1 ? 0 : (k % 3 === 2 ? 1 : 0)]);
       // a healer or shaman walks with the bigger waves now and then
@@ -61,12 +64,42 @@ const SIM = {
     this.slayK = o.slay && o.slay.on ? (o.slay.dmg ?? 1) : 1;
     this.spdK = reckless ? 1.08 : 1;
   },
-  spawnTick() {
-    const T = this.fightT;
+  // (Rellz 2026-11-23: "i want it to win specific waves so that during the wave cooldown we can actually see the bones on the
+  // screen, blood and acid, and the builders upgrading the towers and fixing broken ones") with rules.pacing on, the early waves
+  // wait for the one before to be wiped out, then a breather of a few seconds (longer while the builders are still at work)
+  // before the next one comes; the last waves and the boss keep their times, so the end still piles up. No dice.
+  paceTick(T, PC) {
+    const busy = this.units.some(u => u.team === ATK && !u.dead && !u.tower) || this.plan.some(w => w.started && !w.done);
+    if (busy || this.clearT === undefined) this.clearT = T;
+    const gateN = this.plan.length - (PC.free ?? 2), bw = this.plan.find(q => q.boss && !q.mini), bossAt = bw ? bw.at : this.cap;
+    let first = true;
     for (const w of this.plan) {
-      if (w.done || T < w.at) continue;
+      if (w.started || w.i === 0 || w.i >= gateN || w.boss) { w.go = true; continue; }
+      if (w.go || !first) continue;
+      first = false;
+      // (and the waves never run into the boss: whatever's left comes in time, a couple of seconds apart)
+      const left = this.plan.filter(q => !q.go && !q.boss && q.i < gateN).length;
+      if (T >= bossAt - 2.5 * left) { w.go = true; w.at = Math.min(w.at, T); continue; }
+      const prev = this.plan[w.i - 1], work = this.buildersBusy();
+      const rested = !busy && prev.started && T - this.clearT >= (PC.cool ?? 3.5) + (work ? Math.min(PC.workWait ?? 2.5, work) : 0);
+      // never too early (a wave keeps roughly its place), and never stalled for long (it comes anyway, a crowd for the towers)
+      if ((rested && T >= w.at - (PC.early ?? 4)) || (prev.started && T >= (prev.startT || 0) + (PC.maxGap ?? 15))) { w.go = true; w.at = Math.min(w.at, T); }
+    }
+  },
+  // how much longer the builders need (0 when nobody is building)
+  buildersBusy() {
+    let m = 0;
+    for (const s of this.spots) if (s.raising) m = Math.max(m, s.raising.end - this.fightT);
+    for (const tw of this.towers) if (tw.upWork) m = Math.max(m, tw.upWork.end - this.fightT);
+    return m;
+  },
+  spawnTick() {
+    const T = this.fightT, PC = this.opts.pacing && this.opts.pacing.on ? this.opts.pacing : null;
+    if (PC) this.paceTick(T, PC);
+    for (const w of this.plan) {
+      if (w.done || T < w.at || (PC && !w.go)) continue;
       if (!w.started) {
-        w.started = true; this.waveNow = Math.max(this.waveNow, w.i + 1);
+        w.started = true; w.startT = T; this.waveNow = Math.max(this.waveNow, w.i + 1);
         if (w.boss && !w.mini) this.card({ kind: 'wave', text: `WAVE ${w.i + 1} · ${BOSSES[this.bossType] ? BOSSES[this.bossType].name : 'THE BOSS'}`, col: '#FF5A5A', big: true });
         else this.card({ kind: 'wave', text: `WAVE ${w.i + 1} · ${w.name}`, col: COL.gold, sub: w.native ? 'NATIVES OF THIS LAND · STRONGER ON HOME GROUND' : undefined });
         this.snd(w.boss ? 'roar' : 'alarm', { gain: w.boss ? 1 : 0.6 });
@@ -104,6 +137,9 @@ const SIM = {
     const exp = sz === 'small' ? 0.4 : sz === 'mid' ? 0.8 : 1;
     let hp = U.hp * exp * this.hpK * (w && !w.boss ? 1 + 0.12 * w.i : 1);
     if (sz === 'titan') hp *= 1.5;
+    // (rules.pacing) the first waves are frail too (wiped out before they get far), the later ones come at full strength
+    const PCh = this.opts.pacing && this.opts.pacing.on ? this.opts.pacing.hpRamp : null;
+    if (PCh && w && !w.boss) { const nN = this.plan.filter(q => !q.boss).length; hp *= PCh[0] + (PCh[1] - PCh[0]) * Math.min(1, w.i / Math.max(1, nN - 1)); }
     u.size = sz;
     if (w && w.boss && type === this.bossType || (w && w.mini && BOSSES[type])) {
       const B = BOSSES[type] || { hp: 3.5, name: labelOf(type) };
@@ -130,9 +166,14 @@ const SIM = {
   upCost(tw) { return Math.round(TIER.cost[tw.tier + 1] * (this.trait.def === 'engineers' ? 0.8 : 1)); },
   // the defenders' plan, twice a second (no dice): rebuild a fallen tower, build the next one, or upgrade
   buildTick() {
-    const T = this.fightT;
+    const T = this.fightT, PC = this.opts.pacing && this.opts.pacing.on ? this.opts.pacing : null;
+    // (rules.pacing) upgrades take the builders a moment; the new tier counts once they're done
+    if (PC) for (const tw of this.towers) if (tw.upWork && (T >= tw.upWork.end || tw.dead)) { const done = !tw.dead; tw.upWork = null; if (done) this.upgrade(tw); }
     if (T < (this.buildAt || 4.5) || this.phase !== 'fight') return;
     this.buildAt = T + 0.5;
+    // (rules.pacing) while a wave is on the board, the builders keep their heads down: rebuilding and upgrading wait for the
+    // breather between waves (until late in the battle, when there's no time to wait)
+    const calm = !PC || T > this.cap * (PC.buildAnyAfter ?? 0.72) || !(this.units.some(u => u.team === ATK && !u.dead && !u.tower) || this.plan.some(w => w.started && !w.done));
     const live = this.towers.filter(t => !t.dead);
     const soon = this.plan.filter(w => !w.started).slice(0, 2);
     const airSoon = soon.some(w => w.air || w.list.some(k => (UNIT[k] || UNIT[(this.nativeOf(k) || {}).base] || {}).flying)) || this.units.some(u => u.team === ATK && !u.dead && u.flying);
@@ -150,7 +191,7 @@ const SIM = {
         this.say(`${TOWERS[kind].name} IS BACK`, DEF);
       }
     }
-    const wreck = this.spots.find(s => s.wreck && s.was && !s.raising && T >= (s.fellT || 0) + 3);
+    const wreck = calm && this.spots.find(s => s.wreck && s.was && !s.raising && T >= (s.fellT || 0) + 3);
     if (wreck && this.mode !== 'laststand') {
       const c = TOWERS[wreck.was].cost;
       if (this.gold >= c) {
@@ -179,8 +220,19 @@ const SIM = {
     }
     // 3. an upgrade: the signature tower first (to tier 5), then the lowest tier with the most kills
     const cand = live.filter(t => t.tier < 5).sort((a, b) => (b.kind === this.towerSet[0]) - (a.kind === this.towerSet[0]) || a.tier - b.tier || b.kills - a.kills || a.u.uid - b.u.uid);
-    const tw = cand[0];
-    if (tw && this.gold >= this.upCost(tw)) { this.gold -= this.upCost(tw); this.upgrade(tw); }
+    if (!calm) return;
+    const tw = cand.find(t => !t.upWork);
+    if (tw && this.gold >= this.upCost(tw)) {
+      this.gold -= this.upCost(tw);
+      if (!PC) this.upgrade(tw);
+      else {
+        // two builders walk out from the base, put up a little scaffold and hammer the new tier on
+        const secs = (PC.upgradeSecs ?? 2.6) * (tw.tier >= 2 ? 1.25 : 1);
+        tw.upWork = { t0: T, end: T + secs, tier: tw.tier + 1, cost: this.upCost(tw) };
+        this.snd('thud', { pan: this.pan(tw.x), gain: 0.45 });
+        if (tw.tier >= 2 && this.camEv) this.camEv.push({ type: 'spot', x: tw.x, y: tw.y, prio: 45, dur: 1.2, z: 1.5 });
+      }
+    }
   },
   upgrade(tw, free) {
     tw.tier++; this.applyTier(tw); this.stat.upgrades++;
@@ -966,7 +1018,7 @@ const SIM = {
     if (u.flying && kind !== 'parts') return;
     const L = this.corpses || (this.corpses = []);
     L.push({ kind, x: u.x, y: u.y, r: u.r, f: u.face || 0, t0: this.t, col: TEAMS[ATK].c, seed: (u.uid || 1) * 7 });
-    if (L.length > 70) L.shift();
+    if (L.length > (this.opts.pacing && this.opts.pacing.on ? 160 : 70)) L.shift();
     if (kind === 'parts') { const F = this.FX; for (let k = 0; k < 8; k++) { const a = F.range(0, Math.PI * 2), sp = F.range(120, 360); this.parts.push({ x: u.x, y: u.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: F.range(0.2, 0.45), age: 0, size: F.range(1.4, 2.4), color: k % 2 ? '#FFD27A' : '#FFFFFF', grav: 0, streak: 0.03, drag: 5 }); } }
   },
   // (looks only, cosmetic dice) every hit throws sparks the way the blow came from, with a quick ring; a melee blow leaves a

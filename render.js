@@ -73,7 +73,7 @@ RVB.setTeams(pair[0], pair[1]);
 const events = (rules.events || []).map(type => ({ type }));
 
 const optsFor = (power, s) => ({ map, layout, target: FIGHT, fixedLength: FIGHT + OUTRO, outroSecs: OUTRO, ui: 2, art: 2, anim: true, humans: (rules.ui || {}).humans !== false, noRings: !!(rules.ui || {}).noRings, ...((rules.ui || {}).blood && rules.ui.blood.on ? { blood: rules.ui.blood } : {}), shine: { on: true, gloss: 1, rim: 1, damage: true, screen: 1, density: 1.6 }, remains: true, clean: true, smooth: true, tdPace: PACE,
-  tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s, slay: process.env.SLAY === '0' ? null : rules.slay, ...(PK ? { picks: Object.assign({}, PK, { on: true, holiday: HOL ? HOL.key : null }) } : {}) });
+  tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s, pacing: rules.pacing, slay: process.env.SLAY === '0' ? null : rules.slay, ...(PK ? { picks: Object.assign({}, PK, { on: true, holiday: HOL ? HOL.key : null }) } : {}) });
 
 // ----- balance on the spot: quick headless battles with this set-up and other dice, aiming at an even chance -----
 function quick(power, s) {
@@ -311,6 +311,8 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
       const left = game.phase === 'outro' && game.outroLen ? game.outroLen - game.outroT : 9;
       if (firstCv && left < 0.45 && !game.holdOutro) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = Math.min(1, (0.45 - left) / 0.4); ctx.drawImage(firstCv, 0, 0); ctx.globalAlpha = 1; }
     }
+    // (testing: STILL_BUILD=1 saves a still while builders are halfway through an upgrade, the first four times)
+    if (stills && process.env.STILL_BUILD) { const tw = game.towers.find(t => t.upWork && !t.upWork.shot && (game.fightT - t.upWork.t0) / (t.upWork.end - t.upWork.t0) > 0.5); if (tw && (global.__nb = (global.__nb || 0) + 1) <= 4) { tw.upWork.shot = true; fs.writeFileSync(path.join(OUT, `still-build-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png')); } }
     // (testing: STILL_MARK=meteor also saves a still while one is coming down)
     if (stills && process.env.STILL_MARK) { const mk = game.marks.find(m => m.kind === process.env.STILL_MARK && !m.shot && (m.T1 ? (game.fightT - m.T0) / (m.T1 - m.T0) > 0.55 : m.t0 !== undefined && game.t - m.t0 > 0.6)); if (mk) { mk.shot = true; fs.writeFileSync(path.join(OUT, `still-mark-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png')); } }
     // (testing: STILL_AFTER=<battle second> also saves a still every 0.75 s of video from then on, through the finale and the end)
@@ -323,7 +325,11 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
     // fully ending and saying game over just end at the cliff hanger and say subscribe"): a moment before the final blow lands
     // (in the slow motion going into it), the picture freezes and the Short ends on WHO WINS?! and SUBSCRIBE TO SEE THE ENDING -----
     const CLR = rules.cliffhanger || {};
-    if (CLR.on !== false && finale && !cliffed && game.phase === 'fight' && game.fightT >= finale.t - (CLR.lead ?? 0.5)) {
+    // (Rellz 2026-11-23: "at 1 minute the match should be around 80% done so it looks like a cliffhanger; when the base is 1% we
+    // already know what will happen") rules.cliffhanger.at: it freezes about that far through the battle, in the thick of it
+    // (attackers on the board), so nobody can tell yet how it ends
+    const cutAt = CLR.at ? finale && finale.t * CLR.at : null, inThick = () => game.units.some(u => u.team === 1 && !u.dead);
+    if (CLR.on !== false && finale && !cliffed && game.phase === 'fight' && (game.fightT >= finale.t - (CLR.lead ?? 0.5) || (cutAt && game.fightT >= cutAt && inThick()))) {
       cliffed = true;
       const still = createCanvas(W * RS, H * RS); still.getContext('2d').drawImage(canvas, 0, 0);
       const C = new Cliff({ W, H, RS, fps: FPS, seed, seconds: CLR.seconds || 3.4, question: 'WHO WINS?!', cta: ['SUBSCRIBE', 'TO SEE THE ENDING'], font: (s, w = 800) => E.font(s, w) });

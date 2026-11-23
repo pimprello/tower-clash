@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-23: Waves you can watch get wiped out, builders in the breaks, the cliffhanger at 80%
+
+- (Rellz: "at 1 minute the match should be around 80% done so it looks like a cliffhanger, when the base is 1% we already know what will happen") `rules.cliffhanger.at` 0.8: the Short freezes about 80% of the way through the battle, while attackers are still on the board (about a minute of video), instead of half a second before the final blow.
+- (Rellz: "it needs to get more difficult slowly, not straight away") `rules.pacing`: the first waves are smaller (`ramp` 0.55 to 1.25 of the usual size) and frailer (`hpRamp` 0.4 to 1.1 of the health), growing wave by wave; the last waves and the boss keep their times and pile up at the end.
+- (Rellz: "i want it to win specific waves so that during the wave cooldown we can actually see the bones on the screen, blood and acid, and the builders upgrading the towers and fixing broken ones") the early waves now wait until the one before is wiped out, then a breather (3.5 s, longer while builders are working, never more than 15 s after the wave before, never into the boss). Bones, blood and sludge stay on the ground for 16 s (was 7). Rebuilding and upgrading wait for the breathers (until the last part of the battle): two little builders walk out from the base, a scaffold goes up round the tower with a TIER bar, they hammer (sparks on every blow), the new tier counts once they're done, and they walk home. The NEXT pill says CLEAR THIS WAVE while one is on the board, then counts down the breather.
+
 ## 2026-11-23: No black bars in the intro
 
 - (Rellz: "remove black bars from intro") the cold open no longer eases film bars in over the slow motion; the picture stays full screen the whole way through.
