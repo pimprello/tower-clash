@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-23 04:05 | This Boss Was NOT Supposed To Get This Far... 😳 | Fallen! | https://youtube.com/shorts/2IyEWQd5DLA |
 | 2026-11-22 19:37 | 19 Towers vs The Ironhorn... Big Mistake? 😬 | Fallen! | https://youtube.com/shorts/8sD6NLKJsPI |
 | 2026-11-22 19:03 | A Rare Golden Ironhorn Appeared... 😱 | Fallen! | https://youtube.com/shorts/F0rPEbx9d5k |
 | 2026-11-21 21:15 | A Rare Golden Glacier Behemoth Appeared... 😱 | Survived! | https://youtube.com/shorts/g7pe5Uv4yAU |
