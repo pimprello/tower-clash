@@ -219,7 +219,8 @@ const PLAY = {
     this.say(`THE WAR SHAMAN CASTS ${Sh.name}`, ATK);
     const c = this.crowd(140) || { x: AR.x + AR.w / 2, y: AR.y + 200 };
     if (this.camEv) this.camEv.push({ type: 'spot', x: c.x, y: c.y, prio: 66, dur: 1.6, z: 1.5 });
-    this.marks.push({ kind: 'totem', x: c.x, y: c.y, t0: this.t, col: Sh.col });
+    // the shaman's totem rises beside the path, not on top of the troops walking it (drawn in the totem look of 2026-11-21)
+    { const at = this.shamanSpot ? this.shamanSpot(c.x, c.y) : c; this.marks.push({ kind: 'totem', x: at.x, y: at.y, cx: c.x, cy: c.y, t0: this.t, col: Sh.col }); }
     switch (k) {
       case 'warcry': this.aBuff.warcry = T + 6; this.snd('roar', { gain: 1 }); for (const u of this.units) if (u.team === ATK) u.rageT = T + 6; break;
       case 'haste': this.aBuff.haste = T + 5; this.snd('drum', { gain: 1 }); break;

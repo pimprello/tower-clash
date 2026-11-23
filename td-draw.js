@@ -232,6 +232,16 @@ const DRAW = {
     // the mystical crystal's traps and totem reach (td-crystal.js)
     if (this.drawTraps) this.drawTraps(ctx);
     if (this.drawWeirdGround) this.drawWeirdGround(ctx);
+    // the war shaman's totems: their shadow and the rings of the cast lie on the ground, under the troops (the totem is drawn later)
+    for (const m of this.marks) if (m.kind === 'totem') {
+      const age = this.t - m.t0; if (age > 2.2 || age < 0) continue;
+      const a = clamp(age / 0.15, 0, 1) * Math.min(1, clamp((2.2 - age) / 0.45, 0, 1) * 1.6);
+      ctx.save(); ctx.globalAlpha = a;
+      ctx.beginPath(); ctx.ellipse(m.x, m.y + 2, 16, 7, 0, 0, TAU); ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fill();
+      for (let i = 0; i < 2; i++) { const q = clamp((age - 0.25 - i * 0.35) / 1.2, 0, 1); if (q <= 0 || q >= 1) continue;
+        ctx.beginPath(); ctx.ellipse(m.x, m.y, 30 + 120 * q, (30 + 120 * q) * 0.42, 0, 0, TAU); ctx.lineWidth = 4 * (1 - q) + 1; ctx.strokeStyle = rgba(m.col, 0.55 * (1 - q)); ctx.stroke(); }
+      ctx.restore();
+    }
     if (this.drawMoreGround) this.drawMoreGround(ctx);
     // the base and the towers (the character on top is drawn by the engine with the troops). With the shine on (Rellz
     // 2026-11-15: "match graphic style and shiny texture to army clash"), only their shadows and glows go on the ground here;
@@ -877,11 +887,16 @@ const DRAW = {
           ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, TAU); ctx.fillStyle = 'rgba(147,197,253,0.16)'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(147,197,253,0.85)'; ctx.stroke();
           ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x, m.y - m.r * 0.6); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x + m.r * 0.4, m.y); ctx.lineWidth = 5; ctx.strokeStyle = '#DBEAFE'; ctx.stroke();
         } else if (m.kind === 'totem') {
-          if (age > 1.6) continue; const a = clamp(age / 0.2, 0, 1) * clamp((1.6 - age) / 0.3, 0, 1);
-          ctx.save(); ctx.globalAlpha = a; ctx.translate(m.x, m.y - 30);
-          roundRect(ctx, -9, -30, 18, 50, 5); ctx.fillStyle = '#8A6A49'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
-          disc(ctx, 0, -30, 13, m.col, 3);
-          ctx.beginPath(); ctx.arc(0, -10, 40 + 30 * age, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = rgba(m.col, 0.6 * (1 - age / 1.6)); ctx.stroke();
+          // (Rellz 2026-11-23) the war shaman's totem, in the same look as the crystal's totems: it rises out of the ground beside the
+          // path with a ripple of the spell's colour along the ground, pulses its spell out over the troops, then sinks back down
+          if (age > 2.2) continue;
+          const up = easeOutBack(clamp(age / 0.4, 0, 1)), down = clamp((2.2 - age) / 0.45, 0, 1), h = Math.min(up, 1) * (0.25 + 0.75 * easeOutCubic(down)), a = clamp(age / 0.15, 0, 1) * Math.min(1, down * 1.6);
+          ctx.save(); ctx.globalAlpha = a;
+          // (its rings and shadow are on the ground, under the troops: drawn before them)
+          if (m.cx !== undefined && age > 0.3 && age < 1.1) { const q = (age - 0.3) / 0.8; ctx.beginPath(); ctx.moveTo(m.x, m.y - 58 * h); ctx.lineTo(m.x + (m.cx - m.x) * q, m.y - 58 * h + (m.cy - m.y + 58 * h) * q); ctx.lineWidth = 3; ctx.setLineDash([6, 8]); ctx.strokeStyle = rgba(m.col, 0.7 * (1 - q)); ctx.stroke(); ctx.setLineDash([]); }
+          ctx.translate(m.x, m.y);
+          ctx.scale(0.9, 0.9 * h);
+          this.drawTotemBody(ctx, t, m.col, 'shaman', null);
           ctx.restore();
         } else if (m.kind === 'kraken' || m.kind === 'sandworm' || m.kind === 'eruption') {
           if (age > 1.4) continue; const up = Math.sin(clamp(age / 1.4, 0, 1) * Math.PI);
