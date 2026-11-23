@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-23 12:11 | 11 Towers vs 8 Waves... Who Breaks First? ⚔️ | Survived! | https://youtube.com/shorts/BsTt6QJ3YJU |
 | 2026-11-23 07:33 | A Rare Golden Siege Golem Appeared... 😱 | Survived! | https://youtube.com/shorts/V9X7IRq_dyU |
 | 2026-11-23 04:05 | This Boss Was NOT Supposed To Get This Far... 😳 | Fallen! | https://youtube.com/shorts/2IyEWQd5DLA |
 | 2026-11-22 19:37 | 19 Towers vs The Ironhorn... Big Mistake? 😬 | Fallen! | https://youtube.com/shorts/8sD6NLKJsPI |
