@@ -1,8 +1,8 @@
 # View stats
 
-Updated 2026-11-22 19:07 UTC. 1 videos, 0 at least a day old (used below). Groups need 3+ videos.
+Updated 2026-11-23 18:16 UTC. 3 videos, 0 at least a day old (used below). Groups need 3+ videos.
 
-Total views: 0. Median views per video: 0.
+Total views: 15. Median views per video: 0.
 
 ### By upload hour (UK time)
 
@@ -73,4 +73,6 @@ Total views: 0. Median views per video: 0.
 
 | Views | Likes | Title |
 | --- | --- | --- |
-| 0 | 0 | A Rare Golden Ironhorn Appeared... 😱 |
+| 12 | 0 | 11 Towers vs 8 Waves... Who Breaks First? ⚔️ |
+| 3 | 0 | Acid Leviathan Is UNSTOPPABLE?! 🔥 |
+| 0 | 0 | This Tower Sends Them Back In Time ⏪ |
