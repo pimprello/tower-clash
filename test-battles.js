@@ -12,7 +12,7 @@ for (let i = 0; i < N; i++) {
   const era = D.TD_MAPS[M].era, ok = D.DEF_LINEUPS.filter(l => !l.eras || l.eras.includes(era)), dl = ok[(i * 3 + 1) % ok.length];
   try {
     const g = new TD(i * 31337 + 7, { map: M, layout: L, target: 60, fixedLength: 63, outroSecs: 3, ui: 2, tdMode: mode, attack: D.ATK_LINEUPS[(i * 3) % D.ATK_LINEUPS.length], towers: dl.towers,
-      defOrder: D.ORDERS[i % D.ORDERS.length], atkBand: D.WARBANDS[i % D.WARBANDS.length], events: [{ type: 'airdrop' }, { type: 'airstrike' }, { type: 'meteors' }, { type: 'hazard' }], power, ...(PK ? { picks: Object.assign({}, PK, { on: true }) } : {}) });
+      defOrder: D.ORDERS[i % D.ORDERS.length], atkBand: D.WARBANDS[i % D.WARBANDS.length], slay: process.env.SLAY === '0' ? null : require('./rules.json').slay, events: [{ type: 'airdrop' }, { type: 'airstrike' }, { type: 'meteors' }, { type: 'hazard' }], power, ...(PK ? { picks: Object.assign({}, PK, { on: true }) } : {}) });
     g.fixedTicks = true; g.tickAcc = 0;
     let k = 0; while (!g.finished && k < 60 * 120) { g.frame(1 / 60); g.sfx.length = 0; k++; }
     if (!g.finished) { unfinished++; console.log(`never ended: battle ${i} (${L}, ${M}, ${mode})`); }

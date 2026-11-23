@@ -73,14 +73,14 @@ RVB.setTeams(pair[0], pair[1]);
 const events = (rules.events || []).map(type => ({ type }));
 
 const optsFor = (power, s) => ({ map, layout, target: FIGHT, fixedLength: FIGHT + OUTRO, outroSecs: OUTRO, ui: 2, art: 2, anim: true, humans: (rules.ui || {}).humans !== false, ...((rules.ui || {}).blood && rules.ui.blood.on ? { blood: rules.ui.blood } : {}), shine: { on: true, gloss: 1, rim: 1, damage: true, screen: 1, density: 1.6 }, remains: true, clean: true, smooth: true, tdPace: PACE,
-  tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s, ...(PK ? { picks: Object.assign({}, PK, { on: true, holiday: HOL ? HOL.key : null }) } : {}) });
+  tdMode: mode, attack, towers: defense.towers, defOrder, atkBand, events, power, seed: s, slay: process.env.SLAY === '0' ? null : rules.slay, ...(PK ? { picks: Object.assign({}, PK, { on: true, holiday: HOL ? HOL.key : null }) } : {}) });
 
 // ----- balance on the spot: quick headless battles with this set-up and other dice, aiming at an even chance -----
 function quick(power, s) {
   const g = new TD(s, optsFor(power, s));
   g.fixedTicks = true; g.tickAcc = 0;
   let k = 0; while (g.phase === 'fight' && k < FPS * 110 / PACE) { g.frame(1 / FPS); g.sfx.length = 0; k++; }
-  return { def: g.tdWinner === 0, T: g.fightT, hp: g.base.hp, fell: g.stat.fell.length };
+  return { def: g.tdWinner === 0, T: g.fightT, hp: g.base.hp, fell: g.stat.fell.length, kills: Object.values(g.stat.towerKills).reduce((x, y) => x + y, 0), troops: g.start[1] };
 }
 // a close finish for this very battle: the dice pick which side should win (an even chance), then the attackers' strength
 // is chosen so that side wins late and narrowly (the base scraped down, or broken in the last seconds). The battle itself
@@ -88,7 +88,7 @@ function quick(power, s) {
 function closeFinish() {
   const want = pick.next() < ((rules.balance || {}).target ?? 0.5) ? 'def' : 'atk';
   const t0 = Date.now(); let best = null;
-  for (let p = 0.4; p <= 5.2; p *= ((rules.quality || {}).fine ? 1.07 : 1.12)) {
+  for (let p = 0.4; p <= ((rules.slay || {}).on ? 7 : 5.2); p *= ((rules.quality || {}).fine ? 1.07 : 1.12)) {
     const r = quick(p, seed), side = r.def ? 'def' : 'atk';
     // close: a defenders' win with the base scraped down (about 10-35%), or an attackers' win in the last seconds
     const close = r.def ? 60 - Math.abs(r.hp - 20) * 1.2 + Math.min(r.T, 58) * 0.4 : Math.min(r.T, 59.4) * 1.1;
@@ -97,7 +97,7 @@ function closeFinish() {
   }
   console.log(`close finish: wanted the ${want === 'def' ? 'defenders' : 'attackers'}; x${best.p.toFixed(2)} gives ${best.r.def ? 'defenders' : 'attackers'} at ${best.r.T.toFixed(1)} s, base ${Math.round(best.r.hp)}% (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
   // how dramatic this battle can be made (for choosing between candidate battles: pick-seed.js)
-  closeFinish.drama = best.sc + (best.r.fell || 0) * 3 + (best.r.T >= 54 ? 10 : 0) - (best.r.T < 48 ? 15 : 0);
+  closeFinish.r = best.r; closeFinish.drama = best.sc + (best.r.fell || 0) * 3 + (best.r.T >= 54 ? 10 : 0) - (best.r.T < 48 ? 15 : 0);
   return best.sc > 0 ? best.p : null;
 }
 function tune() {
@@ -139,7 +139,7 @@ async function main() {
   const t0 = Date.now();
   fs.mkdirSync(OUT, { recursive: true });
   const power = process.env.POWER ? Number(process.env.POWER) : (closeFinish() ?? tune());
-  if (process.env.SCORE_ONLY) { fs.writeFileSync(path.join(OUT, `score-${seed}.json`), JSON.stringify({ seed, power, drama: closeFinish.drama ?? 0 })); return; }
+  if (process.env.SCORE_ONLY) { fs.writeFileSync(path.join(OUT, `score-${seed}.json`), JSON.stringify({ seed, power, drama: closeFinish.drama ?? 0, r: closeFinish.r })); return; }
   const game = new TD(seed, optsFor(power, seed));
   const director = rules.cinematic !== false ? new TDCam(game, { seed }) : null;
   // (retention, 2026-11-16) a rare golden boss in about one battle in eight (looks only; rules.rare.golden is the chance)
@@ -312,7 +312,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
       if (firstCv && left < 0.45 && !game.holdOutro) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = Math.min(1, (0.45 - left) / 0.4); ctx.drawImage(firstCv, 0, 0); ctx.globalAlpha = 1; }
     }
     // (testing: STILL_MARK=meteor also saves a still while one is coming down)
-    if (stills && process.env.STILL_MARK) { const mk = game.marks.find(m => m.kind === process.env.STILL_MARK && m.T1 && (game.fightT - m.T0) / (m.T1 - m.T0) > 0.55 && !m.shot); if (mk) { mk.shot = true; fs.writeFileSync(path.join(OUT, `still-mark-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png')); } }
+    if (stills && process.env.STILL_MARK) { const mk = game.marks.find(m => m.kind === process.env.STILL_MARK && !m.shot && (m.T1 ? (game.fightT - m.T0) / (m.T1 - m.T0) > 0.55 : m.t0 !== undefined && game.t - m.t0 > 0.6)); if (mk) { mk.shot = true; fs.writeFileSync(path.join(OUT, `still-mark-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png')); } }
     // (testing: STILL_AFTER=<battle second> also saves a still every 0.75 s of video from then on, through the finale and the end)
     if (stills && process.env.STILL_AFTER && (game.phase !== 'fight' || game.fightT >= Number(process.env.STILL_AFTER)) && i % 45 === 0) fs.writeFileSync(path.join(OUT, `still-after-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png'));
     if (game.warpK > 1.2) { ffSecs += 1 / FPS; if (stills && game.warpK > 1.6 && !ffShot) { ffShot = true; fs.writeFileSync(path.join(OUT, `still-ff-${String(i).padStart(5, '0')}.png`), canvas.toBuffer('image/png')); } }

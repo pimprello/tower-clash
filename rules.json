@@ -178,5 +178,6 @@
     "crowdBed": 0.075,
     "mapMusic": true,
     "winFrom": 9
-  }
+  },
+  "slay": { "on": true, "dmg": 1.6, "count": 1.3, "countP": 0.6, "hpExp": 0.4, "why": "Rellz 2026-11-23: towers kill more troops, quicker (satisfying deaths). Towers hit x dmg; stronger attackers come as more troops (countP) rather than tougher ones (hp grows as power^hpExp)" }
 }

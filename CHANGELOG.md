@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-23: Towers kill more, faster; the war shaman's totem updated
+
+- (Rellz: "make towers do a bit more damage, i want towers to be killing more people and creatures quicker") `rules.slay`: towers hit 1.6x harder, and when the on-the-spot tuning makes attackers stronger they now come as more troops rather than tougher ones (hp grows as power^0.4, numbers grow with power). Battles stay close, but there is far more to kill: on test seeds the towers killed 1.3x to 2.2x as many troops (up to about 210 in a battle) at 1.6 to 3.4 kills a second. The tuning can now go up to x7.
+- (Rellz: "there's still an old un-updated totem") the war shaman's totem was still the old brown post with a ball, drawn on the path over the troops. It now uses the new totem look (stone plinth, banded pole, crowned orb, runes), rises beside the path where no one walks, sinks back down after, and its cast rings and shadow lie on the ground under the troops.
+
 ## 2026-11-22: uploads can't be refused over a tag any more
 
 - Tower Clash's 18:00 post on 22 November was refused by YouTube ("invalid video keywords"): the tags added up to more than YouTube's 500 characters once it counts the quotes it puts round every tag with a space. `upload.js` (the same fix in all three games) now cleans the tags before uploading: no < > " , # or emoji, at most 30 characters each, no empties or repeats, under 450 characters in all counting those quotes; the title and description lose < and > too.

@@ -30,7 +30,10 @@ const SIM = {
       // two or three troop types a wave (the first is the main one)
       const types = [pool[R.int(0, pool.length - 1)]];
       if (pool.length > 1 && R.chance(0.7)) { let k2 = pool[R.int(0, pool.length - 1)]; if (k2 !== types[0]) types.push(k2); }
-      const n = Math.round(R.int(W.n[0], W.n[1]) * (0.75 + 0.25 * P) * endless * (mode === 'swarm' ? 1.3 : 1));
+      // (Rellz 2026-11-23: "make towers do a bit more damage ... killing more people and creatures quicker") with rules.slay on,
+      // stronger attackers come as more troops rather than tougher ones, so the towers mow through bigger crowds
+      const SL = o.slay && o.slay.on ? o.slay : null;
+      const n = Math.round(R.int(W.n[0], W.n[1]) * (SL ? (SL.count ?? 1) * (1 - (SL.countP ?? 0.25) + (SL.countP ?? 0.25) * P) : 0.75 + 0.25 * P) * endless * (mode === 'swarm' ? 1.3 : 1));
       const list = [];
       for (let k = 0; k < n; k++) list.push(types[k % types.length === 0 || types.length === 1 ? 0 : (k % 3 === 2 ? 1 : 0)]);
       // a healer or shaman walks with the bigger waves now and then
@@ -54,7 +57,8 @@ const SIM = {
     this.waveN = this.plan.length; this.waveNow = 0;
     this.start[1] = this.plan.reduce((s, w) => s + w.list.length, 0);
     this.reserve[1] = this.start[1];
-    this.hpK = Math.pow(P, 0.9) * (reckless ? 0.9 : 1);
+    this.hpK = Math.pow(P, o.slay && o.slay.on ? (o.slay.hpExp ?? 0.9) : 0.9) * (reckless ? 0.9 : 1);
+    this.slayK = o.slay && o.slay.on ? (o.slay.dmg ?? 1) : 1;
     this.spdK = reckless ? 1.08 : 1;
   },
   spawnTick() {
@@ -627,7 +631,7 @@ const SIM = {
     let df = Math.atan2(tgt.y - u.y, tgt.x - u.x) - u.face; df = Math.atan2(Math.sin(df), Math.cos(df));
     if (Math.abs(df) > 0.45) return;
     u.cd = Df.cd * TIER.cd[tw.tier] * this.R.range(0.94, 1.06) * (this.wNow ? this.worldCd() : 1);
-    const dmg = Df.dmg * TIER.dmg[tw.tier] * (u.bigT > T ? 1.8 : 1) * (tw.growT > T ? 1.5 : 1) * (this.pushK > 1 ? 1 + (this.pushK - 1) * 0.8 : 1);
+    const dmg = Df.dmg * TIER.dmg[tw.tier] * (this.slayK || 1) * (u.bigT > T ? 1.8 : 1) * (tw.growT > T ? 1.5 : 1) * (this.pushK > 1 ? 1 + (this.pushK - 1) * 0.8 : 1);
     u.muzzle = 1; u.lunge = 1; tw.shotT = this.t;
     // (looks only) a puff and a few sparks where the shot leaves, and the tower kicks back a touch
     { const F = this.FX, [fx, fy] = this.humans && E.HUMAN && E.HUMAN[u.type] && this.muzzleOf ? this.muzzleOf(u) : [u.x + Math.cos(u.face) * (u.r + 6), u.y + Math.sin(u.face) * (u.r + 6)], heavy = ['cannonball', 'mortar', 'boulder', 'snipe'].includes(Df.shot);
