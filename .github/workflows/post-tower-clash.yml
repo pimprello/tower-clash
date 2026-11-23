@@ -2,8 +2,8 @@ name: Post Tower Clash
 
 on:
   schedule:
-    # 4 Shorts a day at 10:00, 14:00, 18:00 and 22:00 London time (rules.schedule; Rellz 2026-11-14: "4 a day, top quality"). GitHub's timer runs in UTC and is often late, so it
-    # wakes every 15 minutes all day (covering summer time too); slot.js lets only the first run after each slot starts post.
+    # 1 Short a day at 18:00 London time (rules.schedule; Rellz 2026-11-21). GitHub's timer runs in UTC and is often late, so it
+    # wakes every 15 minutes from 16:00 to 19:59 UTC (covering summer time too); slot.js lets only the first run after the slot post.
     - cron: '3,18,33,48 16,17,18,19 * * *'
   workflow_dispatch:
     inputs:
@@ -30,7 +30,11 @@ jobs:
       - name: Note the start time
         run: echo "START=$(date +%s)" >> "$GITHUB_ENV"
 
+      # (2026-11-23) the latest main, not the commit this run was queued at: a run that waited behind another (concurrency)
+      # must see that run's post in videos.jsonl, or it posts a second video for the same slot (Tower Clash, 22 Nov)
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       # Scheduled runs post only in an upload slot that hasn't been used yet; a manual run (Run workflow) always posts.
       - name: Is it time to post?
@@ -55,11 +59,19 @@ jobs:
         if: steps.slot.outputs.go == 'yes'
         run: |
           node pick-seed.js
-          SEED=$(cat out/seed.txt) POWER=$(cat out/power.txt) node render.js
+          # (2026-11-23) if the render crashes, try once more with another battle, so the day's video still goes out
+          SEED=$(cat out/seed.txt) POWER=$(cat out/power.txt) node render.js || { echo "::warning title=Render retried::the first render failed; trying another battle"; SEED=$(( (RANDOM << 15) | RANDOM )) node render.js; }
 
       - name: Upload to YouTube
         if: steps.slot.outputs.go == 'yes'
-        run: node upload.js
+        # (2026-11-23) a scheduled run looks again at the latest videos.jsonl right before uploading, so it never posts a second
+        # video for a slot another run has just filled
+        run: |
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            git fetch -q origin main && git show origin/main:videos.jsonl > videos.jsonl || true
+            if ! SLOT_WINDOW=300 node slot.js | tee /dev/stderr | grep -q '^go'; then echo "Another run already posted for this slot: not uploading a second video."; exit 0; fi
+          fi
+          node upload.js
         env:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
@@ -67,7 +79,7 @@ jobs:
           PRIVACY: ${{ inputs.privacy || 'public' }}
 
       - name: Add it to uploads.md
-        if: steps.slot.outputs.go == 'yes'
+        if: steps.slot.outputs.go == 'yes' && hashFiles('out/uploaded.json') != ''
         env:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
@@ -82,7 +94,7 @@ jobs:
             git checkout -q -B main origin/main
             node log-upload.js
             node fix-thumbs.js || true
-            git add -A uploads.md videos.jsonl thumbs
+            git add -A -- uploads.md videos.jsonl $(ls -d thumbs TROPHIES.md 2>/dev/null)
             git commit -q -m "Posted: $(node -p "require('./out/uploaded.json').title")" || true
             if git push -q origin main; then pushed=1; break; fi
             sleep 5

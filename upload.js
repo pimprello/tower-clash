@@ -62,7 +62,7 @@ async function upload() {
       'X-Upload-Content-Type': 'video/mp4',
       'X-Upload-Content-Length': String(size),
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ snippet: body.snippet, status: body.status }),
   });
   if (!start.ok) throw new Error(`YouTube refused the upload (${start.status}): ${await start.text()}`);
   const target = start.headers.get('location');
@@ -152,6 +152,16 @@ async function main() {
       if (first === 'set') await thumbAfterProcessing(id, token).catch(e => console.log(`::warning title=Thumbnail::${String(e.message).slice(0, 300)}`));
       return;
     } catch (e) {
+      // (2026-11-23) a last safety net: if YouTube still refuses the words (tags, title or description), try once more with no tags
+      // and a plain title and description, so the day's video still goes out
+      if (!body._plain && /\(400\)/.test(e.message) && /keyword|title|description|metadata|invalid/i.test(e.message)) {
+        console.log(`::warning title=Upload retried plainly::${e.message.replace(/\s+/g, ' ').slice(0, 300)}`);
+        const plain = t => String(t).replace(/[<>]/g, '').replace(/[^\p{L}\p{N}\p{P}\p{Zs}\p{Emoji_Presentation}\n]/gu, '').trim();
+        body._plain = true; body.snippet.tags = [];
+        body.snippet.title = plain(body.snippet.title).slice(0, 100) || 'Who Wins?';
+        body.snippet.description = plain(body.snippet.description).slice(0, 4900);
+        continue;
+      }
       const retry = attempt < 3 && /\((5\d\d)\b/.test(e.message);
       console.error(`Attempt ${attempt}: ${e.message}`);
       // also show the reason as a GitHub annotation, so it can be read without opening the logs

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-23: Posting never fails or doubles
+
+- Why Tower Clash's 22 Nov 18:00 run failed: YouTube refused the upload for "invalid video keywords" (a bad tag). Tags were already cleaned at 18:40 (all three games); a manual re-run posted the video, but the 18:59 scheduled run, queued behind it, had checked out the older commit, did not see that post and put up a second video for the same slot.
+- Fixed in all three: the workflow checks out the latest `main`; a scheduled run checks again just before uploading and skips if the slot is already filled (`slot.js`, `SLOT_WINDOW`); a render that crashes is retried once with another battle; `upload.js` retries once with no tags and a plain title and description if YouTube still refuses the words; the step that records the upload runs only after one and can't fail on a missing folder (Territory Clash's 21 Nov failures: `thumbs` missing).
+
 ## 2026-11-23 (Rellz: "Don't make everyone have circle underneath them"): no circles under troops
 
 - `rules.ui.noRings`: troops no longer get circles on the ground or round them: buff, level, upgrade, slow, champion and hero rings, class auras (royal pulses, guardian hexes, time fields, frenzy), affinity glows, the spell shield bubble round each troop and the hunted target's circle (its crosshair ticks stay). Spell areas, explosions and tower ranges are unchanged. Looks only. Done in Army Clash and Tower Clash (same drawing code).
