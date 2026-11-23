@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: The thumbnail's battle picture has no UI
+
+- (Rellz: "there shouldn't be UI like health bars and the Star Eater text in the thumbnail, it should be map and troops") the battle in the thumbnail is drawn as a picture only (`drawPicture` in `td-draw.js`): no boss bar, combo, floating numbers, names, tier pips or TIER bars, and no health bars on troops, towers or the base. Everything hidden is put back straight after; looks only.
+
 ## 2026-11-23: The defender stands in its tower on the face-off and thumbnail
 
 - (Rellz: "for the face-off and thumbnail for Tower Clash the defender should be in the tower, otherwise it looks similar to Army Clash") the best tower is drawn from above at its tier (at least tier 3: palisade, stone keep, element crystals or marble and gold) with its defender standing in it, in the face-off ring and the thumbnail's bottom-left badge (`drawTowerFig` in `td-draw.js`). The boss side is unchanged.

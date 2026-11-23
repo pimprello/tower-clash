@@ -183,7 +183,7 @@ async function main() {
       }
       if (g2.phase === 'fight' && k % 30 === 0 && g2.fightT > FIGHT * 0.35 && g2.fightT < FIGHT * 0.85) {
         const atk = g2.units.filter(u => u.team === 1 && !u.dead && !u.gone).length, sc = atk * (1 + (g2.bossU && !g2.bossU.dead ? 1 : 0)) * (g2.base.hp > 0 ? 1 : 0);
-        if (sc > thumbScore) { thumbScore = sc; thumbT = g2.fightT; c2.setTransform(RS, 0, 0, RS, 0, 0); const cards = g2.cards; g2.cards = []; g2.draw(c2); g2.cards = cards; thumbBg = thumbBg || createCanvas(W, H); const bc = thumbBg.getContext('2d'); bc.clearRect(0, 0, W, H); bc.drawImage(cv2, 0, 0, W, H); }
+        if (sc > thumbScore) { thumbScore = sc; thumbT = g2.fightT; c2.setTransform(RS, 0, 0, RS, 0, 0); g2.drawPicture(c2); thumbBg = thumbBg || createCanvas(W, H); const bc = thumbBg.getContext('2d'); bc.clearRect(0, 0, W, H); bc.drawImage(cv2, 0, 0, W, H); }
       }
       g2.frame(1 / FPS); g2.sfx.length = 0; k++;
     }
@@ -195,7 +195,7 @@ async function main() {
     // the cold open's moment (coldopen.js, the same in all three games): the busiest stretch of the battle, with a bonus for
     // action that builds into it; never the first 8 s or the last 4 s, so the result stays a secret
     { const endT = g2.lastFightT ?? g2.fightT; coldT = CO.pick(heat, { endT, minT: 8, tail: 4 }) ?? thumbT; }
-    if (!thumbBg) { c2.setTransform(RS, 0, 0, RS, 0, 0); g2.draw(c2); thumbBg = createCanvas(W, H); thumbBg.getContext('2d').drawImage(cv2, 0, 0, W, H); }
+    if (!thumbBg) { c2.setTransform(RS, 0, 0, RS, 0, 0); g2.drawPicture(c2); thumbBg = createCanvas(W, H); thumbBg.getContext('2d').drawImage(cv2, 0, 0, W, H); }
     const tcv = createCanvas(W, H), tctx = tcv.getContext('2d');
     const keepRS = RVB.RS; RVB.RS = 1;
     g2.drawThumbTD(tctx, thumbBg);

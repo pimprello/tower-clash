@@ -312,6 +312,18 @@ const DRAW = {
   },
   // (Rellz 2026-11-16: "make sure bullets come from the gun not the waist") shots fired by little people are drawn leaving
   // from the gun's muzzle and blending into their true flight within the first 140 px; the battle's own shots aren't moved
+  // (Rellz 2026-11-23: "there shouldn't be UI like health bars and the Star Eater text in the thumbnail, it should be map and
+  // troops") the battle drawn as a picture only: no scoreboard, boss bar, cards, banners, combo, floating numbers, names, tier
+  // pips or health bars. Everything it hides is put back straight after (looks only).
+  drawPicture(ctx) {
+    const keep = { noUi: this.noUi, cards: this.cards, floats: this.floats, banners: this.banners, bannerQ: this.bannerQ }, hp = [];
+    this.noUi = true; this.picOnly = true; this.cards = []; this.floats = []; if (this.banners) this.banners = []; 
+    for (const u of this.units) { hp.push([u, u.hp, u.title, u.champ]); if (!u.dead) u.hp = u.max; u.title = null; u.champ = null; }
+    try { this.draw(ctx); } finally {
+      Object.assign(this, keep); this.picOnly = false;
+      for (const [u, h, ti, ch] of hp) { u.hp = h; u.title = ti; u.champ = ch; }
+    }
+  },
   draw(ctx) {
     const HU = E.HUMAN, moved = [];
     if (this.humans && HU && this.arrows) for (const a of this.arrows) {
@@ -494,9 +506,11 @@ const DRAW = {
         for (let i = 0; i < 4; i++) { const [ax, ay] = P[i], [bx, by] = P[(i + 1) % 4]; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 3; ctx.strokeStyle = i % 2 ? '#8B5A2B' : '#5C3A1B'; ctx.stroke(); }
         for (const [x, y] of P) { ctx.beginPath(); ctx.arc(x, y, 4, 0, TAU); ctx.fillStyle = '#8B5A2B'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke(); }
         const bw = 60, by = R + 10;
+        if (!this.picOnly) {
         roundRect(ctx, -bw / 2, by, bw, 9, 4.5); ctx.fillStyle = 'rgba(8,11,20,0.85)'; ctx.fill();
         roundRect(ctx, -bw / 2 + 2, by + 2, (bw - 4) * p, 5, 2.5); ctx.fillStyle = '#7DD3FC'; ctx.fill();
         ctx.font = font(15, 800, true); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; strokeText(ctx, `TIER ${j.up.tier}`, 0, by + 22, '#E0F2FE', INK, 4);
+        }
         ctx.restore();
       }
       crew(j, false);
@@ -704,6 +718,7 @@ const DRAW = {
     ctx.restore();
     // health bar under the base (over the shine layer, so it isn't lit like a body)
     const bw = 150, bx = b.x - bw / 2, by = b.y + 76;
+    if (this.picOnly) return;
     if (this._pass === 'body' && this._shHP) { const c0 = ctx; this._shHP.push(() => { const m = this._shMain; if (!m) return; const keep = this._pass; this._pass = null; this.drawBaseBar(m, bx, by, bw, hp); this._pass = keep; }); return; }
     this.drawBaseBar(ctx, bx, by, bw, hp);
   },
@@ -860,9 +875,9 @@ const DRAW = {
       if (tw.growT > T) { ctx.beginPath(); ctx.arc(tw.x, tw.y, R + 10 + 3 * Math.sin(t * 8), 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(251,191,36,0.8)'; ctx.stroke(); }
       if (u.rageT > T) { ctx.beginPath(); ctx.arc(tw.x, tw.y, R + 4, 0, TAU); ctx.lineWidth = 3; ctx.strokeStyle = `rgba(248,113,113,${0.5 + 0.4 * Math.sin(t * 12)})`; ctx.stroke(); }
       // tier pips under the tower, health bar over it when hurt
-      const k = tw.tier, py = tw.y + R + 9;
+      const k = this.picOnly ? 0 : tw.tier, py = tw.y + R + 9;
       for (let i = 0; i < k; i++) { const x = tw.x + (i - (k - 1) / 2) * 11; ctx.beginPath(); ctx.moveTo(x, py - 5); ctx.lineTo(x + 5, py); ctx.lineTo(x, py + 5); ctx.lineTo(x - 5, py); ctx.closePath(); ctx.fillStyle = k >= 5 ? COL.gold : k === 4 && tw.el ? ELEM[tw.el].col : '#F4F6FB'; ctx.fill(); ctx.lineWidth = 1.8; ctx.strokeStyle = INK; ctx.stroke(); }
-      if (u.hp < u.max) { const w = R * 1.6, x = tw.x - w / 2, y = tw.y - R - 14; ctx.fillStyle = INK; ctx.fillRect(x - 2, y - 2, w + 4, 8); ctx.fillStyle = u.hp / u.max > 0.5 ? '#4ADE80' : u.hp / u.max > 0.25 ? '#FACC15' : '#F43F5E'; ctx.fillRect(x, y, w * clamp(u.hp / u.max, 0, 1), 4); }
+      if (u.hp < u.max && !this.picOnly) { const w = R * 1.6, x = tw.x - w / 2, y = tw.y - R - 14; ctx.fillStyle = INK; ctx.fillRect(x - 2, y - 2, w + 4, 8); ctx.fillStyle = u.hp / u.max > 0.5 ? '#4ADE80' : u.hp / u.max > 0.25 ? '#FACC15' : '#F43F5E'; ctx.fillRect(x, y, w * clamp(u.hp / u.max, 0, 1), 4); }
       // a big upgrade: a rising ring
       if (t - tw.bigT < 0.7) { const p = (t - tw.bigT) / 0.7; ctx.beginPath(); ctx.arc(tw.x, tw.y, R + 40 * p, 0, TAU); ctx.lineWidth = 6 * (1 - p); ctx.strokeStyle = k === 4 && tw.el ? ELEM[tw.el].col : COL.gold; ctx.stroke(); }
       if (t - (tw.glintT ?? -9) < 0.5) { const p = (t - tw.glintT) / 0.5; ctx.save(); ctx.globalAlpha = 1 - p; ctx.translate(tw.x + R * 0.5, tw.y - R * 0.5); ctx.rotate(p * 2); ctx.fillStyle = '#FFFFFF'; ctx.beginPath(); for (let i = 0; i < 8; i++) { const rr = i % 2 ? 3 : 10; const a = i / 8 * TAU; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); ctx.restore(); }
