@@ -2,8 +2,9 @@
   "schedule": {
     "timeZone": "Europe/London",
     "hours": [
-      12,
-      18
+      13,
+      17,
+      21
     ],
     "windowMinutes": 110
   },

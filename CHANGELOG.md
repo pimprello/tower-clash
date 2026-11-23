@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: 3 Shorts a day, same times on all three
+
+- Rellz, 2026-11-23: "make all 3 channels post at the same time, it should be 3 times a day". Every channel posts at 13:00, 17:00 and 21:00 London time (`rules.schedule.hours`); the workflow wakes 12:00-14:59, 16:00-18:59 and 20:00-22:59 UTC (summer time covered). One extra post each was started by hand at 11:50 the same day, as he asked.
+
 ## 2026-11-23: Distinct, more clickable thumbnails; actions v5
 
 - **Thumbnail: the siege** (Tower Clash's own look, 2026-11-23): a burning danger-red sky with embers and a fire glow behind the board (was a violet ray background), the question on top, and the boss looming bigger over the board's corner against the best tower, all above y 1500 (the tower and boss used to sit at y 1470 with their names under YouTube's title).
