@@ -13873,7 +13873,16 @@ const RVB = (() => {
     // marks are collected by kind and drawn together at the end (b: on the troops only; o: over everything)
     shAdd(map, key, kind, ...v) { let b = map.get(key); if (!b) map.set(key, b = { c: [], e: [], l: [], q: [] }); b[kind].push(...v); return b; },
     // one troop, just after it was drawn: its gloss, its damage and what comes off it
+    // (2026-11-23, Rellz: "they didn't render they're invisible") a troop soaked in several kinds of damage at once (acid, char,
+    // frost, gore, scorch, wet) was painted over by all of them and read as a see-through blob. Only its two strongest damage looks
+    // are painted now, at half strength (the others are held and come back when they lead), so its own body always shows. Looks only.
     shineUnit(lc, u, x, y) {
+      const ms = this.shState(u), keys = ['char', 'acid', 'frost', 'gore', 'zap', 'wet'], on = keys.filter(k => (ms[k] || 0) > 0.05).sort((a, b) => ms[b] - ms[a]);
+      // (the state keeps its true value: whatever the frame's fading or refreshing changed is carried over onto it)
+      const held = {}, set = {}; on.forEach((k, i) => { held[k] = ms[k]; ms[k] = set[k] = i < 2 ? ms[k] * 0.5 : 0; });
+      try { return this.shineUnit0(lc, u, x, y); } finally { for (const k in held) ms[k] = clamp(held[k] + (ms[k] - set[k]), 0, 1); }
+    },
+    shineUnit0(lc, u, x, y) {
       const S = this.shine, T = this.fightT, t = this.t, U = UNIT[u.type], ms = this.shState(u);
       // the states fade with battle time (looks only); burning, poison and frost refresh them
       const dT = clamp(T - ms.t, 0, 0.5); ms.t = T;
@@ -14279,16 +14288,16 @@ const RVB = (() => {
     S.crack = { stroke: 'rgba(8,8,12,0.9)', lw: 3 };
     lv('crackG', a => ({ stroke: `rgba(255,190,90,${0.95 * a})`, lw: 1.3 }));
     for (const col of ['#B3263A', '#1F2228', '#B9C98A', '#7A9A3A']) { S['drip' + col] = { stroke: col, lw: 3 }; S['drop' + col] = { fill: col }; }
-    for (const b of Object.values(BLOOD)) { S['drip' + b.c] = { stroke: b.c, lw: 3 }; S['drop' + b.c] = { fill: b.c }; lv('smear' + b.key, a => ({ fill: rgba(b.d, 0.55 * a) })); lv('gore' + b.key, a => ({ fill: rgba(b.c, 0.9 * a) })); }
-    lv('char', a => ({ fill: `rgba(24,16,12,${0.7 * a})` }));
-    lv('redhot', a => ({ fill: `rgba(255,80,20,${0.32 * a})` }));
+    for (const b of Object.values(BLOOD)) { S['drip' + b.c] = { stroke: b.c, lw: 3 }; S['drop' + b.c] = { fill: b.c }; lv('smear' + b.key, a => ({ fill: rgba(b.d, 0.35 * a) })); lv('gore' + b.key, a => ({ fill: rgba(b.c, 0.55 * a) })); }
+    lv('char', a => ({ fill: `rgba(24,16,12,${0.42 * a})` }));
+    lv('redhot', a => ({ fill: `rgba(255,80,20,${0.2 * a})` }));
     lv('ember', a => ({ stroke: `rgba(255,170,60,${a})`, lw: 1.8 }));
     const flame = (ctx, x, y, w, h) => { ctx.moveTo(x - w, y); ctx.quadraticCurveTo(x - w * 0.9, y - h * 0.55, x, y - h); ctx.quadraticCurveTo(x + w * 0.9, y - h * 0.55, x + w, y); ctx.quadraticCurveTo(x, y + w * 0.6, x - w, y); };
     S.flameR = { fill: 'rgba(220,38,38,0.9)', q: flame }; S.flameO = { fill: '#FF8A1F', q: flame }; S.flameY = { fill: '#FFE066', q: flame };
-    lv('acid', a => ({ fill: `rgba(110,128,40,${0.42 * a})` }));
+    lv('acid', a => ({ fill: `rgba(110,128,40,${0.18 * a})` }));
     S.pit = { fill: 'rgba(40,52,10,0.85)' }; S.pitL = { fill: 'rgba(190,242,100,0.55)' };
     S.sizzle = { stroke: 'rgba(236,252,203,0.85)', lw: 1.2 }; S.acidDrip = { stroke: 'rgba(163,230,53,0.95)', lw: 2.6 };
-    lv('frost', a => ({ fill: `rgba(205,240,255,${0.45 * a})` }));
+    lv('frost', a => ({ fill: `rgba(205,240,255,${0.24 * a})` }));
     S.frostL = { stroke: 'rgba(255,255,255,0.8)', lw: 2 };
     const shard = (ctx, x, y, w, h, a) => { const c = Math.cos(a), s = Math.sin(a); ctx.moveTo(x - s * w, y + c * w); ctx.lineTo(x + c * h, y + s * h); ctx.lineTo(x + s * w, y - c * w); ctx.lineTo(x - c * w * 0.6, y - s * w * 0.6); ctx.closePath(); };
     S.crystal = { fill: 'rgba(224,247,255,0.92)', stroke: 'rgba(30,64,90,0.75)', lw: 1.2, q: shard };
@@ -14299,7 +14308,7 @@ const RVB = (() => {
     const bar = (ctx, x, y, w, h) => ctx.rect(x, y, w, h);
     S.glitchC = { fill: 'rgba(34,211,238,0.55)', q: bar }; S.glitchM = { fill: 'rgba(232,121,249,0.55)', q: bar };
     S.bubble = { stroke: 'rgba(190,242,100,0.9)', lw: 1.5 };
-    lv('wet', a => ({ fill: `rgba(170,215,255,${0.22 * a})` }));
+    lv('wet', a => ({ fill: `rgba(170,215,255,${0.14 * a})` }));
     S.xray = { fill: 'rgba(190,250,255,0.78)' }; S.bone = { stroke: 'rgba(20,50,70,0.85)', lw: 2.4 };
     S.bloom = { stroke: 'rgba(165,243,252,0.6)', lw: 5 };
     S.heal = { fill: 'rgba(253,230,138,0.13)' };
