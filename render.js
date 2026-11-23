@@ -200,7 +200,7 @@ async function main() {
     const keepRS = RVB.RS; RVB.RS = 1;
     g2.drawThumbTD(tctx, thumbBg);
     { const best = g2.towers.slice().sort((x, y) => (y.tier - x.tier) || (y.kills - x.kills))[0];
-      introInfo = { g: g2, towerType: best && best.u.type, towerName: best ? best.def.name : 'THE TOWERS', towers: Math.max(g2.towers.length, g2.stat.built, 1), bossType: g2.bossType, bossName: (D.BOSSES[g2.bossType] || {}).name || E.labelOf(g2.bossType), waves: g2.plan.filter(w => !w.mini).length }; }
+      introInfo = { g: g2, tower: best || null, towerType: best && best.u.type, towerName: best ? best.def.name : 'THE TOWERS', towers: Math.max(g2.towers.length, g2.stat.built, 1), bossType: g2.bossType, bossName: (D.BOSSES[g2.bossType] || {}).name || E.labelOf(g2.bossType), waves: g2.plan.filter(w => !w.mini).length }; }
     RVB.RS = keepRS;
     fs.writeFileSync(path.join(OUT, 'thumb.jpg'), tcv.toBuffer('image/jpeg', { quality: 0.92 }));
     thumbCv = createCanvas(W * RS, H * RS); thumbCv.getContext('2d').drawImage(tcv, 0, 0, W * RS, H * RS);
@@ -292,7 +292,7 @@ const clamp01 = x => Math.max(0, Math.min(1, x));
       const pic = (g, type, team) => FO.portraitCanvas((c, r) => { const U = E.UNIT[type] || E.UNIT.soldier, hum = g.opts.humans && E.HUMAN && E.HUMAN[type], sc = (r * (hum ? 0.8 : 0.72)) / U.r;
         if (hum) c.translate(0, r * 0.12); c.scale(sc, sc); if (!hum) c.rotate(-Math.PI / 2); g.drawPortrait(c, type, team); }, 210 * RS, 1);
       const IS = introInfo, sides = [
-        { col: E.TEAMS[DEF], name: IS.towerName, sub: game.defOrder[0], count: `${IS.towers} TOWERS`, portrait: IS.towerType ? pic(IS.g, IS.towerType, DEF) : null },
+        { col: E.TEAMS[DEF], name: IS.towerName, sub: game.defOrder[0], count: `${IS.towers} TOWERS`, portrait: IS.tower ? FO.portraitCanvas((c, r) => IS.g.drawTowerFig(c, IS.tower, r * 0.95), 210 * RS, 1) : IS.towerType ? pic(IS.g, IS.towerType, DEF) : null },
         { col: E.TEAMS[ATK], name: golden ? (/^THE /.test(IS.bossName) ? IS.bossName.replace(/^THE /, 'THE GOLDEN ') : 'GOLDEN ' + IS.bossName) : IS.bossName, sub: game.atkBand[0], count: `${IS.waves} WAVES`, portrait: pic(IS.g, IS.bossType, ATK) },
       ];
       RVB.RS = keepRS;

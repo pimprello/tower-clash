@@ -1389,6 +1389,22 @@ const DRAW = {
 
   // ---------- the thumbnail (1080x1920): the brand background, the question, the busiest moment of the battle, and the
   // best tower against the boss ----------
+  // (Rellz 2026-11-23: "for the face-off and thumbnail for Tower Clash the defender should be in the tower, otherwise it looks
+  // similar to Army Clash") a tower seen from above, at its tier, with its defender standing in it, fitted to a circle of
+  // radius r round (0, 0); the little person stays upright
+  drawTowerFig(ctx, best, r, tierMin = 3) {
+    const type = best.u.type, U = UNIT[type] || UNIT.soldier, tier = Math.max(tierMin, best.tier || 1);
+    const tw = { x: 0, y: 0, u: { r: U.r, flash: 0, type, uid: best.u.uid }, tier, el: best.el || null, def: best.def, kills: 0 };
+    const R = Math.max(25, U.r + 11) + (tier >= 3 ? 4 : 0) + (tier >= 5 ? 3 : 0), s = (r * 0.92) / (R + 10);
+    ctx.save(); ctx.scale(s, s);
+    const keep = this._pass; this._pass = null;
+    try { this.drawTowerBase(ctx, tw); } catch (e) { /* no tower */ }
+    this._pass = keep;
+    const hum = this.opts.humans && E.HUMAN && E.HUMAN[type], ps = hum ? 1.0 : 0.95;
+    ctx.save(); if (hum) ctx.translate(0, -U.r * 0.25); ctx.scale(ps, ps); if (!hum) ctx.rotate(-Math.PI / 2);
+    try { this.drawPortrait(ctx, type, DEF); } catch (e) { /* no portrait */ }
+    ctx.restore(); ctx.restore();
+  },
   drawThumbTD(ctx, bg) {
     const t = this.t;
     // background: violet with rays (the channel's colours)
@@ -1428,19 +1444,22 @@ const DRAW = {
     lines.forEach((l, i) => { ctx.save(); ctx.translate(VW / 2, ly0 + i * fs0 * 0.95); ctx.rotate(-0.04); strokeText(ctx, l, 0, 0, i === lines.length - 1 ? COL.gold : COL.white, COL.ink, 16); ctx.restore(); });
     // the best tower (bottom left) against the boss (bottom right)
     const best = this.towers.slice().sort((a, b) => (b.tier - a.tier) || (b.kills - a.kills))[0];
-    const fig = (type, team, cx, cy, r, col, name) => {
+    const fig = (type, team, cx, cy, r, col, name, tower) => {
       const U = UNIT[type]; if (!U) return;
       const rg = ctx.createRadialGradient(cx, cy, 10, cx, cy, r * 1.45); rg.addColorStop(0, rgba(col, 0.75)); rg.addColorStop(1, rgba(col, 0));
       ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(cx, cy, r * 1.45, 0, TAU); ctx.fill();
       disc(ctx, cx, cy, r, rgba(col, 0.35), 8);
+      if (tower) { ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r - 4, 0, TAU); ctx.clip(); ctx.translate(cx, cy); this.drawTowerFig(ctx, tower, r); ctx.restore(); }
+      else {
       ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r - 4, 0, TAU); ctx.clip(); ctx.translate(cx, cy); const hum = this.opts.humans && E.HUMAN && E.HUMAN[type], s = clamp((r * (hum ? 0.66 : 0.55)) / U.r, 0.5, 8); if (hum) ctx.translate(0, r * 0.12); ctx.scale(s, s); if (!hum) ctx.rotate(-Math.PI / 2);
       try { this.drawPortrait(ctx, type, team); } catch (e) { /* no portrait */ }
       ctx.restore();
+      }
       ctx.font = font(46, 800); spaced(ctx, 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       let fz = 46; while (fz > 24 && ctx.measureText(name).width > 380) { fz -= 2; ctx.font = font(fz, 800); }
       strokeText(ctx, name, cx, cy + r + 40, COL.white, COL.ink, 9); spaced(ctx, 0);
     };
-    if (best) fig(best.u.type, DEF, 280, 1470, 125, TEAMS[DEF].c, best.def.name);
+    if (best) fig(best.u.type, DEF, 280, 1470, 125, TEAMS[DEF].c, best.def.name, best);
     fig(this.bossType, ATK, VW - 280, 1470, 135, TEAMS[ATK].c, (BOSSES[this.bossType] || {}).name || labelOf(this.bossType));
     ctx.save(); ctx.translate(VW / 2, 1475); ctx.rotate(-0.06); ctx.font = font(104, 800); strokeText(ctx, 'VS', 0, 0, COL.gold, COL.ink, 14); ctx.restore();
     void t; ctx.textBaseline = 'alphabetic';

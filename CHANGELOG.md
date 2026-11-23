@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: The defender stands in its tower on the face-off and thumbnail
+
+- (Rellz: "for the face-off and thumbnail for Tower Clash the defender should be in the tower, otherwise it looks similar to Army Clash") the best tower is drawn from above at its tier (at least tier 3: palisade, stone keep, element crystals or marble and gold) with its defender standing in it, in the face-off ring and the thumbnail's bottom-left badge (`drawTowerFig` in `td-draw.js`). The boss side is unchanged.
+
 ## 2026-11-23: The yellow mode tag no longer covers the team names
 
 - (Rellz: "the yellow text that says siege or whatever shouldn't cover the team names/colour", all three channels) in the face-off, the yellow tag (SIEGE, RARE GOLDEN BOSS...) sat at the top on top of the first side's name and colour line. With two sides it now sits in the empty corner of the top band, beside the top ring and above its count; with three it stays at the top where there was room. `faceoff.js`.
