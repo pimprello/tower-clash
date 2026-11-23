@@ -361,7 +361,15 @@ function loud(Lc, Rc, sr, scale = 1) {
   const on = blocks.filter(e => e > 1e-6); if (!on.length) return -120;
   return 10 * Math.log10(on.reduce((a, b) => a + b, 0) / on.length);
 }
-function mix(sfxL, sfxR, mus, { volume = 0.8, duck = 0.45, sr, levels = null } = {}) {
+// (Army Clash, 2026-11-21) `voice` ({ L, R }): the commentator on a bus of its own; `dips` ([start, end] in seconds): the music
+// sinks smoothly by `dipDb` under each line and comes back up (instead of the effects' fast ducking), so the voice sits in the
+// music rather than chopping it.
+// (all three games, Rellz 2026-11-23: "make the music volume the same for all three channels ... the same volume as tower clash,
+// then based on that ... choose the narrators volume ... the narrator should be rare and blended into the music") two more
+// levels, both off unless set: `levels.heard` (dB) sets the music by how loud it is as heard, after the ducking and the dips, so
+// the same target sounds the same in every game however busy its battles are; `levels.voice` (dB, relative to the heard music)
+// sets the commentator's bus from the music, so the voice sits just over the soundtrack in every game instead of on top of it.
+function mix(sfxL, sfxR, mus, { volume = 0.8, duck = 0.45, sr, levels = null, voice = null, dips = null, dipDb = -6 } = {}) {
   const n = sfxL.length, L = new Float32Array(n), R = new Float32Array(n);
   // (levels, Rellz 2026-11-16: "make the sfx and music all same levels in all 3 ... the music should be a bit louder but not
   // louder than sfx") every game, every video: the effects are brought to levels.effects and the music to levels.music
@@ -372,15 +380,40 @@ function mix(sfxL, sfxR, mus, { volume = 0.8, duck = 0.45, sr, levels = null } =
     fxG = Math.min(4, Math.max(0.25, Math.pow(10, (levels.effects - fx) / 20)));
     volume = Math.min(8, Math.max(0.05, Math.pow(10, (levels.music - mu) / 20)));
   }
-  if (process.env.AUDIO_STATS) console.log(`Levels: effects ${loud(sfxL, sfxR, sr, fxG).toFixed(1)} dB, music ${loud(mus.L, mus.R, sr, volume).toFixed(1)} dB`);
   const att = 1 - Math.exp(-1 / (0.004 * sr)), rel = 1 - Math.exp(-1 / (0.18 * sr));
-  let env = 0;
+  const dA = 1 - Math.exp(-1 / (0.18 * sr)), dR = 1 - Math.exp(-1 / (0.6 * sr)), dLow = Math.pow(10, dipDb / 20), D = dips ? dips.slice().sort((a, b) => a[0] - b[0]) : [];
+  // the music's gain shape (ducking under the effects, dips under the voice), worked out first so levels.heard can measure it
+  const shape = new Float32Array(n);
+  let env = 0, dip = 1, di = 0;
   for (let i = 0; i < n; i++) {
     const a = Math.max(Math.abs(sfxL[i]), Math.abs(sfxR[i])) * fxG;
     env += (a - env) * (a > env ? att : rel);
-    const g = volume * (1 - duck * Math.min(1, env * 2));
-    L[i] = Math.tanh(sfxL[i] * fxG + (mus.L[i] || 0) * g) * 0.98;
-    R[i] = Math.tanh(sfxR[i] * fxG + (mus.R[i] || 0) * g) * 0.98;
+    let g = 1 - duck * Math.min(1, env * 2);
+    if (D.length) {
+      const t = i / sr; while (di < D.length && D[di][1] + 0.15 < t) di++;
+      const aim = di < D.length && t >= D[di][0] - 0.12 ? dLow : 1;
+      dip += (aim - dip) * (aim < dip ? dA : dR); g *= dip;
+    }
+    shape[i] = g;
+  }
+  if (levels && levels.heard != null) {
+    const hL = new Float32Array(n), hR = new Float32Array(n);
+    for (let i = 0; i < n; i++) { hL[i] = (mus.L[i] || 0) * shape[i]; hR[i] = (mus.R[i] || 0) * shape[i]; }
+    volume = Math.min(8, Math.max(0.05, Math.pow(10, (levels.heard - loud(hL, hR, sr)) / 20)));
+  }
+  let vG = fxG;
+  if (voice && levels && levels.voice != null) {
+    const vl = loud(voice.L, voice.R, sr);
+    const aim = (levels.heard ?? levels.music) + levels.voice;
+    // (measured twice: quiet reverb tails drop out of the measure once the bus is turned down, so the second pass corrects for them)
+    if (vl > -100) { vG = Math.min(8, Math.max(0.02, Math.pow(10, (aim - vl) / 20))); vG = Math.min(8, Math.max(0.02, vG * Math.pow(10, (aim - loud(voice.L, voice.R, sr, vG)) / 20))); }
+  }
+  if (process.env.AUDIO_STATS) console.log(`Levels: effects ${loud(sfxL, sfxR, sr, fxG).toFixed(1)} dB, music ${loud(mus.L, mus.R, sr, volume).toFixed(1)} dB` + (voice ? `, voice ${loud(voice.L, voice.R, sr, vG).toFixed(1)} dB` : ''));
+  for (let i = 0; i < n; i++) {
+    const g = volume * shape[i];
+    const vl = voice ? (voice.L[i] || 0) * vG : 0, vr = voice ? (voice.R[i] || 0) * vG : 0;
+    L[i] = Math.tanh(sfxL[i] * fxG + vl + (mus.L[i] || 0) * g) * 0.98;
+    R[i] = Math.tanh(sfxR[i] * fxG + vr + (mus.R[i] || 0) * g) * 0.98;
   }
   return { L, R };
 }

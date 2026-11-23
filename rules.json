@@ -113,7 +113,9 @@
     "loop": true,
     "levels": {
       "effects": -14,
-      "music": -19
+      "music": -19,
+      "heard": -21.5,
+      "voice": -1
     }
   },
   "ui": {
@@ -171,8 +173,16 @@
     "replaySecs": 0.8,
     "mvp": true,
     "commentator": true,
-    "maxCalls": 8,
-    "callGap": 6,
+    "maxCalls": 3,
+    "callGap": 15,
+    "blend": {
+      "on": true,
+      "fade": [0.06, 0.35],
+      "wet": 0.4,
+      "soft": true,
+      "onBeat": true,
+      "dipDb": -3
+    },
     "voice": 0.62,
     "crowd": true,
     "crowdBed": 0.075,
