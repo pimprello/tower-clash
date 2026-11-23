@@ -181,7 +181,9 @@ function drawFaceoff(ctx, t, o) {
   // 4) the logo at the top and the question at the bottom
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   if (o.title) { const k = easeOutBack((t - 0.15) / 0.35); if (k > 0) { ctx.save(); ctx.translate(W / 2, o.titleY || 222); ctx.scale(k, k); ctx.rotate(-0.03); ctx.font = font(92); textOut(ctx, o.title, 0, 0, '#FFFFFF', '#0B0F1A', 16); ctx.restore(); } }
-  if (o.tag) { const k = easeOutBack((t - 0.3) / 0.35); if (k > 0) { ctx.save(); ctx.translate(W / 2, (o.titleY || 222) + 64); ctx.scale(k, k); fitFont(ctx, o.tag, 40, W - 260); textOut(ctx, o.tag, 0, 0, '#FFD23F', '#0B0F1A', 9); ctx.restore(); } }
+  // (Rellz 2026-11-23: "the yellow text that says siege or whatever shouldn't cover the team names") with two sides the tag sits
+  // in the empty corner of the top band, beside the top ring and above its count, clear of the names under the logo
+  if (o.tag) { const k = easeOutBack((t - 0.3) / 0.35); if (k > 0) { const L0 = lay[0], tx = BIG ? Math.min(W - 250, L0.cx + L0.r + 170) : W / 2, ty = BIG ? L0.cy - 75 : (o.titleY || 222) + 64; ctx.save(); ctx.translate(tx, ty); ctx.scale(k, k); fitFont(ctx, o.tag, 40, BIG ? 300 : W - 260); textOut(ctx, o.tag, 0, 0, '#FFD23F', '#0B0F1A', 9); ctx.restore(); } }
   if (o.question) { const k = easeOutBack((t - hit - 0.25) / 0.35); if (k > 0) { ctx.save(); ctx.translate(W / 2, 1480); ctx.scale(k, k); ctx.rotate(-0.04); fitFont(ctx, o.question, 84, W - 240); textOut(ctx, o.question, 0, 0, '#FFD23F', '#0B0F1A', 18); ctx.restore(); } }
   ctx.restore();
 

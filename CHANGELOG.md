@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: The yellow mode tag no longer covers the team names
+
+- (Rellz: "the yellow text that says siege or whatever shouldn't cover the team names/colour", all three channels) in the face-off, the yellow tag (SIEGE, RARE GOLDEN BOSS...) sat at the top on top of the first side's name and colour line. With two sides it now sits in the empty corner of the top band, beside the top ring and above its count; with three it stays at the top where there was room. `faceoff.js`.
+
 ## 2026-11-23: Waves you can watch get wiped out, builders in the breaks, the cliffhanger at 80%
 
 - (Rellz: "at 1 minute the match should be around 80% done so it looks like a cliffhanger, when the base is 1% we already know what will happen") `rules.cliffhanger.at` 0.8: the Short freezes about 80% of the way through the battle, while attackers are still on the board (about a minute of video), instead of half a second before the final blow.
