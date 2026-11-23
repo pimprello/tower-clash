@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: Manual runs no longer post extra videos
+
+- (Rellz, Tower Clash chat: "tower clash accidentally uploads two, fix that, only upload one") manual runs (Run workflow) were posting a video every time they were started (three were started on 23 Nov, besides the scheduled ones). Now every run, manual or scheduled, posts only into an upload slot that is still empty, and checks again just before uploading; a manual run posts regardless only with the new "force" box ticked. Same in all three channels.
+
 ## 2026-11-23: 3 Shorts a day, same times on all three
 
 - Rellz, 2026-11-23: "make all 3 channels post at the same time, it should be 3 times a day". Every channel posts at 13:00, 17:00 and 21:00 London time (`rules.schedule.hours`); the workflow wakes 12:00-14:59, 16:00-18:59 and 20:00-22:59 UTC (summer time covered). One extra post each was started by hand at 11:50 the same day, as he asked.
