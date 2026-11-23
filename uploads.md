@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-23 18:11 | This Tower Sends Them Back In Time ⏪ | Fallen! | https://youtube.com/shorts/O6rzoZqhv4M |
 | 2026-11-23 13:18 | Acid Leviathan Is UNSTOPPABLE?! 🔥 | Fallen! | https://youtube.com/shorts/l-4jagBcZoI |
 | 2026-11-23 12:11 | 11 Towers vs 8 Waves... Who Breaks First? ⚔️ | Survived! | https://youtube.com/shorts/BsTt6QJ3YJU |
 | 2026-11-23 07:33 | A Rare Golden Siege Golem Appeared... 😱 | Survived! | https://youtube.com/shorts/V9X7IRq_dyU |
