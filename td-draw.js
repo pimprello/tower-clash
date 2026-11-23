@@ -1430,16 +1430,32 @@ const DRAW = {
     const hsl = hex => { const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
       let h = 0; if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [(h * 60 + 360) % 360, d ? d / (1 - Math.abs(2 * l - 1)) : 0, l]; };
     const [hh, ss] = hsl(DT.c), H = (hh + 22) % 360, S = Math.round(Math.min(0.85, Math.max(0.55, ss)) * 100);
+    // (2026-11-23, Tower Clash's own thumbnail look: the siege) a burning danger-red sky over the fortress, embers rising and a
+    // fire glow behind the board, so it reads "under attack" at a glance and never looks like Army Clash's poster or Territory
+    // Clash's map. (The cyan defenders and the board's white frame stand out against the red.)
+    void H; void S;
     const lg = ctx.createLinearGradient(0, 0, 0, VH);
-    lg.addColorStop(0, `hsl(${H},${S}%,30%)`); lg.addColorStop(0.5, `hsl(${H},${S}%,16%)`); lg.addColorStop(1, `hsl(${H},${S}%,7%)`);
+    lg.addColorStop(0, '#6E1410'); lg.addColorStop(0.42, '#3A0A0A'); lg.addColorStop(1, '#0C0404');
     ctx.fillStyle = lg; ctx.fillRect(0, 0, VW, VH);
-    ctx.save(); ctx.translate(VW / 2, 960); ctx.globalAlpha = 0.08; ctx.fillStyle = DT.l;
-    for (let i = 0; i < 18; i++) { ctx.rotate(TAU / 18); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-90, -1500); ctx.lineTo(90, -1500); ctx.closePath(); ctx.fill(); }
+    const glow = ctx.createRadialGradient(VW / 2, 860, 80, VW / 2, 860, 820); glow.addColorStop(0, 'rgba(255,140,40,0.55)'); glow.addColorStop(0.5, 'rgba(220,60,20,0.22)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, VW, VH);
+    ctx.save(); ctx.translate(VW / 2, 860); ctx.globalAlpha = 0.07; ctx.fillStyle = '#FFB060';
+    for (let i = 0; i < 20; i++) { ctx.rotate(TAU / 20); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-80, -1500); ctx.lineTo(80, -1500); ctx.closePath(); ctx.fill(); }
+    ctx.restore();
+    // embers (fixed positions from a hash: the same picture every time for the same battle)
+    ctx.save();
+    for (let i = 0; i < 70; i++) {
+      const hx = ((i * 2654435761) >>> 0) / 4294967296, hy = ((i * 1597334677 + 99) >>> 0) / 4294967296, hz = ((i * 3812015801 + 7) >>> 0) / 4294967296;
+      const x = hx * VW, y = 160 + hy * 1500, r = 2 + hz * 6;
+      ctx.globalAlpha = 0.35 + hz * 0.5; ctx.fillStyle = hz > 0.6 ? '#FFD27A' : '#FF7A2A';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    }
     ctx.restore();
     // the battle, framed
-    const fw = 780, fh = fw, fx = (VW - fw) / 2, fy = 575, sy = AR.y + UI_DY;
+    const fw = 740, fh = fw, fx = (VW - fw) / 2, fy = 500, sy = AR.y + UI_DY;
     ctx.save(); ctx.translate(fx + fw / 2, fy + fh / 2); ctx.rotate(-0.025);
-    roundRect(ctx, -fw / 2 - 10, -fh / 2 - 10, fw + 20, fh + 20, 30); ctx.fillStyle = COL.ink; ctx.fill();
+    ctx.save(); ctx.shadowColor = 'rgba(255,90,30,0.9)'; ctx.shadowBlur = 70;
+    roundRect(ctx, -fw / 2 - 10, -fh / 2 - 10, fw + 20, fh + 20, 30); ctx.fillStyle = COL.ink; ctx.fill(); ctx.restore();
     roundRect(ctx, -fw / 2, -fh / 2, fw, fh, 22); ctx.save(); ctx.clip();
     ctx.drawImage(bg, AR.x, sy, AR.w, AR.h, -fw / 2, -fh / 2, fw, fh);
     const vg = ctx.createRadialGradient(0, 0, fw * 0.3, 0, 0, fw * 0.75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)'); ctx.fillStyle = vg; ctx.fillRect(-fw / 2, -fh / 2, fw, fh);
@@ -1448,14 +1464,15 @@ const DRAW = {
     ctx.restore();
     // the logo and the question
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = font(60, 800); spaced(ctx, 6); strokeText(ctx, 'TOWER CLASH', VW / 2, 262, DT.l, COL.ink, 10); spaced(ctx, 0);
+    // (2026-11-23) the question on top, the logo small above it; nothing that matters below y 1500 (YouTube's title goes there)
+    ctx.font = font(56, 800); spaced(ctx, 6); strokeText(ctx, 'TOWER CLASH', VW / 2, 222, DT.l, COL.ink, 10); spaced(ctx, 0);
     const q = this.mode ? MODES[this.mode].hook : 'WILL THE BASE SURVIVE?';
     const words = q.split(' '), lines = []; let cur = '';
     let fs0 = 118; ctx.font = font(fs0, 800);
     for (const w of words) { const s = cur ? cur + ' ' + w : w; if (ctx.measureText(s).width > 940 && cur) { lines.push(cur); cur = w; } else cur = s; }
     if (cur) lines.push(cur);
     if (lines.length > 2) { fs0 = 92; ctx.font = font(fs0, 800); }
-    const ly0 = lines.length > 1 ? (lines.length > 2 ? 345 : 370) : 420;
+    const ly0 = lines.length > 1 ? (lines.length > 2 ? 300 : 318) : 360;
     lines.forEach((l, i) => { ctx.save(); ctx.translate(VW / 2, ly0 + i * fs0 * 0.95); ctx.rotate(-0.04); strokeText(ctx, l, 0, 0, i === lines.length - 1 ? COL.gold : COL.white, COL.ink, 16); ctx.restore(); });
     // the best tower (bottom left) against the boss (bottom right)
     const best = this.towers.slice().sort((a, b) => (b.tier - a.tier) || (b.kills - a.kills))[0];
@@ -1474,9 +1491,10 @@ const DRAW = {
       let fz = 46; while (fz > 24 && ctx.measureText(name).width > 380) { fz -= 2; ctx.font = font(fz, 800); }
       strokeText(ctx, name, cx, cy + r + 40, COL.white, COL.ink, 9); spaced(ctx, 0);
     };
-    if (best) fig(best.u.type, DEF, 280, 1470, 125, TEAMS[DEF].c, best.def.name, best);
-    fig(this.bossType, ATK, VW - 280, 1470, 135, TEAMS[ATK].c, (BOSSES[this.bossType] || {}).name || labelOf(this.bossType));
-    ctx.save(); ctx.translate(VW / 2, 1475); ctx.rotate(-0.06); ctx.font = font(104, 800); strokeText(ctx, 'VS', 0, 0, COL.gold, COL.ink, 14); ctx.restore();
+    // the best tower (bottom left, smaller) and the boss looming bigger over the board's corner (bottom right)
+    if (best) fig(best.u.type, DEF, 250, 1290, 115, TEAMS[DEF].c, best.def.name, best);
+    fig(this.bossType, ATK, VW - 262, 1268, 158, TEAMS[ATK].c, (BOSSES[this.bossType] || {}).name || labelOf(this.bossType));
+    ctx.save(); ctx.translate(VW / 2 - 10, 1330); ctx.rotate(-0.06); ctx.font = font(104, 800); strokeText(ctx, 'VS', 0, 0, COL.gold, COL.ink, 14); ctx.restore();
     void t; ctx.textBaseline = 'alphabetic';
   },
 };

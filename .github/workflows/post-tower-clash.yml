@@ -32,7 +32,7 @@ jobs:
 
       # (2026-11-23) the latest main, not the commit this run was queued at: a run that waited behind another (concurrency)
       # must see that run's post in videos.jsonl, or it posts a second video for the same slot (Tower Clash, 22 Nov)
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: main
 
@@ -42,7 +42,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "go=yes" >> "$GITHUB_OUTPUT"; echo "manual run: posting now"; else node slot.js; fi
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         if: steps.slot.outputs.go == 'yes'
         with:
           node-version: 22
@@ -123,7 +123,7 @@ jobs:
 
       - name: Keep the video if the upload failed
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tower-clash-video
           path: out/

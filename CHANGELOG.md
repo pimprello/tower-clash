@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-23: Distinct, more clickable thumbnails; actions v5
+
+- **Thumbnail: the siege** (Tower Clash's own look, 2026-11-23): a burning danger-red sky with embers and a fire glow behind the board (was a violet ray background), the question on top, and the boss looming bigger over the board's corner against the best tower, all above y 1500 (the tower and boss used to sit at y 1470 with their names under YouTube's title).
+- GitHub Actions moved to v5 (`checkout`, `setup-node`, `upload-artifact`): the "Node.js 20 is deprecated" warning on every run is gone before GitHub turns Node 20 off.
+
 ## 2026-11-23: The thumbnail's battle picture has no UI
 
 - (Rellz: "there shouldn't be UI like health bars and the Star Eater text in the thumbnail, it should be map and troops") the battle in the thumbnail is drawn as a picture only (`drawPicture` in `td-draw.js`): no boss bar, combo, floating numbers, names, tier pips or TIER bars, and no health bars on troops, towers or the base. Everything hidden is put back straight after; looks only.
