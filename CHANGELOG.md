@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-23: 2 Shorts a day
+
+- Rellz, 2026-11-23: "make all upload 2 a day". Every channel now posts at 12:00 and 18:00 London time (`rules.schedule.hours` [12, 18]); the workflow also wakes from 10:00 to 13:59 UTC for the new slot (summer time covered). One extra post each was started by hand the same night, as he asked.
+
 ## 2026-11-23: Posting never fails or doubles
 
 - Why Tower Clash's 22 Nov 18:00 run failed: YouTube refused the upload for "invalid video keywords" (a bad tag). Tags were already cleaned at 18:40 (all three games); a manual re-run posted the video, but the 18:59 scheduled run, queued behind it, had checked out the older commit, did not see that post and put up a second video for the same slot.

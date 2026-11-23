@@ -2,9 +2,9 @@ name: Post Tower Clash
 
 on:
   schedule:
-    # 1 Short a day at 18:00 London time (rules.schedule; Rellz 2026-11-21). GitHub's timer runs in UTC and is often late, so it
-    # wakes every 15 minutes from 16:00 to 19:59 UTC (covering summer time too); slot.js lets only the first run after the slot post.
-    - cron: '3,18,33,48 16,17,18,19 * * *'
+    # 2 Shorts a day at 12:00 and 18:00 London time (rules.schedule; Rellz 2026-11-23). GitHub's timer runs in UTC and is often late, so it
+    # wakes every 15 minutes from 10:00 to 13:59 and 16:00 to 19:59 UTC (covering summer time too); slot.js lets only the first run after the slot post.
+    - cron: '3,18,33,48 10,11,12,13,16,17,18,19 * * *'
   workflow_dispatch:
     inputs:
       privacy:
