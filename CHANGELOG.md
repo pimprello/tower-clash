@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-24: hazy rectangle fix (from Army Clash)
+
+- The rim light on the troop layer left a faint white film over see-through things (auras, smoke, glows), which showed as a hazy box with hard edges. The rim is now cut so only solid troops get it. Looks only; same fix as Army Clash's.
+
 ## 2026-11-23: No more "11 Towers vs 8 Waves" titles
 
 - (Rellz: "11 Towers vs 8 Waves... I don't like titles like that") the counting / versus titles are gone ("N Towers vs N Waves", "Boss vs N Towers", "Can N Towers Stop...", "N Waves. 1 Base.", "Band vs Order", "Tier 5 Towers vs..."); the mode titles lost their counts. New hooks: "They Did NOT Expect <boss>", "Everything Went Wrong At Once...", "Watch What Happens To The Base", "Nothing Survives These Towers... Right?", "Don't Blink At The End", "Max Level Towers Weren't Enough?!". Still never giving the result away.

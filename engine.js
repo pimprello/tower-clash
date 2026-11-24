@@ -14118,7 +14118,11 @@ const RVB = (() => {
           // every write inside the band, so bands never overlap)
           const sx = Math.max(0, bx - pad), sy = Math.max(0, by - pad), sw = Math.min(L.width - sx, bw + 2 * pad), sh = Math.min(L.height - sy, bh + 2 * pad);
           rc.globalCompositeOperation = 'destination-in'; rc.drawImage(L, sx, sy, sw, sh, sx - o1x, sy - o1y, sw, sh);
+          // (2026-11-24, from Army Clash: see-through things on the layer left a faint white film in the rim, which showed as a hazy
+          // box with hard edges along the bands; cutting twice more leaves the rim on solid troops only. Looks only.)
+          rc.drawImage(L, sx, sy, sw, sh, sx - o1x, sy - o1y, sw, sh); rc.drawImage(L, sx, sy, sw, sh, sx - o1x, sy - o1y, sw, sh);
           rc.globalCompositeOperation = 'destination-out'; rc.drawImage(L, sx, sy, sw, sh, sx - o2x, sy - o2y, sw, sh);
+          rc.drawImage(L, sx, sy, sw, sh, sx - o2x, sy - o2y, sw, sh);
           rc.globalCompositeOperation = 'source-in'; rc.fillStyle = rimCol; rc.fillRect(bx, by, bw, bh);
           rc.restore();
         }
