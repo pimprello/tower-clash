@@ -1,8 +1,8 @@
 # View stats
 
-Updated 2026-11-23 18:16 UTC. 3 videos, 0 at least a day old (used below). Groups need 3+ videos.
+Updated 2026-11-24 18:12 UTC. 2 videos, 0 at least a day old (used below). Groups need 3+ videos.
 
-Total views: 15. Median views per video: 0.
+Total views: 4. Median views per video: 0.
 
 ### By upload hour (UK time)
 
@@ -73,6 +73,5 @@ Total views: 15. Median views per video: 0.
 
 | Views | Likes | Title |
 | --- | --- | --- |
-| 12 | 0 | 11 Towers vs 8 Waves... Who Breaks First? ⚔️ |
-| 3 | 0 | Acid Leviathan Is UNSTOPPABLE?! 🔥 |
-| 0 | 0 | This Tower Sends Them Back In Time ⏪ |
+| 4 | 0 | They Brought The Magma Colossus To A Tower Fight 💀 |
+| 0 | 0 | Watch What Happens To The Base 👀 |
