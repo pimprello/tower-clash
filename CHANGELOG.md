@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-24: Thumbnails in seven colour themes, not just red
+
+- (Rellz: "use different colour themes, not just red, for thumbnails") the thumbnail's sky, glow, rays, sparks and frame glow now come in seven themes: inferno red, toxic green, frost blue, royal purple, gold, abyss teal and neon pink. The map picks its own two times in three (snow and the clouds are frost, the swamp, graveyard and mushrooms toxic, the furnace and bombed city inferno, the castle, temple, pyramid and dunes gold, the beach and moon abyss, neon, sweets and rainbow neon, crystal, enchanted and blossom royal); otherwise the seed picks any of them. Looks only.
+
 ## 2026-11-24: hazy rectangle fix (from Army Clash)
 
 - The rim light on the troop layer left a faint white film over see-through things (auras, smoke, glows), which showed as a hazy box with hard edges. The rim is now cut so only solid troops get it. Looks only; same fix as Army Clash's.

@@ -1434,27 +1434,44 @@ const DRAW = {
     // fire glow behind the board, so it reads "under attack" at a glance and never looks like Army Clash's poster or Territory
     // Clash's map. (The cyan defenders and the board's white frame stand out against the red.)
     void H; void S;
+    // (Rellz 2026-11-24: "use different colour themes, not just red, for thumbnails") the sky, glow, rays and embers come in seven
+    // themes: the map's own when it has an obvious one (snow is frost, the swamp toxic, the furnace fire...), else one from the
+    // seed. Looks only.
+    const TH = {
+      inferno: { g: ['#6E1410', '#3A0A0A', '#0C0404'], glow: '255,140,40', glow2: '220,60,20', ray: '#FFB060', e: ['#FFD27A', '#FF7A2A'], sh: 'rgba(255,90,30,0.9)' },
+      toxic: { g: ['#16602F', '#0B2E1A', '#03100A'], glow: '150,255,90', glow2: '40,190,70', ray: '#C8FF8A', e: ['#E4FF9A', '#5CFF6B'], sh: 'rgba(120,255,80,0.85)' },
+      frost: { g: ['#0E4A7A', '#0A2848', '#030B18'], glow: '140,215,255', glow2: '40,120,220', ray: '#D6F2FF', e: ['#FFFFFF', '#8FD8FF'], sh: 'rgba(120,200,255,0.9)' },
+      royal: { g: ['#4C1D95', '#2A0E5A', '#0B0418'], glow: '200,140,255', glow2: '120,60,220', ray: '#E6D2FF', e: ['#FFD86B', '#C084FC'], sh: 'rgba(180,110,255,0.9)' },
+      gold: { g: ['#8A4B05', '#4A2603', '#140A01'], glow: '255,205,70', glow2: '230,130,20', ray: '#FFE7A0', e: ['#FFF1B0', '#FFB020'], sh: 'rgba(255,190,50,0.9)' },
+      abyss: { g: ['#0F5560', '#082A31', '#02090C'], glow: '70,240,215', glow2: '20,150,160', ray: '#B5FFF2', e: ['#D6FFF8', '#2DE1C2'], sh: 'rgba(60,230,210,0.85)' },
+      neon: { g: ['#7A0E5C', '#3D0730', '#10020C'], glow: '255,90,210', glow2: '170,40,200', ray: '#FFC2EE', e: ['#FFE0F6', '#FF4FD1'], sh: 'rgba(255,80,200,0.9)' },
+    };
+    const byMap = { snow: 'frost', frozen: 'frost', clouds: 'frost', swamp: 'toxic', graveyard: 'toxic', shroom: 'toxic', furnace: 'inferno', bombed: 'inferno', castle: 'gold', temple: 'gold', pyramid: 'gold', dunes: 'gold', beach: 'abyss', moon: 'abyss', neon: 'neon', sweets: 'neon', rainbow: 'neon', crystal: 'royal', enchanted: 'royal', blossom: 'royal' };
+    const keys = Object.keys(TH), sd = (this.opts.seed >>> 0) || 1, hv = (((sd ^ 0x7A5E11) * 2654435761) >>> 0) / 4294967296;
+    // (the map's theme two times in three; otherwise any theme, so the same map doesn't always look the same)
+    const tk = byMap[this.mapKey || this.opts.map] && hv < 0.67 ? byMap[this.mapKey || this.opts.map] : keys[Math.floor((((sd * 40503) >>> 0) % 997) / 997 * keys.length)];
+    const P = TH[tk] || TH.inferno; this.thumbTheme = tk;
     const lg = ctx.createLinearGradient(0, 0, 0, VH);
-    lg.addColorStop(0, '#6E1410'); lg.addColorStop(0.42, '#3A0A0A'); lg.addColorStop(1, '#0C0404');
+    lg.addColorStop(0, P.g[0]); lg.addColorStop(0.42, P.g[1]); lg.addColorStop(1, P.g[2]);
     ctx.fillStyle = lg; ctx.fillRect(0, 0, VW, VH);
-    const glow = ctx.createRadialGradient(VW / 2, 860, 80, VW / 2, 860, 820); glow.addColorStop(0, 'rgba(255,140,40,0.55)'); glow.addColorStop(0.5, 'rgba(220,60,20,0.22)'); glow.addColorStop(1, 'rgba(0,0,0,0)');
+    const glow = ctx.createRadialGradient(VW / 2, 860, 80, VW / 2, 860, 820); glow.addColorStop(0, `rgba(${P.glow},0.55)`); glow.addColorStop(0.5, `rgba(${P.glow2},0.22)`); glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow; ctx.fillRect(0, 0, VW, VH);
-    ctx.save(); ctx.translate(VW / 2, 860); ctx.globalAlpha = 0.07; ctx.fillStyle = '#FFB060';
+    ctx.save(); ctx.translate(VW / 2, 860); ctx.globalAlpha = 0.07; ctx.fillStyle = P.ray;
     for (let i = 0; i < 20; i++) { ctx.rotate(TAU / 20); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-80, -1500); ctx.lineTo(80, -1500); ctx.closePath(); ctx.fill(); }
     ctx.restore();
-    // embers (fixed positions from a hash: the same picture every time for the same battle)
+    // embers / sparks / snow (fixed positions from a hash: the same picture every time for the same battle)
     ctx.save();
     for (let i = 0; i < 70; i++) {
       const hx = ((i * 2654435761) >>> 0) / 4294967296, hy = ((i * 1597334677 + 99) >>> 0) / 4294967296, hz = ((i * 3812015801 + 7) >>> 0) / 4294967296;
       const x = hx * VW, y = 160 + hy * 1500, r = 2 + hz * 6;
-      ctx.globalAlpha = 0.35 + hz * 0.5; ctx.fillStyle = hz > 0.6 ? '#FFD27A' : '#FF7A2A';
+      ctx.globalAlpha = 0.35 + hz * 0.5; ctx.fillStyle = hz > 0.6 ? P.e[0] : P.e[1];
       ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
     }
     ctx.restore();
     // the battle, framed
     const fw = 740, fh = fw, fx = (VW - fw) / 2, fy = 500, sy = AR.y + UI_DY;
     ctx.save(); ctx.translate(fx + fw / 2, fy + fh / 2); ctx.rotate(-0.025);
-    ctx.save(); ctx.shadowColor = 'rgba(255,90,30,0.9)'; ctx.shadowBlur = 70;
+    ctx.save(); ctx.shadowColor = P.sh; ctx.shadowBlur = 70;
     roundRect(ctx, -fw / 2 - 10, -fh / 2 - 10, fw + 20, fh + 20, 30); ctx.fillStyle = COL.ink; ctx.fill(); ctx.restore();
     roundRect(ctx, -fw / 2, -fh / 2, fw, fh, 22); ctx.save(); ctx.clip();
     ctx.drawImage(bg, AR.x, sy, AR.w, AR.h, -fw / 2, -fh / 2, fw, fh);
