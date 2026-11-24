@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-24 18:08 | Watch What Happens To The Base 👀 | Fallen! | https://youtube.com/shorts/_ffUFxFekoQ |
 | 2026-11-24 13:23 | They Brought The Magma Colossus To A Tower Fight 💀 | Survived! | https://youtube.com/shorts/Zla9ocmcJn0 |
 | 2026-11-23 21:52 | Can ANYTHING Stop The Titan? 😨 | Survived! | https://youtube.com/shorts/NJeYAWMio0c |
 | 2026-11-23 18:11 | This Tower Sends Them Back In Time ⏪ | Fallen! | https://youtube.com/shorts/O6rzoZqhv4M |
