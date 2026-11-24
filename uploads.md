@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-24 21:52 | Don't Blink At The End 😳 | Fallen! | https://youtube.com/shorts/4dXZbYvPh7s |
 | 2026-11-24 18:08 | Watch What Happens To The Base 👀 | Fallen! | https://youtube.com/shorts/_ffUFxFekoQ |
 | 2026-11-24 13:23 | They Brought The Magma Colossus To A Tower Fight 💀 | Survived! | https://youtube.com/shorts/Zla9ocmcJn0 |
 | 2026-11-23 21:52 | Can ANYTHING Stop The Titan? 😨 | Survived! | https://youtube.com/shorts/NJeYAWMio0c |
