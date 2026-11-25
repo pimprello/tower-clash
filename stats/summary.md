@@ -1,8 +1,8 @@
 # View stats
 
-Updated 2026-11-24 18:12 UTC. 2 videos, 0 at least a day old (used below). Groups need 3+ videos.
+Updated 2026-11-25 18:05 UTC. 5 videos, 1 at least a day old (used below). Groups need 3+ videos.
 
-Total views: 4. Median views per video: 0.
+Total views: 29. Median views per video: 13.
 
 ### By upload hour (UK time)
 
@@ -23,6 +23,7 @@ Total views: 4. Median views per video: 0.
 
 | Day | Videos | Median views | Total views |
 | --- | --- | --- | --- |
+| 2026-11-24 | 1 | 13 | 13 |
 
 ### By layout
 
@@ -73,5 +74,8 @@ Total views: 4. Median views per video: 0.
 
 | Views | Likes | Title |
 | --- | --- | --- |
-| 4 | 0 | They Brought The Magma Colossus To A Tower Fight 💀 |
-| 0 | 0 | Watch What Happens To The Base 👀 |
+| 13 | 0 | They Brought The Magma Colossus To A Tower Fight 💀 |
+| 6 | 0 | A Rare Golden Siege Golem Appeared... 😱 |
+| 6 | 0 | Watch What Happens To The Base 👀 |
+| 4 | 0 | Don't Blink At The End 😳 |
+| 0 | 0 | The Last 10 Seconds Are INSANE 🤯 |
