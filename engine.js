@@ -13839,8 +13839,10 @@ const RVB = (() => {
     // ---- drawing ----
     // the troops' layer: same size and camera as the screen, cleared over the battlefield
     shineBegin(m) {
-      const RS = api.RS || 1, PW = Math.round(VW * RS), PH = Math.round(VH * RS);
-      if (!this._shL || this._shL.width !== PW) { this._shL = api.makeCanvas(PW, PH); this._shR = api.makeCanvas(PW, PH); }
+      // (2026-11-26, from Army Clash: sized from the canvas drawn onto, not the video's scale, so the 1.5x-sharper cold open shows every troop)
+      const RS = (m.canvas && m.canvas.width ? m.canvas.width / VW : 0) || api.RS || 1, PW = Math.round(VW * RS), PH = Math.round(VH * RS);
+      this._shRS = RS;
+      if (!this._shL || this._shL.width !== PW || this._shL.height !== PH) { this._shL = api.makeCanvas(PW, PH); this._shR = api.makeCanvas(PW, PH); }
       const lc = this._shL.getContext('2d');
       // (the battlefield's rectangle in screen pixels, at the render scale)
       const rx = Math.max(0, Math.floor((AR.x + this.shakeX - 3) * RS)), ry = Math.max(0, Math.floor((AR.y + (this.layDY || 0) + this.shakeY - 3) * RS));
@@ -14101,7 +14103,7 @@ const RVB = (() => {
       lc.restore();
       // the rim light: a thin band just inside each outline on the side facing the light (true to every shape, from triangles to dragons)
       // (whole-pixel offsets: a fractional one would make the copies blur, and cost four times as much)
-      const z = (this.cam && this.cam.z || 1) * (api.RS || 1), ux = this._shLx, uy = this._shLy, rimA = clamp(0.62 * S.rim, 0, 1);
+      const z = (this.cam && this.cam.z || 1) * (this._shRS || api.RS || 1), ux = this._shLx, uy = this._shLy, rimA = clamp(0.62 * S.rim, 0, 1);
       const o1x = Math.round(ux * 4 * z), o1y = Math.round(uy * 4 * z), o2x = Math.round(ux * 7.2 * z), o2y = Math.round(uy * 7.2 * z);
       // the bands to work on (the whole battlefield when the camera is rolled, or for the stampede and the kraken)
       const pad = Math.max(Math.abs(o2x), Math.abs(o2y)) + 2, rects = [];
@@ -15692,7 +15694,7 @@ const RVB = (() => {
     // how far a troop reaches above its middle (a little person's head is well above its body's circle)
     // the part of the battlefield the camera shows right now, in battlefield coordinates
     viewRect(ctx) {
-      const RS = api.RS || 1, dy = this.opts.ui >= 2 ? UI_DY : 0;
+      const RS = (ctx.canvas && ctx.canvas.width ? ctx.canvas.width / VW : 0) || api.RS || 1, dy = this.opts.ui >= 2 ? UI_DY : 0;
       try { const m = ctx.getTransform().inverse(), a = m.transformPoint({ x: AR.x * RS, y: (AR.y + dy) * RS }), b = m.transformPoint({ x: (AR.x + AR.w) * RS, y: (AR.y + AR.h + dy) * RS }); return { x0: Math.min(a.x, b.x), y0: Math.min(a.y, b.y), x1: Math.max(a.x, b.x), y1: Math.max(a.y, b.y) }; }
       catch (e) { return { x0: AR.x, y0: AR.y, x1: AR.x + AR.w, y1: AR.y + AR.h }; }
     },

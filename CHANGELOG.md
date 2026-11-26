@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-26: every troop visible in the cold open (from Army Clash)
+
+- `engine.js`: the troops' shine layer and the on-screen check took their size from the video's scale, but the cold open draws 1.5x sharper, so troops in the lower right were cut off. Both now size from the canvas they draw onto. Looks only.
+
 ## 2026-11-24: Thumbnails in seven colour themes, not just red
 
 - (Rellz: "use different colour themes, not just red, for thumbnails") the thumbnail's sky, glow, rays, sparks and frame glow now come in seven themes: inferno red, toxic green, frost blue, royal purple, gold, abyss teal and neon pink. The map picks its own two times in three (snow and the clouds are frost, the swamp, graveyard and mushrooms toxic, the furnace and bombed city inferno, the castle, temple, pyramid and dunes gold, the beach and moon abyss, neon, sweets and rainbow neon, crystal, enchanted and blossom royal); otherwise the seed picks any of them. Looks only.
