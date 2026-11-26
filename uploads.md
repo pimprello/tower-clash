@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-26 13:24 | Max Level Towers Weren't Enough?! 🔥 | Survived! | https://youtube.com/shorts/sXVWqrhP5J0 |
 | 2026-11-25 22:14 | A Rare Golden Acid Leviathan Appeared... 😱 | Survived! | https://youtube.com/shorts/jbojNAL67Vo |
 | 2026-11-25 18:02 | The Last 10 Seconds Are INSANE 🤯 | Survived! | https://youtube.com/shorts/a1cO9YHIBNg |
 | 2026-11-25 13:21 | A Rare Golden Siege Golem Appeared... 😱 | Survived! | https://youtube.com/shorts/NKZirzwhUvk |
