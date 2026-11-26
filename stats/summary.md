@@ -1,8 +1,8 @@
 # View stats
 
-Updated 2026-11-25 18:05 UTC. 5 videos, 1 at least a day old (used below). Groups need 3+ videos.
+Updated 2026-11-26 17:23 UTC. 8 videos, 4 at least a day old (used below). Groups need 3+ videos.
 
-Total views: 29. Median views per video: 13.
+Total views: 88. Median views per video: 19.
 
 ### By upload hour (UK time)
 
@@ -13,17 +13,20 @@ Total views: 29. Median views per video: 13.
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
+| Tue | 3 | 6 | 11 |
 
 ### By video length
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
+| 61-75 s | 3 | 6 | 11 |
 
 ### Posts per day
 
 | Day | Videos | Median views | Total views |
 | --- | --- | --- | --- |
-| 2026-11-24 | 1 | 13 | 13 |
+| 2026-11-24 | 3 | 6 | 32 |
+| 2026-11-25 | 1 | 19 | 19 |
 
 ### By layout
 
@@ -39,6 +42,7 @@ Total views: 29. Median views per video: 13.
 
 | Group | Videos | Median views | Average views |
 | --- | --- | --- | --- |
+| classic | 3 | 19 | 15 |
 
 ### Result
 
@@ -74,8 +78,11 @@ Total views: 29. Median views per video: 13.
 
 | Views | Likes | Title |
 | --- | --- | --- |
-| 13 | 0 | They Brought The Magma Colossus To A Tower Fight 💀 |
-| 6 | 0 | A Rare Golden Siege Golem Appeared... 😱 |
+| 25 | 0 | The Last 10 Seconds Are INSANE 🤯 |
+| 21 | 0 | They Brought The Magma Colossus To A Tower Fight 💀 |
+| 19 | 0 | A Rare Golden Siege Golem Appeared... 😱 |
+| 12 | 0 | A Rare Golden Acid Leviathan Appeared... 😱 |
 | 6 | 0 | Watch What Happens To The Base 👀 |
-| 4 | 0 | Don't Blink At The End 😳 |
-| 0 | 0 | The Last 10 Seconds Are INSANE 🤯 |
+| 5 | 0 | Don't Blink At The End 😳 |
+| 0 | 0 | A Rare Golden War Mammoth Appeared... 😱 |
+| 0 | 0 | Max Level Towers Weren't Enough?! 🔥 |
