@@ -2,6 +2,7 @@
 
 | Date (UTC) | Title | Result | Link |
 | --- | --- | --- | --- |
+| 2026-11-27 13:21 | Nothing Survives These Towers... Right? 💀 | Fallen! | https://youtube.com/shorts/W6xxmkPEPx8 |
 | 2026-11-26 22:04 | 6 Towers DESTROYED... Is The Base Next? 😱 | Fallen! | https://youtube.com/shorts/hGo31peMhcU |
 | 2026-11-26 17:20 | A Rare Golden War Mammoth Appeared... 😱 | Fallen! | https://youtube.com/shorts/JuTj0zuVoqM |
 | 2026-11-26 13:24 | Max Level Towers Weren't Enough?! 🔥 | Survived! | https://youtube.com/shorts/sXVWqrhP5J0 |
